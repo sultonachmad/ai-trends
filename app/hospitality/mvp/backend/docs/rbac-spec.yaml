@@ -1,0 +1,159 @@
+# backend/docs/rbac-spec.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Actor model — roles, capabilities, and navigation for this application.
+#
+# PURPOSE
+#   Single source of truth for who can do what. Written before features are
+#   implemented, updated as new actors or capabilities are introduced.
+#   LLMs read this file when:
+#     - Adding a permission-protected backend endpoint
+#     - Adding a frontend page or button that needs a guard
+#     - Adding a nav menu item
+#   If this file does not exist, create it by listing the actors and
+#   capabilities from the functional spec, then proceed with implementation.
+#
+# WORKFLOW
+#   1. Functional spec lists actors (roles) and their capabilities (features)
+#   2. Translate each actor → a role entry below
+#   3. Translate each capability → one or more permission codes below
+#   4. Decide which capabilities appear in the sidebar → add to `menus`
+#   5. Implement features using the codes defined here in require_permission()
+#
+# CONVENTIONS
+#   Permission codes:  module:action  (e.g.  orders:view,  orders:edit)
+#   One module = one domain feature (orders, invoices, reports …)
+#   Standard actions: view | add | edit | delete  (extend as needed)
+#   Use the SAME code in: require_permission(), RbacGuard, and this file.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Roles (Actors) ───────────────────────────────────────────────────────────
+# Each entry becomes a row in the `role` table (seeded at startup).
+# `permissions: ["*"]` means the role bypasses all permission checks in code
+# (the admin role uses this — the check is by role name "admin", not by code).
+# For all other roles, list the exact permission codes they are granted.
+roles:
+
+  admin:
+    description: >
+      Full system access. Bypasses all per-permission checks. Assign only to
+      trusted system administrators — not to regular application users.
+    permissions: ["*"]
+
+  # ── Application roles go below this line ───────────────────────────────────
+  # Copy the block format and fill in role name, description, and permissions.
+  #
+  # example_role:
+  #   description: >
+  #     Describe what this actor does in the system and any key restrictions.
+  #   permissions:
+  #     - module:view
+  #     - module:edit
+
+
+# ── Permissions (Capabilities) ───────────────────────────────────────────────
+# Every permission code that appears in require_permission() must be listed
+# here. The startup seed reads _PERMISSION_REGISTRY (auto-populated when
+# routers are imported) — this section documents the intent of each code and
+# is the reference LLMs use when writing new permission-protected code.
+#
+# Format:
+#   "<code>": "<human-readable description of what this permission grants>"
+permissions:
+
+  # System — RBAC management (shipped with the rbac prefab, do not remove)
+  "users:view":        "View the user list and see which roles each user holds"
+  "users:edit":        "Assign or reassign roles to any user"
+  "roles:view":        "Browse the list of roles and their assigned permissions"
+  "roles:add":         "Create a new role"
+  "roles:edit":        "Edit a role's name, description, or permission set"
+  "roles:delete":      "Delete a role (does not affect users — role is just removed)"
+  "permissions:view":  "View the full list of registered permission codes"
+  "menus:reload":      "Reload sidebar menus from this file without a restart"
+
+  # ── Application permissions go below this line ─────────────────────────────
+  # Add one entry per require_permission() call you add to the backend.
+  # Use the same code string verbatim.
+  #
+  # "orders:view":    "Browse the order list and view order details"
+  # "orders:add":     "Create a new order"
+  # "orders:edit":    "Edit an existing order"
+  # "orders:delete":  "Cancel or delete an order"
+
+
+# ── Navigation Menus ─────────────────────────────────────────────────────────
+# This section is the SINGLE SOURCE OF TRUTH for navigation. There is no menu
+# table in the database — the backend reads this file directly at runtime.
+# To add, remove, or reorder menu items: edit this file and restart the server.
+#
+# Fields:
+#   name        — display label in the sidebar / nav
+#   path        — route path (must match a frontend page)
+#   icon        — key in ICON_MAP (Sidebar.tsx / DynamicNav.tsx)
+#   order       — sort position (ascending, lower = higher in the list)
+#   active      — true: shown in nav; false: hidden (use for WIP features)
+#   permission  — (optional) permission code that gates visibility;
+#                  omit for items visible to all authenticated users
+#   children    — (optional) nested items; renders as a collapsible group
+#
+# Active/Inactive:
+#   Set `active: false` to hide a menu item from the sidebar without deleting
+#   it. Use this when a feature is under development — the route and page can
+#   exist but the nav entry stays hidden until you flip it to `active: true`.
+menus:
+
+  - name: Admin
+    path: /admin
+    icon: shield
+    order: 10
+    active: true
+    children:
+      - name: Users
+        path: /admin/users
+        icon: users
+        permission: users:view
+        order: 1
+        active: true
+
+      - name: Roles
+        path: /admin/roles
+        icon: roles
+        permission: roles:view
+        order: 2
+        active: true
+
+      - name: Permissions
+        path: /admin/permissions
+        icon: key
+        permission: permissions:view
+        order: 3
+        active: true
+
+  # ── Application menus go below this line ───────────────────────────────────
+  # Add an entry for each new page that should appear in the sidebar / nav.
+  #
+  # Standalone link example:
+  # - name: Orders
+  #   path: /orders
+  #   icon: file
+  #   order: 20
+  #   active: true
+  #   permission: orders:view
+  #
+  # Group with children example:
+  # - name: Reports
+  #   path: /reports
+  #   icon: chart
+  #   order: 30
+  #   active: true
+  #   children:
+  #     - name: Sales
+  #       path: /reports/sales
+  #       permission: reports:view
+  #       order: 1
+  #       active: true
+  #     - name: Users
+  #       path: /reports/users
+  #       permission: reports:view
+  #       order: 2
+  #       active: false   # ← hidden until the page is built

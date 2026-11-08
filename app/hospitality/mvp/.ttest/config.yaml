@@ -1,0 +1,27 @@
+installed_prefabs:
+- base-frontend-nextjs
+- base-backend-fastapi
+- base-nextjs-fastapi
+- auth-session
+- rbac
+- auth-oauth2
+- auth-oauth2-google
+- auth-oauth2-microsoft
+- theme-ttest
+- crud-scaffold
+- file-upload
+- document-extract
+- email
+- audit-evidence
+name: Test ALL
+run:
+  script: scripts/dev.sh
+  services:
+  - cmd: python3 -m uvicorn app.main:app --host 0.0.0.0 --reload --port 8000
+    cwd: backend
+    name: backend
+    port: 8000
+  - cmd: npm run dev -- -p 3100
+    cwd: frontend
+    name: frontend
+    port: 3100

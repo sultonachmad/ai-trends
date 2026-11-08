@@ -1,0 +1,75 @@
+schemaVersion: 1
+entities:
+- name: SampleItem
+  file: backend/app/models/sample_item.py
+  table: sampleitem
+  description: General-purpose sample CRUD entity (name, description, status, due_at)
+  migration: backend/migrations/versions/0001_initial_sample_item.py
+- name: Role
+  file: backend/app/rbac/models.py
+  table: role
+  description: Role with name and assigned permissions (many-to-many)
+- name: Permission
+  file: backend/app/rbac/models.py
+  table: permission
+  description: "Permission code (e.g. 'users.read', 'roles.write') \u2014 seeded from\
+    \ rbac-spec.yaml"
+- name: RolePermission
+  file: backend/app/rbac/models.py
+  table: role_permission
+  description: Join table linking roles to permissions
+- name: UserRole
+  file: backend/app/rbac/models.py
+  table: user_role
+  description: Join table linking users to roles
+api_routers:
+- prefix: /api/health
+  file: backend/app/main.py
+  description: Health check endpoint
+- prefix: /api/sample-items
+  file: backend/app/routers/sample_items.py
+  description: CRUD endpoints for SampleItem (list, get, create, update, delete)
+- session_router
+- sample_protected_router
+- prefix: /api/rbac
+  file: backend/app/rbac/router.py
+  description: "RBAC admin endpoints \u2014 roles CRUD, permissions list, user-role\
+    \ assignment"
+- prefix: /api/me
+  file: backend/app/rbac/me.py
+  description: "Current user profile \u2014 returns user info, roles, permissions,\
+    \ allowed menus"
+- rbac_router
+- me_router
+- auth
+- oauth_bridge
+- upload
+- extract
+- contact_router
+- audit_router
+services: []
+middleware:
+- session
+patterns:
+- name: create_crud_router
+  file: backend/app/crud/router_factory.py
+  description: Factory that wires list/get/create/patch/delete for any BaseEntity
+    subclass
+- name: require_permission
+  file: backend/app/rbac/dependencies.py
+  description: "FastAPI dependency \u2014 raises 403 if current user lacks the required\
+    \ permission code"
+- crud-router-factory
+utilities_backend:
+- name: BaseEntity
+  file: backend/app/crud/base_model.py
+  description: Auto-increment id + TimestampMixin (created_at, updated_at, created_by,
+    updated_by)
+- name: utc_datetime_field
+  file: backend/app/crud/base_model.py
+  description: Helper to declare timezone-aware TIMESTAMP WITH TIME ZONE columns
+- name: seed_rbac
+  file: backend/app/rbac/seed.py
+  description: "Startup task \u2014 seeds permissions from rbac-spec.yaml, creates\
+    \ default admin role and user"
+- extractor

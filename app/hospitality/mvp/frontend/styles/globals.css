@@ -1,0 +1,298 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =====================
+   Ttest Theme
+   (Modern indigo/violet palette — bold gradients, clean surfaces, Space Grotesk)
+   ===================== */
+:root.ttest {
+  --background: var(--sd-bg, #f5f3ff);
+  --foreground: var(--sd-text, #1e1b4b);
+  --primary-color: var(--sd-primary, #6366f1);
+  --primary-hover-color: var(--sd-primary-hover, #4f46e5);
+  --primary-foreground: #ffffff;
+  --secondary-color: var(--sd-muted, #64748b);
+  --secondary-foreground: var(--sd-bg, #ffffff);
+  --card-foreground: var(--sd-text, #1e1b4b);
+  --destructive-foreground: #ffffff;
+  --chat-user-bg: var(--sd-primary-soft, #e0e7ff);
+  --chat-assistant-bg: var(--sd-surface, #ffffff);
+  --chat-user-text: var(--sd-primary-ink, #312e81);
+  --chat-assistant-text: var(--sd-text, #1e1b4b);
+  --input-bg: var(--sd-surface, #ffffff);
+  --input-border: var(--sd-line, #c7d2fe);
+  --cancel-button-bg: var(--sd-section, #f1f5f9);
+  --cancel-button-text: var(--sd-muted, #475569);
+  --cancel-button-border: var(--sd-line, #c7d2fe);
+  --cancel-button-hover-bg: var(--sd-primary-soft, #e0e7ff);
+  --cancel-button-hover-text: var(--sd-text, #1e1b4b);
+  --delete-button-bg: #fef2f2;
+  --delete-button-text: #dc2626;
+  --delete-button-border: #fecaca;
+  --delete-button-hover-bg: #fee2e2;
+  --delete-button-hover-text: #b91c1c;
+  --table-nav-button-bg: var(--sd-surface, #ffffff);
+  --table-nav-button-text: var(--sd-muted, #475569);
+  --table-nav-button-border: var(--sd-line, #e0e7ff);
+  --table-nav-button-hover-bg: var(--sd-primary-soft, #eef2ff);
+  --table-nav-button-hover-text: var(--sd-text, #1e1b4b);
+  --table-nav-button-active-bg: var(--sd-primary, #6366f1);
+  --table-nav-button-active-text: #ffffff;
+  --dropdown-bg: var(--sd-surface, #ffffff);
+  --dropdown-border: var(--sd-line, #e0e7ff);
+  --dropdown-shadow: var(--sd-primary-shadow, rgba(99, 102, 241, 0.08));
+  --dropdown-item-text: var(--sd-text, #1e1b4b);
+  --dropdown-item-hover-bg: var(--sd-primary-soft, #eef2ff);
+  --dropdown-item-hover-text: var(--sd-primary-ink, #4338ca);
+  --main-header-bg: var(--sd-surface, #ffffff);
+  --aside-bg: var(--sd-aside-bg, #1e1b4b);
+  --aside-text: var(--sd-aside-text, #e0e7ff);
+  --aside-text-muted: var(--sd-aside-muted, #a5b4fc);
+  --aside-border: var(--sd-aside-line, #312e81);
+  --aside-hover-bg: var(--sd-aside-hover, var(--sd-aside-line, #312e81));
+  --aside-active-bg: var(--sd-aside-active, rgba(99, 102, 241, 0.15));
+  --aside-active-text: var(--sd-aside-active-text, var(--sd-aside-muted, #a5b4fc));
+  --main-section-bg: var(--sd-surface, #ffffff);
+  --sub-section-bg: var(--sd-surface, #ffffff);
+  --sub-sub-section-bg: var(--sd-bg, #f5f3ff);
+}
+
+/* Top-bar colours for NavFrame. Kept out of the block above, which holds only the style's
+   mapped variables; this theme's values are plain colours, not HSL parts. */
+:root.ttest {
+  --nav-bar-bg: var(--sd-surface, #ffffff);
+  --nav-bar-line: var(--sd-line, #c7d2fe);
+  --nav-bar-text: var(--foreground);
+}
+
+/* =====================
+   BASE STYLES
+   ===================== */
+
+:root {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* ── Layout sections ── */
+
+.bg-main {
+  background-color: var(--background);
+}
+
+.bg-main-header {
+  background-color: var(--main-header-bg);
+  border-bottom: 1px solid var(--input-border);
+}
+
+.bg-aside {
+  background-color: var(--aside-bg);
+  color: var(--aside-text);
+}
+
+.bg-main-section {
+  background-color: var(--main-section-bg);
+  border-radius: var(--sd-radius-lg, 0.85rem);
+  padding: 1.5rem;
+  box-shadow: var(--sd-shadow, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+
+.bg-sub-section {
+  background-color: var(--sub-section-bg);
+  border-radius: var(--sd-radius-lg, 0.85rem);
+  padding: 0.5rem;
+  box-shadow: var(--sd-shadow, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+
+.bg-sub-sub-section {
+  background-color: var(--sub-sub-section-bg);
+  border-radius: var(--sd-radius-lg, 0.85rem);
+  padding: 0.5rem;
+}
+
+/* ── Text ── */
+
+.text-main-color {
+  color: var(--foreground);
+}
+
+.text-secondary-color {
+  color: var(--secondary-color);
+}
+
+/* ── Inputs ── */
+
+.bg-input {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--sd-radius, 0.7rem);
+}
+
+select.bg-input:hover,
+select.bg-input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+/* ── Buttons ── */
+
+.bg-buton {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--sd-radius, 0.6rem);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.bg-buton:hover {
+  background-color: var(--primary-hover-color);
+  color: #ffffff;
+}
+
+.bg-buton-light {
+  background-color: var(--background);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--sd-radius-sm, 4px);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  border: 1px solid var(--secondary-color);
+}
+
+.bg-buton-light:hover {
+  background-color: var(--secondary-color);
+  color: var(--foreground);
+}
+
+.bg-buton-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.bg-buton-cancel {
+  background-color: var(--cancel-button-bg);
+  color: var(--cancel-button-text);
+  border: 1px solid var(--cancel-button-border);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--sd-radius, 0.6rem);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.bg-buton-cancel:hover {
+  background-color: var(--cancel-button-hover-bg);
+  color: var(--cancel-button-hover-text);
+  border-color: var(--cancel-button-hover-bg);
+}
+
+.btn-delete {
+  background-color: var(--delete-button-bg);
+  color: var(--delete-button-text);
+  border: 1px solid var(--delete-button-border);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--sd-radius, 0.6rem);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.btn-delete:hover {
+  background-color: var(--delete-button-hover-bg);
+  color: var(--delete-button-hover-text);
+  border-color: var(--delete-button-hover-bg);
+}
+
+.btn-primary-small {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--sd-radius, 0.6rem);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.btn-primary-small:hover {
+  background-color: var(--primary-hover-color);
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: var(--cancel-button-bg);
+  color: var(--cancel-button-text);
+  border: 1px solid var(--cancel-button-border);
+  padding: 0.5rem 1rem;
+  border-radius: var(--sd-radius, 0.6rem);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.btn-secondary:hover {
+  background-color: var(--cancel-button-hover-bg);
+  color: var(--cancel-button-hover-text);
+  border-color: var(--cancel-button-hover-bg);
+}
+
+/* ── Table navigation ── */
+
+.btn-table-nav {
+  background-color: var(--table-nav-button-bg);
+  color: var(--table-nav-button-text);
+  border: 1px solid var(--table-nav-button-border);
+  padding: 0.5rem 0.5rem;
+  border-radius: 1px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  min-width: 1.5rem;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-table-nav:hover {
+  background-color: var(--table-nav-button-hover-bg);
+  color: var(--table-nav-button-hover-text);
+  border-color: var(--table-nav-button-hover-bg);
+}
+
+.btn-table-nav.active,
+.btn-table-nav:active {
+  background-color: var(--table-nav-button-active-bg);
+  color: var(--table-nav-button-active-text);
+  border-color: var(--table-nav-button-active-bg);
+  font-weight: 600;
+}
+
+/* ── Dropdowns ── */
+
+.list-dropdown {
+  background-color: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--sd-radius-sm, 4px);
+  box-shadow: 0 4px 6px -1px var(--dropdown-shadow), 0 2px 4px -1px var(--dropdown-shadow);
+}
+
+.list-dropdown-item {
+  color: var(--dropdown-item-text);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.list-dropdown-item:hover {
+  background-color: var(--dropdown-item-hover-bg);
+  color: var(--dropdown-item-hover-text);
+  border-radius: var(--sd-radius-sm, 4px);
+}
+
+/* BDAI-2058: sidebar gutter — applied only when the <aside> is mounted.
+   When the Sidebar component returns null on /login, <aside> is absent and
+   <main> stays centred with no empty left gutter. */
+@media (min-width: 768px) {
+  body:has(> aside) > main {
+    margin-left: 16rem; /* w-64 = 256px = 16rem */
+  }
+}

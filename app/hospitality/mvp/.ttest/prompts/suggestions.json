@@ -1,0 +1,109 @@
+{
+  "groups": [
+    {
+      "id": "build",
+      "label": "Build",
+      "requires_context": false,
+      "suggestions": [
+        {
+          "id": "fe-install-deps",
+          "label": "Install frontend dependencies",
+          "prompt": "Run npm install in the frontend/ directory and verify the dev server starts cleanly",
+          "badge": null
+        },
+        {
+          "id": "fe-check-types",
+          "label": "Type-check the frontend",
+          "prompt": "Run tsc --noEmit in the frontend/ directory and fix any type errors",
+          "badge": null
+        },
+        {
+          "id": "fe-build-page",
+          "label": "Build a new page from the use case",
+          "prompt": "Read the attached use case context, then create a new Next.js App Router page with Tailwind styling and wire it to the backend API",
+          "badge": null
+        },
+        {
+          "id": "be-install-deps",
+          "label": "Install backend dependencies",
+          "prompt": "Run uv sync in the backend/ directory and verify the FastAPI server starts cleanly",
+          "badge": null
+        },
+        {
+          "id": "be-check-health",
+          "label": "Check backend health endpoint",
+          "prompt": "Verify the /health endpoint responds correctly and fix any startup errors",
+          "badge": null
+        },
+        {
+          "id": "be-build-endpoint",
+          "label": "Build a new endpoint from the use case",
+          "prompt": "Read the attached use case context, then create a new FastAPI router with SQLModel entity, Pydantic schemas, and Alembic migration",
+          "badge": null
+        },
+        {
+          "id": "base-install-deps",
+          "label": "Install dependencies and run the app",
+          "prompt": "Install all dependencies (npm install + uv sync) then start the dev server",
+          "badge": null
+        },
+        {
+          "id": "base-check-health",
+          "label": "Check all services are healthy",
+          "prompt": "Check that the backend and frontend are running and healthy, fix any issues",
+          "badge": null
+        }
+      ]
+    },
+    {
+      "id": "dev",
+      "label": "Dev",
+      "requires_context": false,
+      "suggestions": [
+        {
+          "id": "auth-add-role",
+          "label": "Add a new role or permission",
+          "prompt": "Add a new role to the auth system following the existing RBAC pattern in backend/app/auth/",
+          "badge": null
+        },
+        {
+          "id": "auth-protect-route",
+          "label": "Protect a route with auth",
+          "prompt": "Add authentication guard to the specified route using the AuthGuard component and JWT middleware pattern",
+          "badge": null
+        },
+        {
+          "id": "crud-add-filter",
+          "label": "Add filtering and pagination to a list endpoint",
+          "prompt": "Add server-side filtering and pagination to the existing list endpoint following the crud-scaffold pattern",
+          "badge": null
+        },
+        {
+          "id": "file-add-type",
+          "label": "Add support for a new file type",
+          "prompt": "Extend the file upload system to accept the specified file type, updating validation in backend/app/upload/ and the UploadZone component",
+          "badge": null
+        },
+        {
+          "id": "extract-new-field",
+          "label": "Extract a new field from documents",
+          "prompt": "Add extraction logic for the specified field to the extractor in backend/app/extract/extractor.py",
+          "badge": null
+        }
+      ]
+    },
+    {
+      "id": "by-layer",
+      "label": "By Layer",
+      "requires_context": false,
+      "suggestions": [
+        {
+          "id": "crud-scaffold-entity",
+          "label": "Scaffold new CRUD entity",
+          "prompt": "Using the context above, scaffold a complete CRUD entity: SQLAlchemy model + Alembic migration, Pydantic schemas, FastAPI router using router_factory, and a React DataTable + EntityForm page. Follow the patterns in backend/app/crud/ and frontend/components/.",
+          "badge": "CRUD"
+        }
+      ]
+    }
+  ]
+}

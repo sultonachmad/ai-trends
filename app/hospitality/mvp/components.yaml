@@ -1,0 +1,57 @@
+schemaVersion: 1
+installed_prefabs:
+- id: base-frontend-nextjs
+  version: 0.3.0
+  summary: Next.js 15 (App Router) + Tailwind CSS 4 frontend skeleton
+- id: base-backend-fastapi
+  version: 0.3.0
+  summary: FastAPI + SQLModel + Alembic backend skeleton with async PostgreSQL
+- id: base-nextjs-fastapi
+  version: 0.3.0
+  summary: 'Full-stack combo: Next.js 15 + FastAPI + Docker Compose (installs base-frontend-nextjs
+    + base-backend-fastapi)'
+- id: auth-session
+  version: 0.2.0
+  summary: Server-side session management with in-memory signed session store (POC-grade;
+    swap in a Redis-backed store for production) and protected route middleware
+- id: rbac
+  version: 0.2.0
+  summary: "Role-based access control \u2014 permission codes, dynamic menus, admin\
+    \ pages, admin seed user"
+- id: auth-oauth2
+  version: 0.3.0
+  summary: OAuth2 authentication core via NextAuth.js (no provider built in) + FastAPI
+    JWT middleware
+- id: auth-oauth2-google
+  version: 0.1.0
+  summary: "Google sign-in for the auth-oauth2 core \u2014 NextAuth Google provider\
+    \ + sign-in button"
+- id: auth-oauth2-microsoft
+  version: 0.1.0
+  summary: "Microsoft Entra ID sign-in for the auth-oauth2 core \u2014 NextAuth Entra\
+    \ ID provider + sign-in button"
+- id: theme-ttest
+  version: 0.2.0
+  summary: "Ttest branded theme \u2014 indigo/violet primary, modern gradient accents,\
+    \ Space Grotesk font"
+- id: crud-scaffold
+  version: 0.2.0
+  summary: "Generic CRUD scaffold \u2014 FastAPI router factory + SQLModel base +\
+    \ Next.js list/detail/form pages"
+- id: file-upload
+  version: 0.1.0
+  summary: File upload with drag-and-drop UI + FastAPI multipart endpoint + local
+    storage
+- id: document-extract
+  version: 0.1.0
+  summary: PDF and DOCX text extraction for document parsing (CV/resume extraction)
+- id: email
+  version: 0.1.0
+  summary: "Async SMTP email sending \u2014 reusable email service + sample contact\
+    \ form endpoint"
+- id: audit-evidence
+  version: 0.1.0
+  summary: "Append-only audit trail with hash-chain tamper evidence, HMAC-sealed erasure,\
+    \ and configurable retention \u2014 realises a DS-3 audit_evidence_model design"
+styles:
+  framework: tailwindcss

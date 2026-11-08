@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      # Ttest writes a random POSTGRES_PASSWORD into the project-root .env when
+      # it creates a postgres workspace, and the same password into
+      # PREFAB_DATABASE_URL in backend/.env (used by host runs). Compose reads
+      # the root .env; change-me-postgres below is only the fallback when that
+      # file or the variable is missing. COMPOSE_PROJECT_NAME in the same file
+      # names this app's containers and postgres-data volume after the Ttest
+      # workspace it was created in. A copy of the app that keeps the root .env
+      # keeps that name, and shares them with the original on one Docker host.
+      # If you change the password, change it in both files. A POSTGRES_PASSWORD
+      # set in the shell overrides the root .env. It sits inside a URL and
+      # Compose reads $ as a variable, so avoid @ : / ? # % $ in it. It applies
+      # only when the postgres-data volume is first created. For a volume that
+      # already exists, either set POSTGRES_PASSWORD to the password the volume
+      # was created with, or change the password in the database:
+      #   docker compose exec postgres psql -U postgres -c "ALTER USER postgres PASSWORD '<new>'"
+      # docker compose down -v also resets it, and deletes the data.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-postgres}
+      POSTGRES_DB: prefab_db
+    ports:
+      # Loopback only: the database is not reachable from other hosts.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - prefab-net
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    # backend/.env is what the env editor writes (incl. RBAC_* seed-admin keys,
+    # and the PREFAB_SECRET_KEY Ttest generates for this app); the environment:
+    # block below overrides any key it repeats, so it leaves PREFAB_SECRET_KEY out.
+    # PREFAB_SECRET_KEY is read only from backend/.env: a value in the root .env
+    # or the shell does not reach the container.
+    # Requires Docker Compose v2.24.0+ (required:/format: syntax).
+    env_file:
+      - path: ./backend/.env
+        required: false
+        format: raw
+    environment:
+      PREFAB_DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-me-postgres}@postgres:5432/prefab_db
+      PREFAB_CORS_ORIGINS: ${PREFAB_CORS_ORIGINS:-["http://localhost:3000"]}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - prefab-net
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - prefab-net
+
+networks:
+  prefab-net:
+    driver: bridge
+
+volumes:
+  postgres-data:

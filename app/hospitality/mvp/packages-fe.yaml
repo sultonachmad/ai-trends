@@ -1,0 +1,10 @@
+schemaVersion: 1
+source: package.json
+packages:
+- next
+- react
+- react-dom
+- tailwindcss
+- '@tailwindcss/postcss'
+- next-auth
+- jose

@@ -1,0 +1,83 @@
+schemaVersion: 1
+layouts:
+- name: RootLayout
+  path: frontend/app/layout.tsx
+  description: Root layout with Inter font, dark mode support
+- name: AuthenticatedLayout
+  path: frontend/app/(authenticated)/layout.tsx
+  description: Authenticated layout with RBAC guard and dynamic navigation
+components:
+- name: Nav
+  path: frontend/components/Nav.tsx
+  description: Top navigation bar with responsive menu
+- SessionProvider
+- AuthGuard
+- LogoutButton
+- LoginForm
+- Sidebar
+- name: RbacGuard
+  path: frontend/components/RbacGuard.tsx
+  description: "Permission-based route guard \u2014 hides or redirects when user lacks\
+    \ required permission"
+- name: DynamicNav
+  path: frontend/components/DynamicNav.tsx
+  description: Whole app nav frame (aside or top bar) with menu items based on user
+    permissions; do not mount it beside the layout Sidebar or Nav
+- RbacProvider
+- GoogleSSOForm
+- MicrosoftSSOForm
+- name: Dialog
+  path: frontend/components/Dialog.tsx
+  description: "Modal dialog \u2014 dimmed overlay + opaque panel (bg-card). Use for\
+    \ all modals, confirmations and detail panels so nothing shows through."
+- DataTable
+- EntityForm
+- DeleteConfirm
+- UploadZone
+- FileList
+pages:
+- name: HomePage
+  path: frontend/app/page.tsx
+  layout: RootLayout
+  description: Landing page
+- LoginPage
+- DashboardPage
+- name: AdminRedirectPage
+  path: frontend/app/(authenticated)/admin/page.tsx
+  layout: AuthenticatedLayout
+  description: Admin section landing - redirects to users management
+- name: AdminUsersPage
+  path: frontend/app/(authenticated)/admin/users/page.tsx
+  layout: AuthenticatedLayout
+  description: User list with role assignment
+- name: AdminRolesPage
+  path: frontend/app/(authenticated)/admin/roles/page.tsx
+  layout: AuthenticatedLayout
+  description: Role list with permission count
+- name: AdminRoleDetailPage
+  path: frontend/app/(authenticated)/admin/roles/[id]/page.tsx
+  layout: AuthenticatedLayout
+  description: Role detail - edit name, assign/remove permissions
+- name: AdminPermissionsPage
+  path: frontend/app/(authenticated)/admin/permissions/page.tsx
+  layout: AuthenticatedLayout
+  description: Permission list (read-only, seeded from rbac-spec.yaml)
+- SampleContactPage
+hooks:
+- name: useRbac
+  path: frontend/lib/rbac-store.tsx
+  description: "React context hook \u2014 exposes user, roles, permissions, hasPermission(),\
+    \ menus"
+utilities:
+- name: RbacProvider
+  path: frontend/lib/rbac-store.tsx
+  description: Context provider that fetches /api/me on mount and caches RBAC state
+- rbac-store
+- require_permission
+- seed_rbac
+- api-client
+- upload-client
+- audit_service
+- audit_erasure
+api_routes:
+- api/auth/[...nextauth]

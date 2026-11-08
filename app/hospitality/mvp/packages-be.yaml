@@ -1,0 +1,19 @@
+schemaVersion: 1
+source: pyproject.toml
+packages:
+- fastapi
+- uvicorn
+- sqlmodel
+- alembic
+- asyncpg
+- pydantic-settings
+- python-dotenv
+- itsdangerous
+- bcrypt
+- pyyaml
+- python-jose
+- httpx
+- python-multipart
+- aiofiles
+- pdfplumber
+- python-docx
