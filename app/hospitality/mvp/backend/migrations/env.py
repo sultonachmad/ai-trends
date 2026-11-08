@@ -9,6 +9,7 @@ from sqlmodel import SQLModel
 from app.config import settings
 import app.auth.models  # noqa: F401 — registers auth User table with Alembic
 import app.rbac.models  # noqa: F401 — registers RBAC table metadata with Alembic
+import app.models  # noqa: F401 — registers domain models (sample, control plane, tenant)
 # PREFAB:alembic-models
 
 config = context.config

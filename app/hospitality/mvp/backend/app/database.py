@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import Table
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -27,6 +28,15 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+def startup_tables() -> list[Table]:
+    """Tables `create_db_and_tables()` may create: all except migration-only ones.
+
+    Tables tagged `info={"migration_only": True}` (see `MIGRATION_ONLY` in
+    app/crud/base_model.py) are created by `alembic upgrade head` only.
+    """
+    return [t for t in SQLModel.metadata.tables.values() if not t.info.get("migration_only")]
+
+
 async def create_db_and_tables() -> None:
     async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.run_sync(SQLModel.metadata.create_all, tables=startup_tables())

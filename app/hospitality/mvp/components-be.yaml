@@ -12,8 +12,7 @@ entities:
 - name: Permission
   file: backend/app/rbac/models.py
   table: permission
-  description: "Permission code (e.g. 'users.read', 'roles.write') \u2014 seeded from\
-    \ rbac-spec.yaml"
+  description: Permission code (e.g. 'users.read', 'roles.write') — seeded from rbac-spec.yaml
 - name: RolePermission
   file: backend/app/rbac/models.py
   table: role_permission
@@ -22,6 +21,769 @@ entities:
   file: backend/app/rbac/models.py
   table: user_role
   description: Join table linking users to roles
+- name: Module
+  file: backend/app/models/control_plane/module.py
+  table: module
+  description: 'Control plane: Sellable product modules (PMS Core and add-ons).'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: ChannelCatalog
+  file: backend/app/models/control_plane/channel_catalog.py
+  table: channelcatalog
+  description: 'Control plane: Distribution channels the platform can connect to. Copied into each tenant
+    DB (tenant.channel) at provisioning so tenant data never references across DBs.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: Plan
+  file: backend/app/models/control_plane/plan.py
+  table: plan
+  description: 'Control plane: Subscription plans.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: PlanModule
+  file: backend/app/models/control_plane/plan_module.py
+  table: planmodule
+  description: 'Control plane: Subscription plans and the modules and limits they include.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: DbCluster
+  file: backend/app/models/control_plane/db_cluster.py
+  table: dbcluster
+  description: 'Control plane: A PostgreSQL server/cluster that hosts tenant databases.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: Tenant
+  file: backend/app/models/control_plane/tenant.py
+  table: tenant
+  description: 'Control plane: Customer organisation, status, residency region, defaults.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantDatabase
+  file: backend/app/models/control_plane/tenant_database.py
+  table: tenantdatabase
+  description: 'Control plane: Routing record: one per tenant. The API resolves tenant -> connection here,
+    caches it, and opens the session against the right database/schema.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantMigration
+  file: backend/app/models/control_plane/tenant_migration.py
+  table: tenantmigration
+  description: 'Control plane: Migration / move history per tenant database.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantDomain
+  file: backend/app/models/control_plane/tenant_domain.py
+  table: tenantdomain
+  description: 'Control plane: Custom hostnames (booking engine, guest portal) -> tenant routing.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: PropertyDirectory
+  file: backend/app/models/control_plane/property_directory.py
+  table: propertydirectory
+  description: 'Control plane: Light directory of properties for routing and portfolio/CRS-style lookups
+    without opening every tenant DB. Written by tenant DB outbox events.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantSubscription
+  file: backend/app/models/control_plane/tenant_subscription.py
+  table: tenantsubscription
+  description: 'Control plane: Tenant''s plan over time.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantEntitlement
+  file: backend/app/models/control_plane/tenant_entitlement.py
+  table: tenantentitlement
+  description: 'Control plane: Effective module switches per tenant (plan + add-ons + trials + manual
+    grants).'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantMembership
+  file: backend/app/models/control_plane/tenant_membership.py
+  table: tenantmembership
+  description: 'Control plane: User ↔ tenant link (a user may belong to several tenants).'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantInvitation
+  file: backend/app/models/control_plane/tenant_invitation.py
+  table: tenantinvitation
+  description: 'Control plane: Pending staff invitations (hashed token).'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantUsageMonthly
+  file: backend/app/models/control_plane/tenant_usage_monthly.py
+  table: tenantusagemonthly
+  description: 'Control plane: Detailed per-call AI usage lives in the tenant DB (aiusage). This rolls
+    it up per tenant per month for billing and platform cost control.'
+  migration: backend/migrations/versions/0002_control_plane_schema.py
+- name: TenantProfile
+  file: backend/app/models/tenant/organisation/tenant_profile.py
+  table: tenantprofile
+  description: 'A. Organisation & property: Local mirror of the control-plane tenant (one row per tenant
+    in this DB).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: LegalEntity
+  file: backend/app/models/tenant/organisation/legal_entity.py
+  table: legalentity
+  description: 'A. Organisation & property: Legal/fiscal entity that issues invoices (PT / CV / individual
+    operator).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Property
+  file: backend/app/models/tenant/organisation/property.py
+  table: property
+  description: 'A. Organisation & property: Property of any type; timezone, business date, tax region,
+    check-in rules, syariah flag.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PropertyArea
+  file: backend/app/models/tenant/organisation/property_area.py
+  table: propertyarea
+  description: 'A. Organisation & property: Building / floor / wing / zone / campsite area. Self-referencing
+    tree.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Amenity
+  file: backend/app/models/tenant/organisation/amenity.py
+  table: amenity
+  description: 'A. Organisation & property: Amenity / feature dictionary (codes are referenced from text[]
+    columns).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Document
+  file: backend/app/models/tenant/organisation/document.py
+  table: document
+  description: 'A. Organisation & property: File metadata (scans, contracts, photos, PDFs). Bytes live
+    in object storage.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Channel
+  file: backend/app/models/tenant/organisation/channel.py
+  table: channel
+  description: 'A. Organisation & property: Distribution / booking-source channels (seeded from control-plane
+    channelcatalog).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: MarketSegment
+  file: backend/app/models/tenant/organisation/market_segment.py
+  table: marketsegment
+  description: 'A. Organisation & property: Code tables.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReasonCode
+  file: backend/app/models/tenant/organisation/reason_code.py
+  table: reasoncode
+  description: 'A. Organisation & property: Reason codes for cancellations, voids, discounts, upgrades,
+    OOO, comps …'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Vendor
+  file: backend/app/models/tenant/staff/vendor.py
+  table: vendor
+  description: 'B. Staff, vendors & tenant-scoped roles: External cleaners, technicians, laundry.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: StaffMember
+  file: backend/app/models/tenant/staff/staff_member.py
+  table: staffmember
+  description: 'B. Staff, vendors & tenant-scoped roles: Tenant-specific staff profile. Login identity
+    = control-plane "user".'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: StaffRole
+  file: backend/app/models/tenant/staff/staff_role.py
+  table: staffrole
+  description: 'B. Staff, vendors & tenant-scoped roles: Tenant-defined role (front desk, housekeeper,
+    revenue manager …).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: StaffRolePermission
+  file: backend/app/models/tenant/staff/staff_role_permission.py
+  table: staffrolepermission
+  description: 'B. Staff, vendors & tenant-scoped roles: Permission codes are the same codes as backend/docs/rbac-spec.yaml
+    (module:action).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: StaffRoleAssignment
+  file: backend/app/models/tenant/staff/staff_role_assignment.py
+  table: staffroleassignment
+  description: 'B. Staff, vendors & tenant-scoped roles: Role grant, optionally limited to one property
+    (NULL property = all properties).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: UnitType
+  file: backend/app/models/tenant/inventory/unit_type.py
+  table: unittype
+  description: 'C. Inventory: Category (room, bed, villa, pitch …), time grain (night/day/hour/month),
+    occupancy.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Unit
+  file: backend/app/models/tenant/inventory/unit.py
+  table: unit
+  description: 'C. Inventory: Physical, assignable unit. parent_unit_id models beds-in-a-dorm and bedrooms-in-a-villa
+    (combinable units).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: InventoryItem
+  file: backend/app/models/tenant/inventory/inventory_item.py
+  table: inventoryitem
+  description: 'C. Inventory: Countable non-unit inventory: parking, cots, extra beds, lockers, bikes,
+    EV chargers.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: InventoryDay
+  file: backend/app/models/tenant/inventory/inventory_day.py
+  table: inventoryday
+  description: 'C. Inventory: Per unit-type per date availability counters. Booking flows lock the row
+    (SELECT … FOR UPDATE) and bump `sold`; channel overbookings are allowed and flagged by '
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TaxRule
+  file: backend/app/models/tenant/finance_config/tax_rule.py
+  table: taxrule
+  description: 'D. Finance configuration: PBJT, service charge, tourist tax, VAT; effective-dated; per
+    region.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TransactionCode
+  file: backend/app/models/tenant/finance_config/transaction_code.py
+  table: transactioncode
+  description: 'D. Finance configuration: Posting codes → department, GL, taxes.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TransactionCodeTax
+  file: backend/app/models/tenant/finance_config/transaction_code_tax.py
+  table: transactioncodetax
+  description: 'D. Finance configuration: Posting codes → department, GL, taxes.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ExchangeRate
+  file: backend/app/models/tenant/finance_config/exchange_rate.py
+  table: exchangerate
+  description: 'D. Finance configuration: FX for display and owner reporting.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: CancellationPolicy
+  file: backend/app/models/tenant/rates/cancellation_policy.py
+  table: cancellationpolicy
+  description: 'E. Rates, policies, products & restrictions: Rules (incl. DP schedules).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentPolicy
+  file: backend/app/models/tenant/rates/payment_policy.py
+  table: paymentpolicy
+  description: 'E. Rates, policies, products & restrictions: Rules (incl. DP schedules).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Product
+  file: backend/app/models/tenant/rates/product.py
+  table: product
+  description: 'E. Rates, policies, products & restrictions: Anything sellable besides the unit itself:
+    breakfast, parking, fees, services, package parts.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: RatePlan
+  file: backend/app/models/tenant/rates/rate_plan.py
+  table: rateplan
+  description: 'E. Rates, policies, products & restrictions: Rate plans incl. derived rates, meal plan,
+    nett/++.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: RatePlanUnitType
+  file: backend/app/models/tenant/rates/rate_plan_unit_type.py
+  table: rateplanunittype
+  description: 'E. Rates, policies, products & restrictions: Applicability and package inclusions.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: RatePlanProduct
+  file: backend/app/models/tenant/rates/rate_plan_product.py
+  table: rateplanproduct
+  description: 'E. Rates, policies, products & restrictions: Package inclusions (breakfast in BB rate,
+    spa credit …).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: RateDaily
+  file: backend/app/models/tenant/rates/rate_daily.py
+  table: ratedaily
+  description: 'E. Rates, policies, products & restrictions: Price per rate plan x unit type x date. Amount
+    = one time unit of the unit type''s grain (night, day, hour block, month) starting on stay_date.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Restriction
+  file: backend/app/models/tenant/rates/restriction.py
+  table: restriction
+  description: 'E. Rates, policies, products & restrictions: Restrictions. NULL scope column = applies
+    to all (all unit types / rate plans / channels).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Promotion
+  file: backend/app/models/tenant/rates/promotion.py
+  table: promotion
+  description: 'E. Rates, policies, products & restrictions: Promo codes.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Account
+  file: backend/app/models/tenant/guests/account.py
+  table: account
+  description: 'F. Accounts & guests: Company / agent / OTA / government accounts (AR).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Guest
+  file: backend/app/models/tenant/guests/guest.py
+  table: guest
+  description: 'F. Accounts & guests: Guest profile (single-name friendly), stats, merge, anonymisation.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GuestDocument
+  file: backend/app/models/tenant/guests/guest_document.py
+  table: guestdocument
+  description: 'F. Accounts & guests: Identity documents (KTP, passport, KITAS …). Number stored encrypted
+    + hash.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GuestPreference
+  file: backend/app/models/tenant/guests/guest_preference.py
+  table: guestpreference
+  description: 'F. Accounts & guests: Preferences; consent per purpose and channel (PDP Law).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GuestConsent
+  file: backend/app/models/tenant/guests/guest_consent.py
+  table: guestconsent
+  description: 'F. Accounts & guests: Consent per purpose and channel (PDP Law / GDPR).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GroupBlock
+  file: backend/app/models/tenant/reservations/group_block.py
+  table: groupblock
+  description: 'G. Groups & reservations: Group/allotment blocks and per-day pickup.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GroupBlockDay
+  file: backend/app/models/tenant/reservations/group_block_day.py
+  table: groupblockday
+  description: 'G. Groups & reservations: Group/allotment blocks and per-day pickup.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Reservation
+  file: backend/app/models/tenant/reservations/reservation.py
+  table: reservation
+  description: 'G. Groups & reservations: Booking header: status, channel, totals, policy snapshots.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReservationUnit
+  file: backend/app/models/tenant/reservations/reservation_unit.py
+  table: reservationunit
+  description: 'G. Groups & reservations: One line per unit (room/bed/villa/pitch/slot) in a reservation.
+    The EXCLUDE constraint makes it impossible to assign the same unit to two overlapping active sta'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReservationGuest
+  file: backend/app/models/tenant/reservations/reservation_guest.py
+  table: reservationguest
+  description: 'G. Groups & reservations: Occupants per reservation unit.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReservationDailyRate
+  file: backend/app/models/tenant/reservations/reservation_daily_rate.py
+  table: reservationdailyrate
+  description: 'G. Groups & reservations: Price per stay date, frozen at booking (BR-04). Night audit
+    posts from here.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReservationProduct
+  file: backend/app/models/tenant/reservations/reservation_product.py
+  table: reservationproduct
+  description: 'G. Groups & reservations: Extras booked with the stay (breakfast, parking, cot, transfer
+    …).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReservationTrace
+  file: backend/app/models/tenant/reservations/reservation_trace.py
+  table: reservationtrace
+  description: 'G. Groups & reservations: Notes, check-in alerts and follow-up traces.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ReservationChange
+  file: backend/app/models/tenant/reservations/reservation_change.py
+  table: reservationchange
+  description: 'G. Groups & reservations: Field-level change history (FR-RES-023). Append-only.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Folio
+  file: backend/app/models/tenant/billing/folio.py
+  table: folio
+  description: 'H. Folios, postings, invoices, end-of-day: Guest / master / house / passer-by / AR / deposit
+    folios.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: RoutingInstruction
+  file: backend/app/models/tenant/billing/routing_instruction.py
+  table: routinginstruction
+  description: 'H. Folios, postings, invoices, end-of-day: Charge routing (e.g. accommodation -> company
+    folio, extras -> guest folio).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: CashierShift
+  file: backend/app/models/tenant/billing/cashier_shift.py
+  table: cashiershift
+  description: 'H. Folios, postings, invoices, end-of-day: Cash drawer per user/shift.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: FolioTransaction
+  file: backend/app/models/tenant/billing/folio_transaction.py
+  table: foliotransaction
+  description: 'H. Folios, postings, invoices, end-of-day: Ledger postings. APPEND-ONLY: corrections are
+    new rows (void / adjustment).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: DocumentSequence
+  file: backend/app/models/tenant/billing/document_sequence.py
+  table: documentsequence
+  description: 'H. Folios, postings, invoices, end-of-day: Gapless numbering per legal entity + series
+    (lock row FOR UPDATE when issuing).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Invoice
+  file: backend/app/models/tenant/billing/invoice.py
+  table: invoice
+  description: 'H. Folios, postings, invoices, end-of-day: Invoices, credit notes, receipts.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: InvoiceLine
+  file: backend/app/models/tenant/billing/invoice_line.py
+  table: invoiceline
+  description: 'H. Folios, postings, invoices, end-of-day: Invoices, credit notes, receipts.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentAllocation
+  file: backend/app/models/tenant/billing/payment_allocation.py
+  table: paymentallocation
+  description: 'H. Folios, postings, invoices, end-of-day: AR: allocate payments to issued invoices (city
+    ledger).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: BusinessDay
+  file: backend/app/models/tenant/billing/business_day.py
+  table: businessday
+  description: 'H. Folios, postings, invoices, end-of-day: Night audit / end-of-day per property per business
+    date.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentGatewayAccount
+  file: backend/app/models/tenant/payments/payment_gateway_account.py
+  table: paymentgatewayaccount
+  description: 'I. Payments: Midtrans / Xendit / DOKU / … config (secret refs).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentInstrument
+  file: backend/app/models/tenant/payments/payment_instrument.py
+  table: paymentinstrument
+  description: 'I. Payments: Stored, tokenised instrument (card token, OTA virtual card, e-wallet binding).
+    No PAN ever.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentLink
+  file: backend/app/models/tenant/payments/payment_link.py
+  table: paymentlink
+  description: 'I. Payments: Shareable pay link (sent over WhatsApp/email). Token goes in the URL path.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentSchedule
+  file: backend/app/models/tenant/payments/payment_schedule.py
+  table: paymentschedule
+  description: 'I. Payments: Deposit / balance / instalment schedule (DP 50% culture).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Payment
+  file: backend/app/models/tenant/payments/payment.py
+  table: payment
+  description: 'I. Payments: QRIS, VA, e-wallet, card, cash, transfer, refunds.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PaymentEvent
+  file: backend/app/models/tenant/payments/payment_event.py
+  table: paymentevent
+  description: 'I. Payments: Raw gateway callbacks / webhooks (append-only).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: BankStatementLine
+  file: backend/app/models/tenant/payments/bank_statement_line.py
+  table: bankstatementline
+  description: 'I. Payments: Imported bank statement lines (manual transfers without VA).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TransferProof
+  file: backend/app/models/tenant/payments/transfer_proof.py
+  table: transferproof
+  description: 'I. Payments: Guest-submitted "bukti transfer" screenshot, AI-extracted and matched.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Settlement
+  file: backend/app/models/tenant/payments/settlement.py
+  table: settlement
+  description: 'I. Payments: Reconciliation and disputes.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: SettlementLine
+  file: backend/app/models/tenant/payments/settlement_line.py
+  table: settlementline
+  description: 'I. Payments: Reconciliation and disputes.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Chargeback
+  file: backend/app/models/tenant/payments/chargeback.py
+  table: chargeback
+  description: 'I. Payments: Reconciliation and disputes.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AccessCredential
+  file: backend/app/models/tenant/front_desk/access_credential.py
+  table: accesscredential
+  description: 'J. Front desk extras: Key cards, PIN codes, mobile keys (time-bound).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: LostFoundItem
+  file: backend/app/models/tenant/front_desk/lost_found_item.py
+  table: lostfounditem
+  description: 'J. Front desk extras: Lost & found.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ChannelConnection
+  file: backend/app/models/tenant/distribution/channel_connection.py
+  table: channelconnection
+  description: 'K. Distribution (channel manager): Property ↔ channel link, status, payment model.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ChannelMapping
+  file: backend/app/models/tenant/distribution/channel_mapping.py
+  table: channelmapping
+  description: 'K. Distribution (channel manager): Local product -> channel room/rate ids.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ChannelBooking
+  file: backend/app/models/tenant/distribution/channel_booking.py
+  table: channelbooking
+  description: 'K. Distribution (channel manager): Inbound channel booking envelope (idempotent by external
+    id + version).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ChannelMessage
+  file: backend/app/models/tenant/distribution/channel_message.py
+  table: channelmessage
+  description: 'K. Distribution (channel manager): Outbound/inbound message log (ARI pushes, acks, errors).
+    High volume -> partition later.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: IcalFeed
+  file: backend/app/models/tenant/distribution/ical_feed.py
+  table: icalfeed
+  description: 'K. Distribution (channel manager): iCal import/export per unit.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ChannelPerformanceDaily
+  file: backend/app/models/tenant/distribution/channel_performance_daily.py
+  table: channelperformancedaily
+  description: 'K. Distribution (channel manager): Daily channel performance (Google impressions/clicks/cost,
+    OTA production).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: MessagingAccount
+  file: backend/app/models/tenant/crm/messaging_account.py
+  table: messagingaccount
+  description: 'L. CRM, messaging & reputation: WhatsApp / SMS / email / Instagram / Google Business senders.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: MessageTemplate
+  file: backend/app/models/tenant/crm/message_template.py
+  table: messagetemplate
+  description: 'L. CRM, messaging & reputation: Multilingual templates incl. WhatsApp approval status.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Conversation
+  file: backend/app/models/tenant/crm/conversation.py
+  table: conversation
+  description: 'L. CRM, messaging & reputation: Unified inbox.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Message
+  file: backend/app/models/tenant/crm/message.py
+  table: message
+  description: 'L. CRM, messaging & reputation: Unified inbox.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GuestSegment
+  file: backend/app/models/tenant/crm/guest_segment.py
+  table: guestsegment
+  description: 'L. CRM, messaging & reputation: Segments and campaigns.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Campaign
+  file: backend/app/models/tenant/crm/campaign.py
+  table: campaign
+  description: 'L. CRM, messaging & reputation: Segments and campaigns.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Automation
+  file: backend/app/models/tenant/crm/automation.py
+  table: automation
+  description: 'L. CRM, messaging & reputation: Lifecycle journeys ("2 days before arrival send pre-check-in
+    link").'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ScheduledMessage
+  file: backend/app/models/tenant/crm/scheduled_message.py
+  table: scheduledmessage
+  description: 'L. CRM, messaging & reputation: Lifecycle journeys with review-before-send.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Review
+  file: backend/app/models/tenant/crm/review.py
+  table: review
+  description: 'L. CRM, messaging & reputation: Reputation, surveys, complaints.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: SurveyResponse
+  file: backend/app/models/tenant/crm/survey_response.py
+  table: surveyresponse
+  description: 'L. CRM, messaging & reputation: Reputation, surveys, complaints.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: GuestFeedback
+  file: backend/app/models/tenant/crm/guest_feedback.py
+  table: guestfeedback
+  description: 'L. CRM, messaging & reputation: Complaints and feedback cases.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TaskTemplate
+  file: backend/app/models/tenant/operations/task_template.py
+  table: tasktemplate
+  description: 'M. Operations (housekeeping & maintenance): Housekeeping tasks and checklists.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Task
+  file: backend/app/models/tenant/operations/task.py
+  table: task
+  description: 'M. Operations (housekeeping & maintenance): Housekeeping and service tasks (not maintenance
+    work orders).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: UnitStatusLog
+  file: backend/app/models/tenant/operations/unit_status_log.py
+  table: unitstatuslog
+  description: 'M. Operations (housekeeping & maintenance): Unit status history (append-only).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Asset
+  file: backend/app/models/tenant/operations/asset.py
+  table: asset
+  description: 'M. Operations (housekeeping & maintenance): Maintenance.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: WorkOrder
+  file: backend/app/models/tenant/operations/work_order.py
+  table: workorder
+  description: 'M. Operations (housekeeping & maintenance): Maintenance.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PreventiveSchedule
+  file: backend/app/models/tenant/operations/preventive_schedule.py
+  table: preventiveschedule
+  description: 'M. Operations (housekeeping & maintenance): Maintenance.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Owner
+  file: backend/app/models/tenant/owners/owner.py
+  table: owner
+  description: 'N. Owners: Owners, shares, agreements.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: UnitOwnership
+  file: backend/app/models/tenant/owners/unit_ownership.py
+  table: unitownership
+  description: 'N. Owners: Owners, shares, agreements.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ManagementAgreement
+  file: backend/app/models/tenant/owners/management_agreement.py
+  table: managementagreement
+  description: 'N. Owners: Owners, shares, agreements.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: UnitBlock
+  file: backend/app/models/tenant/owners/unit_block.py
+  table: unitblock
+  description: 'N. Owners: Out of order / out of service / owner block / house use on a unit.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: OwnerStatement
+  file: backend/app/models/tenant/owners/owner_statement.py
+  table: ownerstatement
+  description: 'N. Owners: Owner accounting.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: OwnerStatementLine
+  file: backend/app/models/tenant/owners/owner_statement_line.py
+  table: ownerstatementline
+  description: 'N. Owners: Owner accounting.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: OwnerPayout
+  file: backend/app/models/tenant/owners/owner_payout.py
+  table: ownerpayout
+  description: 'N. Owners: Owner accounting.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Lease
+  file: backend/app/models/tenant/long_stay/lease.py
+  table: lease
+  description: 'O. Long stay, kos & leases: Kos / serviced-apartment leases and recurring billing.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: RecurringCharge
+  file: backend/app/models/tenant/long_stay/recurring_charge.py
+  table: recurringcharge
+  description: 'O. Long stay, kos & leases: Recurring charges for any reservation (daily parking, monthly
+    laundry, kos rent lines).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: BillingPeriod
+  file: backend/app/models/tenant/long_stay/billing_period.py
+  table: billingperiod
+  description: 'O. Long stay, kos & leases: One billing period of a lease (monthly kos invoice + pay link
+    + reminders).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Meter
+  file: backend/app/models/tenant/long_stay/meter.py
+  table: meter
+  description: 'O. Long stay, kos & leases: Electricity / PLN token / water.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: MeterReading
+  file: backend/app/models/tenant/long_stay/meter_reading.py
+  table: meterreading
+  description: 'O. Long stay, kos & leases: Electricity / PLN token / water.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ForeignGuestReport
+  file: backend/app/models/tenant/compliance/foreign_guest_report.py
+  table: foreignguestreport
+  description: 'P. Compliance: Foreign-guest report to immigration (APOA) per occupant.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TaxReturn
+  file: backend/app/models/tenant/compliance/tax_return.py
+  table: taxreturn
+  description: 'P. Compliance: Periodic tax return (PBJT hotel/restaurant per kab/kota, tourist tax, VAT).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: DataSubjectRequest
+  file: backend/app/models/tenant/compliance/data_subject_request.py
+  table: datasubjectrequest
+  description: 'P. Compliance: PDP/GDPR requests.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Outlet
+  file: backend/app/models/tenant/ancillary/outlet.py
+  table: outlet
+  description: 'Q. Ancillary / POS lite: POS Lite, services, gift vouchers.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PosOrder
+  file: backend/app/models/tenant/ancillary/pos_order.py
+  table: posorder
+  description: 'Q. Ancillary / POS lite: POS Lite, services, gift vouchers.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PosOrderLine
+  file: backend/app/models/tenant/ancillary/pos_order_line.py
+  table: posorderline
+  description: 'Q. Ancillary / POS lite: POS Lite, services, gift vouchers.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ServiceBooking
+  file: backend/app/models/tenant/ancillary/service_booking.py
+  table: servicebooking
+  description: 'Q. Ancillary / POS lite: Bookable services (spa, tours, transfers, equipment) in time
+    slots.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Voucher
+  file: backend/app/models/tenant/ancillary/voucher.py
+  table: voucher
+  description: 'Q. Ancillary / POS lite: POS Lite, services, gift vouchers.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: DemandEvent
+  file: backend/app/models/tenant/revenue/demand_event.py
+  table: demandevent
+  description: 'R. Revenue management: Holidays, cuti bersama, Lebaran, local events.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Competitor
+  file: backend/app/models/tenant/revenue/competitor.py
+  table: competitor
+  description: 'R. Revenue management: Competitor set and shopped rates.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: CompetitorRate
+  file: backend/app/models/tenant/revenue/competitor_rate.py
+  table: competitorrate
+  description: 'R. Revenue management: Competitor set and shopped rates.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ForecastDay
+  file: backend/app/models/tenant/revenue/forecast_day.py
+  table: forecastday
+  description: 'R. Revenue management: Daily forecast snapshot per unit type.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: PriceRecommendation
+  file: backend/app/models/tenant/revenue/price_recommendation.py
+  table: pricerecommendation
+  description: 'R. Revenue management: Explainable forecasts, recommendations, budgets.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: Budget
+  file: backend/app/models/tenant/revenue/budget.py
+  table: budget
+  description: 'R. Revenue management: Explainable forecasts, recommendations, budgets.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AiFeatureSetting
+  file: backend/app/models/tenant/ai/ai_feature_setting.py
+  table: aifeaturesetting
+  description: 'S. AI assistant layer: Enablement, autonomy, monthly cap.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AiBudget
+  file: backend/app/models/tenant/ai/ai_budget.py
+  table: aibudget
+  description: 'S. AI assistant layer: Enablement, autonomy, monthly cap.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AiKnowledgeItem
+  file: backend/app/models/tenant/ai/ai_knowledge_item.py
+  table: aiknowledgeitem
+  description: 'S. AI assistant layer: Property knowledge base used to ground every guest-facing answer.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AiChunk
+  file: backend/app/models/tenant/ai/ai_chunk.py
+  table: aichunk
+  description: 'S. AI assistant layer: Grounding knowledge base (full-text now; pgvector later).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AiSuggestion
+  file: backend/app/models/tenant/ai/ai_suggestion.py
+  table: aisuggestion
+  description: 'S. AI assistant layer: Every AI output shown to a human or acted on.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: AiUsage
+  file: backend/app/models/tenant/ai/ai_usage.py
+  table: aiusage
+  description: 'S. AI assistant layer: Per-call metering (high volume -> partition by month later).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: OutboxEvent
+  file: backend/app/models/tenant/plumbing/outbox_event.py
+  table: outboxevent
+  description: 'T. Platform plumbing: Transactional outbox: written in the same transaction as the business
+    change, relayed to the event bus (CRM, channel manager, RMS, control-plane directory).'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: WebhookEndpoint
+  file: backend/app/models/tenant/plumbing/webhook_endpoint.py
+  table: webhookendpoint
+  description: 'T. Platform plumbing: Events and outbound webhooks.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: WebhookDelivery
+  file: backend/app/models/tenant/plumbing/webhook_delivery.py
+  table: webhookdelivery
+  description: 'T. Platform plumbing: Events and outbound webhooks.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: ApiClient
+  file: backend/app/models/tenant/plumbing/api_client.py
+  table: apiclient
+  description: 'T. Platform plumbing: API keys; request idempotency.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: IdempotencyRecord
+  file: backend/app/models/tenant/plumbing/idempotency_record.py
+  table: idempotencyrecord
+  description: 'T. Platform plumbing: API keys; request idempotency.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
+- name: TenantAuditEntry
+  file: backend/app/models/tenant/plumbing/tenant_audit_entry.py
+  table: tenantauditentry
+  description: 'T. Platform plumbing: Tenant-scoped audit trail. Same shape as the audit prefab''s audit_entries
+    (hash-chained) plus tenant_id; the chain is per tenant.'
+  migration: backend/migrations/versions/0003_tenant_schema.py
 api_routers:
 - prefix: /api/health
   file: backend/app/main.py
@@ -33,12 +795,10 @@ api_routers:
 - sample_protected_router
 - prefix: /api/rbac
   file: backend/app/rbac/router.py
-  description: "RBAC admin endpoints \u2014 roles CRUD, permissions list, user-role\
-    \ assignment"
+  description: RBAC admin endpoints — roles CRUD, permissions list, user-role assignment
 - prefix: /api/me
   file: backend/app/rbac/me.py
-  description: "Current user profile \u2014 returns user info, roles, permissions,\
-    \ allowed menus"
+  description: Current user profile — returns user info, roles, permissions, allowed menus
 - rbac_router
 - me_router
 - auth
@@ -53,23 +813,37 @@ middleware:
 patterns:
 - name: create_crud_router
   file: backend/app/crud/router_factory.py
-  description: Factory that wires list/get/create/patch/delete for any BaseEntity
-    subclass
+  description: Factory that wires list/get/create/patch/delete for any BaseEntity subclass
 - name: require_permission
   file: backend/app/rbac/dependencies.py
-  description: "FastAPI dependency \u2014 raises 403 if current user lacks the required\
-    \ permission code"
+  description: FastAPI dependency — raises 403 if current user lacks the required permission code
 - crud-router-factory
 utilities_backend:
 - name: BaseEntity
   file: backend/app/crud/base_model.py
-  description: Auto-increment id + TimestampMixin (created_at, updated_at, created_by,
-    updated_by)
+  description: Auto-increment id + TimestampMixin (created_at, updated_at, created_by, updated_by)
 - name: utc_datetime_field
   file: backend/app/crud/base_model.py
   description: Helper to declare timezone-aware TIMESTAMP WITH TIME ZONE columns
 - name: seed_rbac
   file: backend/app/rbac/seed.py
-  description: "Startup task \u2014 seeds permissions from rbac-spec.yaml, creates\
-    \ default admin role and user"
+  description: Startup task — seeds permissions from rbac-spec.yaml, creates default admin role and user
 - extractor
+- name: TenantEntity
+  file: backend/app/crud/base_model.py
+  description: 'Tenant-DB base: UUID id + tenant_id + audit columns with DB defaults'
+- name: TenantRecord
+  file: backend/app/crud/base_model.py
+  description: Tenant-DB base without audit columns (ledgers, logs, high-volume rows)
+- name: UUIDEntity
+  file: backend/app/crud/base_model.py
+  description: 'Control-plane base: UUID id + audit columns with DB defaults'
+- name: ServerAuditMixin
+  file: backend/app/crud/base_model.py
+  description: created_at/updated_at/created_by/updated_by with DB defaults (now())
+- name: MIGRATION_ONLY
+  file: backend/app/crud/base_model.py
+  description: '__table_args__ marker: table DDL lives only in Alembic; startup create_all skips it'
+- name: startup_tables
+  file: backend/app/database.py
+  description: Tables create_db_and_tables() may build (excludes migration-only tables)
