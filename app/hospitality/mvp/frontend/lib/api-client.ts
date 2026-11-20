@@ -53,13 +53,16 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 }
 
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function send(path: string, init?: RequestInit): Promise<Response> {
   const token = await getAuthToken();
+  // A file upload (FormData) must not get a JSON content type: the browser sets the
+  // multipart boundary itself.
+  const isUpload = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isUpload ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
@@ -68,6 +71,16 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new ApiError(response.status, await parseErrorMessage(response));
   }
+  return response;
+}
+
+/** Fetch a protected file (e.g. an image) as a Blob. */
+export async function requestBlob(path: string): Promise<Blob> {
+  return (await send(path)).blob();
+}
+
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await send(path, init);
 
   if (response.status === 204) {
     return undefined as T;

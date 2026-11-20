@@ -12,7 +12,15 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Text, UniqueConstraint, Uuid, text
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKeyConstraint,
+    Index,
+    Text,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -68,6 +76,33 @@ class TransferProof(TenantEntity, table=True):
             name="transferproof_tenant_id_bank_statement_line_id_fkey",
             ondelete="SET NULL (bank_statement_line_id)",
         ),
+        ForeignKeyConstraint(
+            ["tenant_id", "payment_link_id"],
+            ["paymentlink.tenant_id", "paymentlink.id"],
+            name="transferproof_tenant_id_payment_link_id_fkey",
+            ondelete="SET NULL (payment_link_id)",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "guest_id"],
+            ["guest.tenant_id", "guest.id"],
+            name="transferproof_tenant_id_guest_id_fkey",
+            ondelete="SET NULL (guest_id)",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "conversation_id"],
+            ["conversation.tenant_id", "conversation.id"],
+            name="transferproof_tenant_id_conversation_id_fkey",
+            ondelete="SET NULL (conversation_id)",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "duplicate_of_proof_id"],
+            ["transferproof.tenant_id", "transferproof.id"],
+            name="transferproof_tenant_id_duplicate_of_proof_id_fkey",
+            ondelete="SET NULL (duplicate_of_proof_id)",
+        ),
+        CheckConstraint(
+            "((amount IS NULL) OR (amount > (0)::numeric))", name="transferproof_amount_check"
+        ),
         CheckConstraint(
             "submitted_via IN ('whatsapp', 'portal', 'email', 'staff_upload')",
             name="transferproof_submitted_via_check",
@@ -78,6 +113,19 @@ class TransferProof(TenantEntity, table=True):
                 "'suspected_tampered', 'manually_confirmed', 'rejected')"
             ),
             name="transferproof_match_status_check",
+        ),
+        Index(
+            "ix_transferproof_queue",
+            "tenant_id",
+            "property_id",
+            "match_status",
+            text("created_at DESC"),
+        ),
+        Index(
+            "ix_transferproof_link",
+            "tenant_id",
+            "payment_link_id",
+            postgresql_where=text("payment_link_id IS NOT NULL"),
         ),
         MIGRATION_ONLY,
     )
@@ -102,6 +150,29 @@ class TransferProof(TenantEntity, table=True):
     bank_statement_line_id: UUID | None = Field(default=None, sa_type=Uuid)
     reviewed_by: str | None = Field(default=None, sa_type=Text)
     reviewed_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
+    payment_link_id: UUID | None = Field(
+        default=None, sa_type=Uuid, description="The pay link this proof is for, if any"
+    )
+    guest_id: UUID | None = Field(default=None, sa_type=Uuid)
+    conversation_id: UUID | None = Field(default=None, sa_type=Uuid)
+    amount: Decimal | None = Field(
+        default=None,
+        max_digits=18,
+        decimal_places=2,
+        description="Amount staff expect this transfer to be",
+    )
+    description: str | None = Field(default=None, sa_type=Text)
+    rejection_reason: str | None = Field(default=None, sa_type=Text)
+    first_approved_by: str | None = Field(
+        default=None, sa_type=Text, description="First of two approvers, above the threshold"
+    )
+    first_approved_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
+    duplicate_of_proof_id: UUID | None = Field(
+        default=None, sa_type=Uuid, description="Earlier proof with the same image"
+    )
+    consent_at: dt.datetime | None = utc_datetime_field(  # type: ignore[assignment]
+        nullable=True, description="When the guest agreed to the storage notice"
+    )
 
 
 class TransferProofCreate(SQLModel):
@@ -152,6 +223,16 @@ class TransferProofRead(SQLModel):
     bank_statement_line_id: UUID | None
     reviewed_by: str | None
     reviewed_at: dt.datetime | None
+    payment_link_id: UUID | None
+    guest_id: UUID | None
+    conversation_id: UUID | None
+    amount: Decimal | None
+    description: str | None
+    rejection_reason: str | None
+    first_approved_by: str | None
+    first_approved_at: dt.datetime | None
+    duplicate_of_proof_id: UUID | None
+    consent_at: dt.datetime | None
     created_at: dt.datetime
     updated_at: dt.datetime
     created_by: str | None

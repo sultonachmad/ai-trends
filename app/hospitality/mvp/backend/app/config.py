@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     PAYMENT_SIMULATOR_ENABLED: bool = False
     # Where guests open pay links (https://app.example.com). Empty = first CORS origin.
     FRONTEND_URL: str = ""
+    # Folder for tenant files (transfer-proof screenshots). One sub-folder per tenant.
+    DOCUMENT_STORAGE_DIR: str = "uploads/documents"
     # PREFAB:config-fields
 
 

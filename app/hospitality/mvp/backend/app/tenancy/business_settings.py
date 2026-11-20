@@ -11,16 +11,40 @@ stored override fails loudly instead of being ignored.
 """
 
 import datetime as dt
+from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationError,
+    model_validator,
+)
 
 BUSINESS_KEY = "business"
 
 
+# One line of plain text, shown to guests on the pay page.
+BankText = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, min_length=2, max_length=80, pattern=r"^[^\x00-\x1f\x7f]+$"
+    ),
+]
+BankAccountNumber = Annotated[
+    str, StringConstraints(strip_whitespace=True, pattern=r"^[0-9]{5,30}$")
+]
+
+
 class BusinessSettingsError(ValueError):
     """A stored or submitted business value is unknown or out of range."""
+
+
+# Ceiling of `proof_max_upload_mb`; the upload routes refuse larger bodies outright.
+MAX_PROOF_UPLOAD_MB = 20
 
 
 class PropertySettings(BaseModel):
@@ -56,6 +80,19 @@ class PropertySettings(BaseModel):
     reply_hours_end: dt.time = Field(
         default=dt.time(21, 0), description="End of the hours the reply target counts."
     )
+    proof_max_upload_mb: int = Field(
+        default=5, ge=1, le=MAX_PROOF_UPLOAD_MB, description="Largest transfer-proof image accepted, in MB."
+    )
+    proof_max_awaiting_per_link: int = Field(
+        default=3, ge=1, le=10, description="Proofs one link may have waiting for review."
+    )
+    bank_name: BankText | None = Field(
+        default=None, description="Bank guests transfer to (manual transfer)."
+    )
+    bank_account_number: BankAccountNumber | None = Field(
+        default=None, description="Account number guests transfer to."
+    )
+    bank_account_holder: BankText | None = Field(default=None, description="Name on that account.")
     inbox_poll_seconds: int = Field(
         default=5, ge=2, le=120, description="How often the inbox list checks for new messages."
     )
@@ -69,6 +106,9 @@ class PropertySettings(BaseModel):
             raise ValueError("reply_hours_end must be after reply_hours_start")
         if self.payment_link_max_amount_idr < self.payment_link_min_amount_idr:
             raise ValueError("payment_link_max_amount_idr must not be below the minimum")
+        bank = (self.bank_name, self.bank_account_number, self.bank_account_holder)
+        if any(bank) and not all(bank):
+            raise ValueError("bank name, account number and account holder go together")
         return self
 
 
@@ -78,6 +118,26 @@ class PlanLimits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     payment_links_per_month: int | None = Field(default=30, ge=0)
+
+
+@dataclass(frozen=True)
+class BankAccount:
+    """Where guests send a manual transfer."""
+
+    bank_name: str
+    account_number: str
+    account_holder: str
+
+
+def bank_account(settings: PropertySettings) -> BankAccount | None:
+    """The property's bank details, or None until all three are filled in."""
+    if not (settings.bank_name and settings.bank_account_number and settings.bank_account_holder):
+        return None
+    return BankAccount(
+        bank_name=settings.bank_name,
+        account_number=settings.bank_account_number,
+        account_holder=settings.bank_account_holder,
+    )
 
 
 def resolve_property_settings(raw_settings: dict[str, Any] | None) -> PropertySettings:

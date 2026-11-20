@@ -15,6 +15,7 @@ from sqlalchemy import (
     BigInteger,
     CheckConstraint,
     ForeignKeyConstraint,
+    Index,
     Text,
     UniqueConstraint,
     Uuid,
@@ -22,7 +23,7 @@ from sqlalchemy import (
 )
 from sqlmodel import Field, SQLModel
 
-from app.crud.base_model import MIGRATION_ONLY, TenantEntity
+from app.crud.base_model import MIGRATION_ONLY, TenantEntity, utc_datetime_field
 
 DocumentKind = Literal[
     "identity_scan",
@@ -70,6 +71,12 @@ class Document(TenantEntity, table=True):
             name="document_classification_check",
         ),
         CheckConstraint("(size_bytes >= 0)", name="document_size_bytes_check"),
+        Index(
+            "ix_document_sha256",
+            "tenant_id",
+            "sha256",
+            postgresql_where=text("sha256 IS NOT NULL"),
+        ),
         MIGRATION_ONLY,
     )
 
@@ -88,6 +95,9 @@ class Document(TenantEntity, table=True):
     size_bytes: int = Field(sa_type=BigInteger)
     sha256: str | None = Field(default=None, sa_type=Text)
     retention_until: dt.date | None = Field(default=None)
+    purged_at: dt.datetime | None = utc_datetime_field(  # type: ignore[assignment]
+        nullable=True, description="When the stored file was deleted (the record is kept)"
+    )
     uploaded_by: str | None = Field(default=None, sa_type=Text)
 
 
@@ -132,6 +142,7 @@ class DocumentRead(SQLModel):
     size_bytes: int
     sha256: str | None
     retention_until: dt.date | None
+    purged_at: dt.datetime | None
     uploaded_by: str | None
     created_at: dt.datetime
     updated_at: dt.datetime

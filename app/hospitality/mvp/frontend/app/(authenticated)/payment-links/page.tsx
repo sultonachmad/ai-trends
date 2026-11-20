@@ -14,6 +14,7 @@ import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { amountLimits, CreateLinkDialog } from "@/components/payments/CreateLinkDialog";
 import { LinkCreatedNotice } from "@/components/payments/LinkCreatedNotice";
 import { PaymentLinkTable } from "@/components/payments/PaymentLinkTable";
+import { ProofUploadDialog } from "@/components/proofs/ProofUploadDialog";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 import { LINK_STATES } from "@/lib/payment-link-format";
@@ -26,6 +27,7 @@ import {
   type PaymentLinkPage,
 } from "@/lib/payment-links-api";
 import { usePolling } from "@/lib/use-polling";
+import { maxProofMb } from "@/lib/proof-format";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
 
 const ONBOARDING_PATH = "/onboarding";
@@ -49,6 +51,7 @@ export default function PaymentLinksPage() {
   const [created, setCreated] = useState<CreatedLink | null>(null);
   const [toCancel, setToCancel] = useState<PaymentLink | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [proofFor, setProofFor] = useState<PaymentLink | null>(null);
   const filterRef = useRef(filter);
   const listRequest = useRef(0);
   const pagesShown = useRef(1);
@@ -212,6 +215,7 @@ export default function PaymentLinksPage() {
           <PaymentLinkTable
             links={links}
             onCancel={setToCancel}
+            onAddProof={setProofFor}
             timeZone={workspace.property.timezone}
           />
         )}
@@ -233,6 +237,16 @@ export default function PaymentLinksPage() {
         limits={amountLimits(workspace.settings)}
       />
       <LinkCreatedNotice created={created} onClose={() => setCreated(null)} />
+      <ProofUploadDialog
+        open={proofFor !== null}
+        link={proofFor ?? undefined}
+        maxMb={maxProofMb(workspace.settings)}
+        onClose={() => setProofFor(null)}
+        onUploaded={() => {
+          setProofFor(null);
+          router.push("/transfer-proofs");
+        }}
+      />
       <Dialog
         open={toCancel !== null}
         onClose={() => !cancelling && setToCancel(null)}

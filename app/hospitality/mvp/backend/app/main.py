@@ -67,6 +67,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.db_migrations import assert_database_migrated
 
     await assert_database_migrated(_engine)
+    # Delete transfer-proof images past their retention period. Best effort: a failure
+    # here is logged and must not stop the app from starting.
+    from app.services.proof_retention import run_startup_purge
+
+    await run_startup_purge(_engine)
     # PREFAB:startup-tasks
     yield
 
@@ -96,6 +101,11 @@ def create_app() -> FastAPI:
     from app.security.token_paths import TokenPathHeadersMiddleware
 
     app.add_middleware(TokenPathHeadersMiddleware)
+
+    # Image uploads: refuse an oversized body before it is parsed or spooled to disk.
+    from app.security.upload_limit import UploadSizeLimitMiddleware
+
+    app.add_middleware(UploadSizeLimitMiddleware)
 
     # ============================================================================
     # PREFAB:auth-oauth2 — auth router registration
@@ -253,6 +263,13 @@ def create_app() -> FastAPI:
     app.include_router(payment_links_router)
     app.include_router(checkout_router)
     app.include_router(payment_simulator_router)
+
+    # Phase 0 wedge — transfer proofs and property settings
+    from app.routers.settings import settings_router
+    from app.routers.transfer_proofs import transfer_proofs_router
+
+    app.include_router(transfer_proofs_router)
+    app.include_router(settings_router)
 
     return app
 

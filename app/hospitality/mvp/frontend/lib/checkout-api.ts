@@ -27,6 +27,15 @@ export interface PublicLink {
   banks: string[];
   instructions: PayInstructions | null;
   simulator_enabled: boolean;
+  /** Where to send a manual bank transfer; null when the property takes none. */
+  manual_transfer: {
+    bank_name: string;
+    account_number: string;
+    account_holder: string;
+    max_upload_mb: number;
+  } | null;
+  /** The guest's latest transfer proof on this link, if any. */
+  proof: { state: "checking" | "rejected"; reason: string | null } | null;
 }
 
 const path = (token: string) => `/api/pay/${encodeURIComponent(token)}`;
@@ -45,3 +54,11 @@ export const simulatePayment = (token: string, reference?: string) =>
     method: "POST",
     body: JSON.stringify(reference ? { reference } : {}),
   });
+
+/** Upload a transfer screenshot. `consent` is the guest's agreement to the storage notice. */
+export function uploadProof(token: string, file: File, consent: boolean): Promise<PublicLink> {
+  const body = new FormData();
+  body.append("file", file);
+  body.append("consent", consent ? "true" : "false");
+  return request<PublicLink>(`${path(token)}/proofs`, { method: "POST", body });
+}

@@ -11,12 +11,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { ManualTransferPanel } from "@/components/payments/ManualTransferPanel";
 import { PaymentInstructions } from "@/components/payments/PaymentInstructions";
 import { ApiError } from "@/lib/api-client";
 import {
   fetchPublicLink,
   simulatePayment,
   startPayment,
+  uploadProof,
   type PayInstructions,
   type PublicLink,
 } from "@/lib/checkout-api";
@@ -28,6 +30,7 @@ import { usePolling } from "@/lib/use-polling";
 const POLL_MS = 3000;
 const NOT_FOUND_STATUS = 404;
 const VIRTUAL_ACCOUNT = "virtual_account";
+const MANUAL_TRANSFER = "manual_transfer";
 
 const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm";
@@ -42,6 +45,7 @@ export default function PayPage() {
   const [bank, setBank] = useState("");
   const [instructions, setInstructions] = useState<PayInstructions | null>(null);
   const [choosing, setChoosing] = useState(false);
+  const [manual, setManual] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -75,6 +79,12 @@ export default function PayPage() {
     setInstructions((current) => current ?? link.instructions);
   }, [link]);
 
+  // A guest who already sent a transfer proof comes back to the manual-transfer view.
+  const hasProof = link?.proof != null && link.manual_transfer != null;
+  useEffect(() => {
+    if (hasProof) setManual(true);
+  }, [hasProof]);
+
   usePolling(
     refresh,
     POLL_MS,
@@ -101,12 +111,30 @@ export default function PayPage() {
     }
   };
 
-  const choose = () =>
-    act(async () => {
+  const choose = () => {
+    if (method === MANUAL_TRANSFER) {
+      setManual(true);
+      setChoosing(false);
+      setActionError(null);
+      return Promise.resolve();
+    }
+    return act(async () => {
       const selectedBank = method === VIRTUAL_ACCOUNT ? bank || link?.banks[0] : undefined;
       setInstructions(await startPayment(token, method, selectedBank));
+      setManual(false);
       setChoosing(false);
     });
+  };
+
+  /** Upload the guest's transfer proof; errors go back to the form that called it. */
+  const upload = async (file: File) => {
+    actionCount.current += 1;
+    try {
+      setLink(await uploadProof(token, file, true));
+    } finally {
+      actionCount.current += 1;
+    }
+  };
 
   const simulate = () =>
     act(async () => setLink(await simulatePayment(token, instructions?.reference)));
@@ -180,7 +208,9 @@ export default function PayPage() {
   }
 
   const left = timeLeft(link.expires_at);
-  const showInstructions = instructions !== null && !choosing;
+  const methods = [...link.methods, ...(link.manual_transfer ? [MANUAL_TRANSFER] : [])];
+  const showManual = manual && !choosing && link.manual_transfer !== null;
+  const showInstructions = instructions !== null && !choosing && !showManual;
   return frame(
     <section className={`${cardClass} space-y-5`}>
       {summary}
@@ -188,7 +218,21 @@ export default function PayPage() {
         <p className="text-xs text-muted-foreground">{t(timeLeftKey(left), { value: left.value })}</p>
       )}
 
-      {showInstructions ? (
+      {showManual ? (
+        <div className="space-y-4">
+          <ManualTransferPanel link={link} onUpload={upload} />
+          <button
+            type="button"
+            onClick={() => {
+              setManual(false);
+              setChoosing(true);
+            }}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            {t("pay.changeMethod")}
+          </button>
+        </div>
+      ) : showInstructions ? (
         <div className="space-y-4">
           <PaymentInstructions instructions={instructions} />
           <p role="status" className="text-sm text-muted-foreground">
@@ -222,7 +266,7 @@ export default function PayPage() {
         >
           <fieldset className="space-y-2">
             <legend className="mb-1 text-base font-semibold">{t("pay.choose")}</legend>
-            {link.methods.map((option) => (
+            {methods.map((option) => (
               <label
                 key={option}
                 className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm"

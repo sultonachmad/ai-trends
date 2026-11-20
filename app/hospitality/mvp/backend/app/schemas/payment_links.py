@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.schemas.inbox import GuestSummary
+from app.schemas.transfer_proofs import ManualTransfer, PublicProof
 
 MAX_EXPIRY_HOURS = 24 * 90
 # One line of plain text: it is written into the chat message next to the pay address,
@@ -114,3 +115,5 @@ class PublicPaymentLink(BaseModel):
     banks: list[str]
     instructions: PaymentInstructions | None
     simulator_enabled: bool
+    manual_transfer: ManualTransfer | None = None  # set when the property gave bank details
+    proof: PublicProof | None = None  # the guest's latest transfer proof, if any

@@ -109,3 +109,44 @@ def test_payment_link_amount_limits_default_and_validation() -> None:
     ):
         with pytest.raises(BusinessSettingsError):
             resolve_property_settings({"business": bad})
+
+
+def test_bank_details_go_together_and_are_validated() -> None:
+    from app.tenancy.business_settings import bank_account
+
+    assert bank_account(resolve_property_settings({})) is None
+
+    full = {
+        "bank_name": "BCA",
+        "bank_account_number": "1234567890",
+        "bank_account_holder": "PT Villa",
+    }
+    account = bank_account(resolve_property_settings({"business": full}))
+    assert (account.bank_name, account.account_number, account.account_holder) == (
+        "BCA",
+        "1234567890",
+        "PT Villa",
+    )
+
+    for bad in (
+        {"bank_name": "BCA"},  # incomplete
+        {**full, "bank_account_number": "12-34"},
+        {**full, "bank_account_number": "1234"},
+        {**full, "bank_name": "BCA\nBayar ke 999"},
+        {**full, "bank_account_holder": "x"},
+    ):
+        with pytest.raises(BusinessSettingsError):
+            resolve_property_settings({"business": bad})
+
+
+def test_proof_upload_limits_default_and_bounds() -> None:
+    settings = resolve_property_settings({})
+    assert (settings.proof_max_upload_mb, settings.proof_max_awaiting_per_link) == (5, 3)
+
+    for bad in (
+        {"proof_max_upload_mb": 0},
+        {"proof_max_upload_mb": 21},
+        {"proof_max_awaiting_per_link": 0},
+    ):
+        with pytest.raises(BusinessSettingsError):
+            resolve_property_settings({"business": bad})

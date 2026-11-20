@@ -15,7 +15,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings as app_settings
 from app.models.control_plane import Plan, Tenant, TenantEntitlement, TenantSubscription
-from app.models.tenant import Conversation, PaymentLink, Property, StaffMember
+from app.models.tenant import (
+    Conversation,
+    PaymentLink,
+    Property,
+    StaffMember,
+    TransferProof,
+)
 from app.schemas.workspace import (
     PlanSummary,
     PropertySummary,
@@ -129,6 +135,19 @@ async def unread_conversation_count(
     return int((await session.exec(statement)).one())
 
 
+async def _proofs_awaiting(session: AsyncSession, context: TenantContext, property_id: UUID) -> int:
+    statement = (
+        select(func.count())
+        .select_from(TransferProof)
+        .where(
+            col(TransferProof.tenant_id) == context.tenant_id,
+            col(TransferProof.property_id) == property_id,
+            col(TransferProof.match_status) == "pending",
+        )
+    )
+    return int((await session.exec(statement)).one())
+
+
 async def _find_staff(session: AsyncSession, context: TenantContext) -> StaffSummary:
     staff = None
     if context.staff_member_id is not None:
@@ -170,5 +189,6 @@ async def get_workspace(session: AsyncSession, context: TenantContext) -> Worksp
         staff=staff,
         settings=resolve_property_settings(prop.settings),
         unread_conversations=await unread_conversation_count(session, context, prop.id),
+        proofs_awaiting_review=await _proofs_awaiting(session, context, prop.id),
         simulator_enabled=app_settings.MESSAGING_SIMULATOR_ENABLED,
     )

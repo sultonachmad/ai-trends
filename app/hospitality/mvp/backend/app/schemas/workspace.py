@@ -70,4 +70,5 @@ class WorkspaceRead(BaseModel):
     staff: StaffSummary
     settings: PropertySettings
     unread_conversations: int = 0
+    proofs_awaiting_review: int = 0
     simulator_enabled: bool = False

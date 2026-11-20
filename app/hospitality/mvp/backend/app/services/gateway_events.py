@@ -84,7 +84,8 @@ async def _finish(
     return outcome
 
 
-def _capture(payment: Payment, now: dt.datetime) -> None:
+def capture_payment(payment: Payment, now: dt.datetime) -> None:
+    """Mark `payment` as received in full."""
     payment.status = "captured"
     payment.authorized_amount = payment.amount
     payment.captured_amount = payment.amount
@@ -135,7 +136,7 @@ async def handle_gateway_event(
         )
 
     now = dt.datetime.now(dt.UTC)
-    _capture(payment, now)
+    capture_payment(payment, now)
     status = effective_status(link, now)
     if status != "active":
         # Money arrived for a link that can no longer be paid: keep the record, flag it.

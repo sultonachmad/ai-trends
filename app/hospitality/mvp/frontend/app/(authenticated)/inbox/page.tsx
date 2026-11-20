@@ -16,6 +16,7 @@ import { SimulatorPanel } from "@/components/inbox/SimulatorPanel";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { amountLimits, CreateLinkDialog } from "@/components/payments/CreateLinkDialog";
 import { LinkCreatedNotice } from "@/components/payments/LinkCreatedNotice";
+import { ProofUploadDialog } from "@/components/proofs/ProofUploadDialog";
 import { ApiError } from "@/lib/api-client";
 import {
   fetchConversation,
@@ -38,6 +39,7 @@ import {
 import { useLocale } from "@/lib/locale-store";
 import type { CreatedLink } from "@/lib/payment-links-api";
 import { usePolling } from "@/lib/use-polling";
+import { maxProofMb } from "@/lib/proof-format";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
 
 const ONBOARDING_PATH = "/onboarding";
@@ -68,6 +70,7 @@ function InboxScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [proofDialogOpen, setProofDialogOpen] = useState(false);
   const [createdLink, setCreatedLink] = useState<CreatedLink | null>(null);
   const lastMessageId = useRef<string | null>(null);
   const olderLoaded = useRef(false);
@@ -373,6 +376,13 @@ function InboxScreen() {
               </button>
               <button
                 type="button"
+                onClick={() => setProofDialogOpen(true)}
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                {t("inbox.recordProof")}
+              </button>
+              <button
+                type="button"
                 onClick={() => void toggleResolved()}
                 className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
               >
@@ -423,6 +433,16 @@ function InboxScreen() {
         }}
       />
       <LinkCreatedNotice created={createdLink} onClose={() => setCreatedLink(null)} />
+      <ProofUploadDialog
+        open={proofDialogOpen && selectedId !== null}
+        conversationId={selectedId ?? undefined}
+        maxMb={maxProofMb(workspace.settings)}
+        onClose={() => setProofDialogOpen(false)}
+        onUploaded={() => {
+          setProofDialogOpen(false);
+          router.push("/transfer-proofs");
+        }}
+      />
       {workspace.simulator_enabled && (
         <SimulatorPanel
           onSent={(conversationId) => {

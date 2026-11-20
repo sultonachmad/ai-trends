@@ -9,11 +9,17 @@ import type { PaymentLink } from "@/lib/payment-links-api";
 interface PaymentLinkTableProps {
   links: PaymentLink[];
   onCancel: (link: PaymentLink) => void;
+  onAddProof: (link: PaymentLink) => void;
   timeZone?: string;
 }
 
 /** Payment links as a table: amount, purpose, guest, status, created; cancel when pending. */
-export function PaymentLinkTable({ links, onCancel, timeZone }: PaymentLinkTableProps) {
+export function PaymentLinkTable({
+  links,
+  onCancel,
+  onAddProof,
+  timeZone,
+}: PaymentLinkTableProps) {
   const { t, locale } = useLocale();
   const now = new Date();
   const when = (iso: string | null) => formatListTime(iso, locale, now, timeZone);
@@ -79,15 +85,26 @@ export function PaymentLinkTable({ links, onCancel, timeZone }: PaymentLinkTable
                 {when(link.created_at)}
               </td>
               <td className="px-4 py-3 text-right align-top">
-                {link.state === "pending" && (
-                  <button
-                    type="button"
-                    onClick={() => onCancel(link)}
-                    className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-accent"
-                  >
-                    {t("links.cancel")}
-                  </button>
-                )}
+                <span className="flex flex-wrap justify-end gap-2">
+                  {(link.state === "pending" || link.state === "expired") && (
+                    <button
+                      type="button"
+                      onClick={() => onAddProof(link)}
+                      className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-accent"
+                    >
+                      {t("links.uploadProof")}
+                    </button>
+                  )}
+                  {link.state === "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => onCancel(link)}
+                      className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-accent"
+                    >
+                      {t("links.cancel")}
+                    </button>
+                  )}
+                </span>
               </td>
             </tr>
           ))}

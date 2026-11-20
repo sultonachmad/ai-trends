@@ -830,6 +830,15 @@ api_routers:
 - prefix: /api/simulator/payments
   file: backend/app/routers/simulator.py
   description: POST /{token}/pay — dev-only simulated payment; 404 unless PREFAB_PAYMENT_SIMULATOR_ENABLED
+- prefix: /api/transfer-proofs
+  file: backend/app/routers/transfer_proofs.py
+  description: 'Staff: list (state, cursor), read, upload (multipart), image, approve, reject'
+- prefix: /api/settings
+  file: backend/app/routers/settings.py
+  description: GET/PUT /bank-account for manual transfers (PUT owner only)
+- prefix: /api/pay/{token}/proofs
+  file: backend/app/routers/checkout.py
+  description: 'PUBLIC: guest uploads a transfer screenshot (multipart file + consent)'
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -864,12 +873,29 @@ services:
 - name: gateway_accounts
   file: backend/app/services/gateway_accounts.py
   description: get_or_create_gateway_account / new_gateway_account for a property
+- name: transfer_proofs
+  file: backend/app/services/transfer_proofs.py
+  description: submit_for_link (guest), submit_by_staff, list/read, read_image, latest_public_proof; duplicate
+    flag by sha256
+- name: proof_review
+  file: backend/app/services/proof_review.py
+  description: approve (second approver above the threshold, owner alone), reject with reason + chat notice
+- name: proof_retention
+  file: backend/app/services/proof_retention.py
+  description: purge_expired_proofs (image removed after proof_retention_days), run_startup_purge
+- name: property_settings
+  file: backend/app/services/property_settings.py
+  description: read_bank_account, update_bank_account (owner only) in property.settings business values
 middleware:
 - session
 - name: OriginCheckMiddleware
   file: backend/app/security/origin_check.py
   description: 'CSRF defence: POST/PUT/PATCH/DELETE must come from a PREFAB_CORS_ORIGINS origin or the
     API itself (403 otherwise)'
+- name: UploadSizeLimitMiddleware
+  file: backend/app/security/upload_limit.py
+  description: Refuses (413) an oversized body on the proof-upload routes before it is parsed; declared or
+    streamed
 patterns:
 - name: create_crud_router
   file: backend/app/crud/router_factory.py
@@ -954,6 +980,18 @@ utilities_backend:
 - name: pg payment test helpers
   file: backend/tests/pg/conftest.py
   description: make_link(client, **overrides), token_of(created), pay(client, token, method, bank)
+- name: image detection
+  file: backend/app/documents/images.py
+  description: detect_image_type (magic bytes; JPEG/PNG/WebP), content_hash (SHA-256)
+- name: DocumentStorage
+  file: backend/app/documents/storage.py
+  description: Tenant-partitioned file storage under PREFAB_DOCUMENT_STORAGE_DIR; get_document_storage dependency
+- name: purge_proofs job
+  file: backend/app/jobs/purge_proofs.py
+  description: 'python -m app.jobs.purge_proofs: delete expired proof images (run daily)'
+- name: pg proof test helpers
+  file: backend/tests/pg/conftest.py
+  description: image(), set_bank_account, guest_uploads, staff_uploads, add_staff_member, third_client
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
@@ -965,6 +1003,9 @@ schemas:
   file: backend/app/schemas/payment_links.py
   description: PaymentLinkCreateRequest, PaymentLinkRead/Page/Created, StartPaymentRequest, PaymentInstructions,
     PublicPaymentLink
+- name: transfer proof schemas
+  file: backend/app/schemas/transfer_proofs.py
+  description: ProofRead/Page, DuplicateOf, RejectRequest, PublicProof, ManualTransfer, BankAccountRead/Update
 migrations:
 - name: 0004_app_role_and_free_plan
   file: backend/migrations/versions/0004_app_role_and_free_plan.py
@@ -973,3 +1014,7 @@ migrations:
   file: backend/migrations/versions/0005_payment_links.py
   description: paymentlink.conversation_id/guest_id/deposit_of_total, 'simulator' gateway provider, resolve_payment_link()
     for the public page
+- name: 0006_transfer_proofs
+  file: backend/migrations/versions/0006_transfer_proofs.py
+  description: transferproof link/guest/conversation/amount/rejection/first-approval/duplicate columns, document.purged_at
+    and sha256 index

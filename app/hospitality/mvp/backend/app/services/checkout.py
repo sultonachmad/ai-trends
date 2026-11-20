@@ -16,6 +16,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings as app_settings
+from app.documents.storage import DocumentStorage
 from app.models.tenant import Payment, PaymentGatewayAccount, PaymentLink, Property
 from app.payments.gateway import (
     VA_BANKS,
@@ -26,6 +27,7 @@ from app.payments.gateway import (
     get_gateway,
 )
 from app.schemas.payment_links import PaymentInstructions, PublicPaymentLink
+from app.schemas.transfer_proofs import ManualTransfer
 from app.services.gateway_accounts import get_or_create_gateway_account
 from app.services.payment_links import (
     cancel_pending_payments,
@@ -33,6 +35,13 @@ from app.services.payment_links import (
     money,
     state_for_people,
 )
+from app.services.transfer_proofs import (
+    BANK_TRANSFER,
+    ProofUpload,
+    latest_public_proof,
+    submit_for_link,
+)
+from app.tenancy.business_settings import bank_account, resolve_property_settings
 from app.tenancy.public import PublicLinkScope
 
 log = logging.getLogger(__name__)
@@ -63,6 +72,10 @@ class MethodNotAllowedError(ValueError):
 
 class NoOpenPaymentError(Exception):
     """Nothing to simulate: the guest has not chosen a payment method yet."""
+
+
+class ManualTransferUnavailableError(Exception):
+    """The property has not given bank details, so it takes no manual transfers."""
 
 
 class TooManyAttemptsError(Exception):
@@ -115,6 +128,52 @@ async def _latest_pending(
     return (await session.exec(statement.limit(1))).first()
 
 
+def _manual_transfer(prop: Property) -> ManualTransfer | None:
+    settings = resolve_property_settings(prop.settings)
+    account = bank_account(settings)
+    if account is None:
+        return None
+    return ManualTransfer(
+        bank_name=account.bank_name,
+        account_number=account.account_number,
+        account_holder=account.account_holder,
+        max_upload_mb=settings.proof_max_upload_mb,
+    )
+
+
+async def submit_proof(
+    scope: PublicLinkScope, storage: DocumentStorage, upload: ProofUpload
+) -> PublicPaymentLink:
+    """A guest uploads a transfer screenshot for their link (consent already checked)."""
+    session = scope.session
+    link = await find_link(scope, lock=True)
+    prop = (
+        await session.exec(
+            select(Property).where(
+                col(Property.tenant_id) == scope.tenant_id, col(Property.id) == link.property_id
+            )
+        )
+    ).one()
+    if _manual_transfer(prop) is None:
+        await session.rollback()
+        raise ManualTransferUnavailableError
+    await submit_for_link(session, storage, link, prop, upload, by_guest=True, uploaded_by=None)
+    return await public_view(scope)
+
+
+async def property_upload_limit_mb(scope: PublicLinkScope) -> int:
+    """The largest proof image this link's property accepts."""
+    link = await find_link(scope)
+    prop = (
+        await scope.session.exec(
+            select(Property).where(
+                col(Property.tenant_id) == scope.tenant_id, col(Property.id) == link.property_id
+            )
+        )
+    ).one()
+    return resolve_property_settings(prop.settings).proof_max_upload_mb
+
+
 async def public_view(scope: PublicLinkScope) -> PublicPaymentLink:
     """What the pay page shows. No ids, no guest details."""
     session = scope.session
@@ -142,6 +201,8 @@ async def public_view(scope: PublicLinkScope) -> PublicPaymentLink:
         banks=list(VA_BANKS),
         instructions=_instructions(pending) if pending else None,
         simulator_enabled=app_settings.PAYMENT_SIMULATOR_ENABLED,
+        manual_transfer=_manual_transfer(prop) if payable else None,
+        proof=await latest_public_proof(session, link) if payable else None,
     )
 
 
@@ -165,7 +226,12 @@ async def _attempt_count(session: AsyncSession, link: PaymentLink) -> int:
     statement = (
         select(func.count())
         .select_from(Payment)
-        .where(col(Payment.tenant_id) == link.tenant_id, col(Payment.payment_link_id) == link.id)
+        .where(
+            col(Payment.tenant_id) == link.tenant_id,
+            col(Payment.payment_link_id) == link.id,
+            # transfer proofs have their own cap and never reach the gateway
+            col(Payment.method) != BANK_TRANSFER,
+        )
     )
     return int((await session.exec(statement)).one())
 

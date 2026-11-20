@@ -169,6 +169,20 @@ async def guest_says(
     return response.json()
 
 
+@pytest.fixture
+async def third_client(_pg_override: None) -> AsyncIterator[httpx.AsyncClient]:
+    """A third independent browser session (e.g. a second staff member)."""
+    async for http in _new_client():
+        yield http
+
+
+@pytest.fixture
+async def guest(_pg_override: None) -> AsyncIterator[httpx.AsyncClient]:
+    """A browser with no session at all — the guest opening a pay link."""
+    async for http in _new_client():
+        yield http
+
+
 async def sign_up_and_in(client: httpx.AsyncClient) -> str:
     """Create a fresh account, open a session on `client`, return the email."""
     email = f"owner-{uuid.uuid4().hex[:10]}@example.com"
@@ -207,3 +221,85 @@ async def pay(client: httpx.AsyncClient, token: str, method: str = "qris", bank:
     started = await client.post(f"/api/pay/{token}/payments", json=body)
     assert started.status_code == 201, started.text
     return await client.post(f"/api/simulator/payments/{token}/pay")
+
+
+JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00" + b"\x00" * 64
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+BANK = {"bank_name": "BCA", "account_number": "1234567890", "account_holder": "PT Villa Senja"}
+
+
+@pytest.fixture(autouse=True)
+def _document_storage(tmp_path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Each test stores uploaded files in its own temporary folder."""
+    folder = tmp_path / "documents"
+    monkeypatch.setattr(settings, "DOCUMENT_STORAGE_DIR", str(folder))
+    return folder
+
+
+def image(seed: str = "a", kind: bytes = JPEG_BYTES) -> bytes:
+    """A small valid image whose content (and so its hash) depends on `seed`."""
+    return kind + seed.encode()
+
+
+async def set_bank_account(client: httpx.AsyncClient) -> None:
+    response = await client.put("/api/settings/bank-account", json=BANK)
+    assert response.status_code == 200, response.text
+
+
+async def guest_uploads(
+    client: httpx.AsyncClient, token: str, content: bytes | None = None, consent: str = "true"
+) -> httpx.Response:
+    """A guest uploads a transfer screenshot on the public pay page."""
+    return await client.post(
+        f"/api/pay/{token}/proofs",
+        files={"file": ("bukti.jpg", content if content is not None else image(), "image/jpeg")},
+        data={"consent": consent},
+    )
+
+
+async def staff_uploads(
+    client: httpx.AsyncClient, content: bytes | None = None, **fields: object
+) -> httpx.Response:
+    """Staff upload a transfer screenshot (for a link, or with amount + description)."""
+    return await client.post(
+        "/api/transfer-proofs",
+        files={"file": ("bukti.jpg", content if content is not None else image(), "image/jpeg")},
+        data={key: str(value) for key, value in fields.items()},
+    )
+
+
+async def add_staff_member(
+    session: AsyncSession, client: httpx.AsyncClient, workspace: dict
+) -> None:
+    """Sign `client` up as a second, non-owner staff member of `workspace`.
+
+    There is no invite flow yet, so the membership is written directly.
+    """
+    from sqlmodel import select
+
+    from app.auth.models import User
+    from app.models.control_plane import TenantMembership
+    from app.models.tenant import StaffMember
+
+    email = await sign_up_and_in(client)
+    user = (await session.exec(select(User).where(User.email == email))).one()
+    staff = StaffMember(
+        tenant_id=workspace["tenant"]["id"],
+        user_id=user.id,
+        display_name=email.split("@")[0],
+        email=email,
+        department="front_office",
+    )
+    session.add(staff)
+    await session.flush()
+    session.add(
+        TenantMembership(
+            tenant_id=workspace["tenant"]["id"],
+            user_id=user.id,
+            status="active",
+            is_tenant_owner=False,
+            staff_member_id=staff.id,
+            last_property_id=workspace["property"]["id"],
+        )
+    )
+    await session.commit()

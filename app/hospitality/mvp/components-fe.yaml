@@ -62,6 +62,21 @@ components:
 - name: PaymentInstructions
   path: frontend/components/payments/PaymentInstructions.tsx
   description: 'Guest instructions: simulated QRIS box or virtual account number with copy'
+- name: ManualTransferPanel
+  path: frontend/components/payments/ManualTransferPanel.tsx
+  description: 'Pay page: bank details, copy number, proof upload with consent, checking/rejected states'
+- name: ProofList
+  path: frontend/components/proofs/ProofList.tsx
+  description: Transfer proofs with state badge and review/view action
+- name: ProofReviewDialog
+  path: frontend/components/proofs/ProofReviewDialog.tsx
+  description: Image, expected amount, duplicate warning; approve or reject with reason
+- name: ProofUploadDialog
+  path: frontend/components/proofs/ProofUploadDialog.tsx
+  description: Staff record a proof for a link, or for a transfer without a link (amount + purpose)
+- name: ProofImage
+  path: frontend/components/proofs/ProofImage.tsx
+  description: Loads a proof image with the session and shows it from an object URL
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -112,6 +127,14 @@ pages:
   layout: RootLayout
   description: 'PUBLIC guest pay page (no sign-in, no sidebar): choose QRIS / virtual account, instructions,
     auto-updating state'
+- name: TransferProofsPage
+  path: frontend/app/(authenticated)/transfer-proofs/page.tsx
+  layout: AuthenticatedLayout
+  description: Review queue with state tabs, record proof, timed re-fetch
+- name: SettingsPage
+  path: frontend/app/(authenticated)/settings/page.tsx
+  layout: AuthenticatedLayout
+  description: Bank account for manual transfers (owner edits)
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -162,5 +185,17 @@ utilities:
 - name: checkout-api
   path: frontend/lib/checkout-api.ts
   description: 'Public: fetchPublicLink, startPayment, simulatePayment'
+- name: transfer-proofs-api
+  path: frontend/lib/transfer-proofs-api.ts
+  description: fetchProofs, uploadStaffProof, fetchProofImage, approveProof, rejectProof
+- name: settings-api
+  path: frontend/lib/settings-api.ts
+  description: fetchBankAccount, saveBankAccount
+- name: proof-format
+  path: frontend/lib/proof-format.ts
+  description: proofFileProblem (type/size), bankFormProblem, proofStateKey, proofBadgeClass, PROOF_ACCEPT_ATTRIBUTE
+- name: send / requestBlob
+  path: frontend/lib/api-client.ts
+  description: send (FormData or JSON body), requestBlob (binary download with the session)
 api_routes:
 - api/auth/[...nextauth]

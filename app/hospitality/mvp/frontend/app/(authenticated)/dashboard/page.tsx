@@ -144,6 +144,23 @@ export default function DashboardPage() {
             {t("dashboard.openLinks")}
           </Link>
         </section>
+
+        <section className={cardClass} aria-labelledby="proofs-heading">
+          <h2 id="proofs-heading" className="text-sm font-medium text-muted-foreground">
+            {t("dashboard.proofs")}
+          </h2>
+          <p className="mt-1 text-sm">
+            {workspace.proofs_awaiting_review > 0
+              ? t("dashboard.proofsAwaiting", { count: workspace.proofs_awaiting_review })
+              : t("dashboard.proofsNone")}
+          </p>
+          <Link
+            href="/transfer-proofs"
+            className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+          >
+            {t("dashboard.openProofs")}
+          </Link>
+        </section>
       </div>
     </div>
   );

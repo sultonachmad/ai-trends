@@ -2947,6 +2947,29 @@ CREATE TABLE aisuggestion (
 );
 CREATE INDEX ix_aisuggestion_subject ON aisuggestion (tenant_id, subject_table, subject_id);
 
+-- What a person needs to review a transfer proof, and the review trail.
+ALTER TABLE transferproof
+  ADD COLUMN payment_link_id uuid,
+  ADD COLUMN guest_id uuid,
+  ADD COLUMN conversation_id uuid,
+  ADD COLUMN duplicate_of_proof_id uuid,                -- earlier proof with the same image
+  ADD COLUMN amount numeric(18,2) CHECK (amount IS NULL OR amount > 0),  -- amount staff expect
+  ADD COLUMN description text,
+  ADD COLUMN rejection_reason text,
+  ADD COLUMN first_approved_by text,                    -- first of two approvers, above the threshold
+  ADD COLUMN first_approved_at timestamptz,
+  ADD COLUMN consent_at timestamptz,                    -- guest agreed to the storage notice
+  ADD FOREIGN KEY (tenant_id, payment_link_id) REFERENCES paymentlink (tenant_id, id) ON DELETE SET NULL (payment_link_id),
+  ADD FOREIGN KEY (tenant_id, guest_id) REFERENCES guest (tenant_id, id) ON DELETE SET NULL (guest_id),
+  ADD FOREIGN KEY (tenant_id, conversation_id) REFERENCES conversation (tenant_id, id) ON DELETE SET NULL (conversation_id),
+  ADD FOREIGN KEY (tenant_id, duplicate_of_proof_id) REFERENCES transferproof (tenant_id, id) ON DELETE SET NULL (duplicate_of_proof_id);
+CREATE INDEX ix_transferproof_queue ON transferproof (tenant_id, property_id, match_status, created_at DESC);
+CREATE INDEX ix_transferproof_link ON transferproof (tenant_id, payment_link_id) WHERE payment_link_id IS NOT NULL;
+
+-- The stored file is deleted after its retention period; the row is kept.
+ALTER TABLE document ADD COLUMN purged_at timestamptz;
+CREATE INDEX ix_document_sha256 ON document (tenant_id, sha256) WHERE sha256 IS NOT NULL;
+
 -- Payment links know which chat they were sent in and which guest they are for, and
 -- can be a down payment (DP) of a larger total. Added after conversation/guest exist.
 ALTER TABLE paymentlink

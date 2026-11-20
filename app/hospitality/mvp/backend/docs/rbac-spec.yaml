@@ -153,6 +153,20 @@ menus:
     order: 3
     active: true
 
+  # Transfer screenshots waiting for a person to approve or reject.
+  - name: Transfer proofs
+    path: /transfer-proofs
+    icon: invoice
+    order: 4
+    active: true
+
+  # Property settings (bank account for manual transfers). Owner edits; members read.
+  - name: Settings
+    path: /settings
+    icon: settings
+    order: 9
+    active: true
+
   # Add an entry for each new page that should appear in the sidebar / nav.
   #
   # Standalone link example:

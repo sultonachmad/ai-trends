@@ -23,6 +23,7 @@ export interface Workspace {
   staff: { display_name: string; email: string | null };
   settings: Record<string, string | number>;
   unread_conversations: number;
+  proofs_awaiting_review: number;
   simulator_enabled: boolean;
 }
 
