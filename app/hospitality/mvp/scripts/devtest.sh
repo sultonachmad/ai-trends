@@ -63,11 +63,16 @@ start_service() { # name, working dir, command...
   local name="$1" dir="$2"
   shift 2
   # setsid: own process group, so `stop` can end the whole tree (reloader, workers).
+  # The log writer gets its own stdout/stderr, so it never holds the caller's pipe
+  # open: `devtest.sh start | tail` must return as soon as the servers are ready.
   PYTHONUNBUFFERED=1 FORCE_COLOR=0 setsid bash -c '
     cd "$1" || exit 1
     shift
     exec "$@" 2>&1
-  ' _ "$dir" "$@" > >(log_to "$name") 2>&1 &
+  ' _ "$dir" "$@" > >(
+    exec >/dev/null 2>&1 # permanent: a redirection on the function call would keep a saved copy
+    log_to "$name"
+  ) 2>&1 </dev/null &
   echo $! >"$RUN_DIR/$name.pid"
 }
 
