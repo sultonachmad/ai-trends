@@ -5,8 +5,8 @@
  *
  * Renders any array of records against a `columns` config, with optional
  * client-side search and Edit/Delete action buttons. Column values are
- * `any` because the data shape is only known by the caller — narrow it in
- * a `render` function when a column needs typed formatting.
+ * `unknown` because the data shape is only known by the caller — narrow it
+ * in a `render` function (or read the typed `item`) for typed formatting.
  */
 
 import { useMemo, useState, type ReactNode } from "react";
@@ -14,7 +14,7 @@ import { useMemo, useState, type ReactNode } from "react";
 export interface Column<T> {
   key: string;
   label: string;
-  render?: (value: any, item: T) => ReactNode;
+  render?: (value: unknown, item: T) => ReactNode;
 }
 
 interface DataTableProps<T> {

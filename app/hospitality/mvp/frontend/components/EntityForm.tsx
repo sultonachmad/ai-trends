@@ -11,6 +11,9 @@
 
 import { useReducer, type FormEvent } from "react";
 
+/** What a form field can hold: text/select/date → string, number → number, checkbox → boolean. */
+export type FieldValue = string | number | boolean;
+
 export interface SelectOption {
   value: string;
   label: string;
@@ -27,28 +30,28 @@ export interface FieldConfig {
 
 interface EntityFormProps {
   fields: FieldConfig[];
-  onSubmit: (data: Record<string, any>) => void | Promise<void>;
-  initialData?: Record<string, any>;
+  onSubmit: (data: Record<string, FieldValue>) => void | Promise<void>;
+  initialData?: Record<string, FieldValue>;
   submitLabel?: string;
 }
 
 interface FormState {
-  values: Record<string, any>;
+  values: Record<string, FieldValue>;
   submitting: boolean;
   error: string | null;
 }
 
 type FormAction =
-  | { type: "SET_FIELD"; name: string; value: any }
+  | { type: "SET_FIELD"; name: string; value: FieldValue }
   | { type: "SUBMIT_START" }
   | { type: "SUBMIT_SETTLED"; error: string | null };
 
-function defaultValueFor(field: FieldConfig): any {
+function defaultValueFor(field: FieldConfig): FieldValue {
   return field.type === "checkbox" ? false : "";
 }
 
-function buildInitialValues(fields: FieldConfig[], initialData?: Record<string, any>): Record<string, any> {
-  return fields.reduce<Record<string, any>>((values, field) => {
+function buildInitialValues(fields: FieldConfig[], initialData?: Record<string, FieldValue>): Record<string, FieldValue> {
+  return fields.reduce<Record<string, FieldValue>>((values, field) => {
     const existing = initialData?.[field.name];
     return {
       ...values,
@@ -79,8 +82,8 @@ const inputClass =
 
 interface FieldControlProps {
   field: FieldConfig;
-  value: any;
-  onChange: (value: any) => void;
+  value: FieldValue;
+  onChange: (value: FieldValue) => void;
 }
 
 function FieldControl({ field, value, onChange }: FieldControlProps) {
@@ -91,7 +94,7 @@ function FieldControl({ field, value, onChange }: FieldControlProps) {
         name={field.name}
         required={field.required}
         placeholder={field.placeholder}
-        value={value}
+        value={String(value)}
         onChange={(event) => onChange(event.target.value)}
         className={`${inputClass} min-h-[100px]`}
       />
@@ -104,7 +107,7 @@ function FieldControl({ field, value, onChange }: FieldControlProps) {
         id={field.name}
         name={field.name}
         required={field.required}
-        value={value}
+        value={String(value)}
         onChange={(event) => onChange(event.target.value)}
         className={inputClass}
       >
@@ -140,7 +143,7 @@ function FieldControl({ field, value, onChange }: FieldControlProps) {
       type={field.type}
       required={field.required}
       placeholder={field.placeholder}
-      value={value}
+      value={typeof value === "boolean" ? "" : value}
       onChange={(event) =>
         onChange(field.type === "number" ? event.target.valueAsNumber : event.target.value)
       }

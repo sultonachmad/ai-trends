@@ -74,7 +74,11 @@ export default function RoleDetailPage() {
   const toggle = (permId: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(permId) ? next.delete(permId) : next.add(permId);
+      if (next.has(permId)) {
+        next.delete(permId);
+      } else {
+        next.add(permId);
+      }
       return next;
     });
   };
