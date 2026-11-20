@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -116,8 +117,17 @@ export default function DashboardPage() {
           <h2 id="inbox-heading" className="text-sm font-medium text-muted-foreground">
             {t("dashboard.inbox")}
           </h2>
-          <p className="mt-1 text-sm">{t("dashboard.inboxEmpty")}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{t("dashboard.comingSoon")}</p>
+          <p className="mt-1 text-sm">
+            {workspace.unread_conversations > 0
+              ? t("dashboard.unread", { count: workspace.unread_conversations })
+              : t("dashboard.inboxEmpty")}
+          </p>
+          <Link
+            href="/inbox"
+            className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+          >
+            {t("dashboard.openInbox")}
+          </Link>
         </section>
 
         <section className={cardClass} aria-labelledby="links-heading">

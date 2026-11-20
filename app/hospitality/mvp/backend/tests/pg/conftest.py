@@ -28,6 +28,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.config import settings
 from app.database import get_session
 from app.main import app
 
@@ -138,6 +139,32 @@ async def other_client(_pg_override: None) -> AsyncIterator[httpx.AsyncClient]:
     """A second, independent browser session — for cross-tenant tests."""
     async for http in _new_client():
         yield http
+
+
+@pytest.fixture(autouse=True)
+def _simulator_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Integration tests play the guest through the simulator endpoint."""
+    monkeypatch.setattr(settings, "MESSAGING_SIMULATOR_ENABLED", True)
+
+
+async def start_workspace(client: httpx.AsyncClient, **overrides: object) -> dict:
+    """Sign up a fresh owner on `client` and return their new workspace."""
+    await sign_up_and_in(client)
+    created = await client.post("/api/onboarding", json=onboarding_payload(**overrides))
+    assert created.status_code == 201, created.text
+    return created.json()
+
+
+async def guest_says(
+    client: httpx.AsyncClient, text: str, phone: str = "+6281234567890", name: str | None = "Budi"
+) -> dict:
+    """Send a simulated inbound WhatsApp message to the client's own property."""
+    payload = {"from_phone": phone, "body": text}
+    if name is not None:
+        payload["guest_name"] = name
+    response = await client.post("/api/simulator/whatsapp/inbound", json=payload)
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
 async def sign_up_and_in(client: httpx.AsyncClient) -> str:

@@ -85,7 +85,7 @@ We'll know we're right when **a pilot property sends at least 5 payment links a 
 | # | Milestone | Outcome | Status | Plan |
 |---|---|---|---|---|
 | 1 | Property workspace | An operator can sign up, create a property on the Free plan, and sign in to an empty workspace that only shows their own data | complete | `.claude/plans/phase-0-m1-property-workspace.plan.md` |
-| 2 | WhatsApp inbox | Staff can see guest conversations, read threads and reply; a simulated guest can send messages in | pending | — |
+| 2 | WhatsApp inbox | Staff can see guest conversations, read threads and reply; a simulated guest can send messages in | complete | `.claude/plans/phase-0-m2-whatsapp-inbox.plan.md` |
 | 3 | Payment links | Staff can create and send an IDR payment link; a guest can open it and pay by simulated QRIS or VA; staff see it turn paid or expire | pending | — |
 | 4 | Transfer-proof verification | A guest or staff member can upload a transfer screenshot; staff approve or reject it and the link updates; duplicates are flagged | pending | — |
 | 5 | Free-tier limit | Operators see payment links used this month against the plan limit and are stopped, with a clear message, when it is reached | pending | — |

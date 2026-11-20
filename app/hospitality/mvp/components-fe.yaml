@@ -37,6 +37,18 @@ components:
 - name: LanguageSwitch
   path: frontend/components/LanguageSwitch.tsx
   description: Bahasa Indonesia / English toggle for staff screens
+- name: ConversationList
+  path: frontend/components/inbox/ConversationList.tsx
+  description: 'Inbox list rows: guest, preview, time, unread badge'
+- name: MessageThread
+  path: frontend/components/inbox/MessageThread.tsx
+  description: Chat bubbles with day separators and sent/failed markers
+- name: ReplyBox
+  path: frontend/components/inbox/ReplyBox.tsx
+  description: Reply textarea (Enter sends); shows why replying is blocked
+- name: SimulatorPanel
+  path: frontend/components/inbox/SimulatorPanel.tsx
+  description: Dev-only form to send a message in as a guest
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -74,6 +86,10 @@ pages:
   layout: AuthenticatedLayout
   description: 'Workspace home: property, Free plan usage, empty inbox and payment-link states; redirects
     to /onboarding when no workspace'
+- name: InboxPage
+  path: frontend/app/(authenticated)/inbox/page.tsx
+  layout: AuthenticatedLayout
+  description: Two-pane inbox (list + thread), ?c=<conversation id>, timed re-fetch
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -81,6 +97,9 @@ hooks:
 - name: useLocale
   path: frontend/lib/locale-store.ts
   description: Current UI language, setLocale() and t(key, vars); remembered per browser
+- name: usePolling
+  path: frontend/lib/use-polling.ts
+  description: Run an async task now and on an interval while the tab is visible; no overlap
 utilities:
 - name: RbacProvider
   path: frontend/lib/rbac-store.tsx
@@ -101,5 +120,13 @@ utilities:
 - name: request
   path: frontend/lib/api-client.ts
   description: Shared fetch helper (session cookie, ApiError) for non-CRUD endpoints
+- name: inbox-api
+  path: frontend/lib/inbox-api.ts
+  description: fetchConversations, fetchConversation, fetchMessages, sendReply, markRead, resolve/reopenConversation,
+    simulateInbound
+- name: inbox-format
+  path: frontend/lib/inbox-format.ts
+  description: applyFirstPage, mergeConversations, mergeMessages, formatListTime, formatClock, dayLabel,
+    startsNewDay
 api_routes:
 - api/auth/[...nextauth]

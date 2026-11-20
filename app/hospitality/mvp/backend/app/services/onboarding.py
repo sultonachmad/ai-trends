@@ -36,6 +36,7 @@ from app.models.tenant import (
     TenantProfile,
 )
 from app.schemas.workspace import OnboardingRequest
+from app.services.messaging_accounts import new_whatsapp_account
 from app.tenancy.context import TenantContext
 
 log = logging.getLogger(__name__)
@@ -178,6 +179,8 @@ async def _create_tenant_data(
     session.add(
         StaffRoleAssignment(tenant_id=tenant.id, staff_member_id=staff.id, role_id=owner_role.id)
     )
+    await session.flush()
+    session.add(new_whatsapp_account(prop))
     await session.flush()
     return prop, staff
 

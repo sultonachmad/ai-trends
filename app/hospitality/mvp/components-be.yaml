@@ -814,6 +814,13 @@ api_routers:
 - prefix: /api/workspace
   file: backend/app/routers/workspace.py
   description: GET — the caller's property, plan, monthly payment-link usage and business settings
+- prefix: /api/conversations
+  file: backend/app/routers/inbox.py
+  description: 'Inbox: list (status, limit, cursor), read, messages (?after=), reply, read, resolve, reopen;
+    plus GET /api/inbox/summary'
+- prefix: /api/simulator
+  file: backend/app/routers/simulator.py
+  description: POST /whatsapp/inbound — dev-only simulated guest message; 404 unless PREFAB_MESSAGING_SIMULATOR_ENABLED
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -821,6 +828,20 @@ services:
 - name: workspace.get_workspace
   file: backend/app/services/workspace.py
   description: Workspace summary; also payment_link_limit() and payment_links_used_this_month()
+- name: inbox
+  file: backend/app/services/inbox.py
+  description: list_conversations, read_conversation, list_messages, send_reply, mark_read, set_resolved;
+    reply_block_reason (24h window)
+- name: inbound.receive_inbound
+  file: backend/app/services/inbound.py
+  description: Single entry point for inbound guest messages (simulator now, provider webhook later);
+    idempotent on provider_message_id
+- name: messaging_accounts
+  file: backend/app/services/messaging_accounts.py
+  description: get_or_create_whatsapp_account / new_whatsapp_account for a property
+- name: workspace.find_property
+  file: backend/app/services/workspace.py
+  description: The property the caller works in; also unread_conversation_count()
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -842,6 +863,9 @@ patterns:
 - name: get_tenant_context
   file: backend/app/tenancy/context.py
   description: FastAPI dependency — the caller's active tenant membership (403 when none)
+- name: MessagingProvider
+  file: backend/app/messaging/provider.py
+  description: Provider protocol (send_text -> SendResult) + register_provider/get_provider keyed by messagingaccount.provider
 utilities_backend:
 - name: BaseEntity
   file: backend/app/crud/base_model.py
@@ -879,10 +903,22 @@ utilities_backend:
   file: backend/tests/pg/conftest.py
   description: PostgreSQL integration-test database (pg_client, other_client, pg_session); skipped when
     no server
+- name: normalise_phone
+  file: backend/app/messaging/phone.py
+  description: Canonical +<country><number>; accepts Indonesian 08… local form
+- name: SimulatedWhatsAppProvider
+  file: backend/app/messaging/simulator.py
+  description: Simulated WhatsApp sender registered as provider 'simulator'
+- name: pg test helpers
+  file: backend/tests/pg/conftest.py
+  description: start_workspace(client), guest_says(client, text, phone, name)
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
   description: OnboardingRequest, OnboardingStatus, WorkspaceRead
+- name: inbox schemas
+  file: backend/app/schemas/inbox.py
+  description: ReplyRequest, SimulatedInboundRequest, ConversationRead/Page, MessageRead, InboxSummary
 migrations:
 - name: 0004_app_role_and_free_plan
   file: backend/migrations/versions/0004_app_role_and_free_plan.py

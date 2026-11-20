@@ -50,6 +50,12 @@ class PropertySettings(BaseModel):
     reply_hours_end: dt.time = Field(
         default=dt.time(21, 0), description="End of the hours the reply target counts."
     )
+    inbox_poll_seconds: int = Field(
+        default=5, ge=2, le=120, description="How often the inbox list checks for new messages."
+    )
+    thread_poll_seconds: int = Field(
+        default=3, ge=2, le=120, description="How often an open conversation checks for messages."
+    )
 
     @model_validator(mode="after")
     def _hours_in_order(self) -> Self:

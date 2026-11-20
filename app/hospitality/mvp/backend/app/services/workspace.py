@@ -6,14 +6,16 @@ result is right whether the session is tenant-scoped or elevated (provisioning).
 
 import datetime as dt
 import logging
+from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import func
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.config import settings as app_settings
 from app.models.control_plane import Plan, Tenant, TenantEntitlement, TenantSubscription
-from app.models.tenant import PaymentLink, Property, StaffMember
+from app.models.tenant import Conversation, PaymentLink, Property, StaffMember
 from app.schemas.workspace import (
     PlanSummary,
     PropertySummary,
@@ -47,7 +49,8 @@ def month_start_utc(now: dt.datetime, timezone_name: str) -> dt.datetime:
     return local.replace(day=1, hour=0, minute=0, second=0, microsecond=0).astimezone(dt.UTC)
 
 
-async def _find_property(session: AsyncSession, context: TenantContext) -> Property:
+async def find_property(session: AsyncSession, context: TenantContext) -> Property:
+    """The property the caller is working in (their last one, else the first)."""
     statement = select(Property).where(col(Property.tenant_id) == context.tenant_id)
     if context.last_property_id is not None:
         preferred = (
@@ -109,6 +112,23 @@ async def payment_links_used_this_month(
     return int((await session.exec(statement)).one())
 
 
+async def unread_conversation_count(
+    session: AsyncSession, context: TenantContext, property_id: UUID
+) -> int:
+    """Open conversations of the property that have unread guest messages."""
+    statement = (
+        select(func.count())
+        .select_from(Conversation)
+        .where(
+            col(Conversation.tenant_id) == context.tenant_id,
+            col(Conversation.property_id) == property_id,
+            col(Conversation.status).not_in(("resolved", "spam")),
+            col(Conversation.unread_count) > 0,
+        )
+    )
+    return int((await session.exec(statement)).one())
+
+
 async def _find_staff(session: AsyncSession, context: TenantContext) -> StaffSummary:
     staff = None
     if context.staff_member_id is not None:
@@ -128,7 +148,7 @@ async def _find_staff(session: AsyncSession, context: TenantContext) -> StaffSum
 async def get_workspace(session: AsyncSession, context: TenantContext) -> WorkspaceRead:
     """Assemble the workspace summary for `context`."""
     tenant = (await session.exec(select(Tenant).where(col(Tenant.id) == context.tenant_id))).one()
-    prop = await _find_property(session, context)
+    prop = await find_property(session, context)
     plan = await _find_plan(session, context)
     used = await payment_links_used_this_month(session, context, prop.timezone)
     limit = await payment_link_limit(session, context)
@@ -149,4 +169,6 @@ async def get_workspace(session: AsyncSession, context: TenantContext) -> Worksp
         is_owner=context.is_owner,
         staff=staff,
         settings=resolve_property_settings(prop.settings),
+        unread_conversations=await unread_conversation_count(session, context, prop.id),
+        simulator_enabled=app_settings.MESSAGING_SIMULATOR_ENABLED,
     )

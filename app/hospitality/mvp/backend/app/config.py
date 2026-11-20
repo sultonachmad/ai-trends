@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Send the session cookie over HTTPS only. Keep False for local http://localhost;
     # set PREFAB_SESSION_COOKIE_SECURE=true wherever the app is served over HTTPS.
     SESSION_COOKIE_SECURE: bool = False
+    # Lets a signed-in tester send messages in "as a guest" (POST /api/simulator/...).
+    # Development only: keep false anywhere real guests are served.
+    MESSAGING_SIMULATOR_ENABLED: bool = False
     # PREFAB:config-fields
 
 

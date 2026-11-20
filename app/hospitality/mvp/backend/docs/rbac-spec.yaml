@@ -139,6 +139,13 @@ menus:
     order: 1
     active: true
 
+  # Guest conversations (WhatsApp). Visible to every member of the workspace.
+  - name: Inbox
+    path: /inbox
+    icon: chat
+    order: 2
+    active: true
+
   # Add an entry for each new page that should appear in the sidebar / nav.
   #
   # Standalone link example:

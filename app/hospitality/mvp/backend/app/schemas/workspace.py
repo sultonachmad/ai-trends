@@ -69,3 +69,5 @@ class WorkspaceRead(BaseModel):
     is_owner: bool
     staff: StaffSummary
     settings: PropertySettings
+    unread_conversations: int = 0
+    simulator_enabled: bool = False

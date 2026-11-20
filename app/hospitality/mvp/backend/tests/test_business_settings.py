@@ -84,3 +84,15 @@ def test_settings_objects_are_immutable() -> None:
         PropertySettings().proof_retention_days = 1  # type: ignore[misc]
     with pytest.raises(Exception):  # noqa: B017, PT011
         PlanLimits().payment_links_per_month = 1  # type: ignore[misc]
+
+
+def test_polling_intervals_default_and_bounds() -> None:
+    settings = resolve_property_settings({})
+    assert (settings.inbox_poll_seconds, settings.thread_poll_seconds) == (5, 3)
+
+    tuned = resolve_property_settings({"business": {"inbox_poll_seconds": 30}})
+    assert tuned.inbox_poll_seconds == 30
+
+    for bad in ({"inbox_poll_seconds": 1}, {"thread_poll_seconds": 121}):
+        with pytest.raises(BusinessSettingsError):
+            resolve_property_settings({"business": bad})

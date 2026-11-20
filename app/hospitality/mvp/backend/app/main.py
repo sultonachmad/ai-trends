@@ -228,6 +228,13 @@ def create_app() -> FastAPI:
     app.include_router(onboarding_router)
     app.include_router(workspace_router)
 
+    # Phase 0 wedge — WhatsApp inbox (simulator routes answer 404 unless enabled)
+    from app.routers.inbox import inbox_router
+    from app.routers.simulator import simulator_router
+
+    app.include_router(inbox_router)
+    app.include_router(simulator_router)
+
     return app
 
 
