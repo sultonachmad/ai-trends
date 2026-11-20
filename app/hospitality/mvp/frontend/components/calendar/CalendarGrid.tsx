@@ -102,7 +102,9 @@ function RoomTable({ room, calendar, onCell }: { room: CalendarRoomType } & Cale
                 <button
                   type="button"
                   disabled={!editable(day.date)}
-                  aria-label={label(t("calendar.row.available"), day.date)}
+                  aria-label={`${label(t("calendar.row.available"), day.date)}: ${
+                    day.oversold ? t("calendar.oversold") : day.available
+                  }`}
                   onClick={() =>
                     onCell({ row: "availability", roomTypeId: room.id, date: day.date, closed: day.closed })
                   }
@@ -111,6 +113,10 @@ function RoomTable({ room, calendar, onCell }: { room: CalendarRoomType } & Cale
                   {day.closed ? (
                     <span className="rounded bg-destructive/15 px-1 py-0.5 text-[0.65rem] font-semibold text-destructive">
                       {t("calendar.closed")}
+                    </span>
+                  ) : day.oversold ? (
+                    <span className="rounded bg-destructive/15 px-1 py-0.5 text-[0.65rem] font-semibold text-destructive">
+                      {t("calendar.oversold")}
                     </span>
                   ) : (
                     <span className="font-semibold">{day.available}</span>

@@ -21,6 +21,8 @@ from app.schemas.rooms import (
     RoomTypeUpdateRequest,
     UnitRead,
 )
+from app.services.calendar_dates import property_today
+from app.services.inventory import sync_units_in_use
 from app.tenancy.business_settings import PropertySettings, resolve_property_settings
 from app.tenancy.context import TenantContext
 
@@ -295,6 +297,10 @@ async def update_room_type(
         room.is_active = changes["is_active"]
     if "units" in changes:
         units = _resize(session, room, units, changes["units"])
+        await session.flush()
+        await sync_units_in_use(
+            session, context, room.id, changes["units"], property_today(prop.timezone)
+        )
     room.updated_by = str(context.user_id)
     session.add(room)
     await session.commit()

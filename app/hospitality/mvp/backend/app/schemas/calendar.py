@@ -93,7 +93,8 @@ class DayPrice(BaseModel):
 
 class CalendarDay(BaseModel):
     date: dt.date
-    available: int  # units that can still be sold
+    available: int  # units that can still be sold (never below zero)
+    oversold: bool = False  # more units sold than there are
     closed: bool
     min_stay: int | None  # for guests arriving this date
     prices: list[DayPrice]

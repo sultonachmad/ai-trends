@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 # One line of plain text: shown to guests and sent to channels. Control characters,
 # invisible characters and text-direction overrides are refused, so a name cannot be
 # made to look like another one.
-_UNSAFE_IN_NAMES = (
+UNSAFE_IN_NAMES = (
     "\x00-\x1f\x7f-\x9f"  # C0 and C1 controls
     "\u200b-\u200f"  # zero-width characters and direction marks
     "\u2028-\u202e"  # line/paragraph separators and direction embeddings/overrides
@@ -18,7 +18,7 @@ _UNSAFE_IN_NAMES = (
 RoomName = Annotated[
     str,
     StringConstraints(
-        strip_whitespace=True, min_length=1, max_length=80, pattern=f"^[^{_UNSAFE_IN_NAMES}]+$"
+        strip_whitespace=True, min_length=1, max_length=80, pattern=f"^[^{UNSAFE_IN_NAMES}]+$"
     ),
 ]
 RoomKind = Literal["room", "villa", "apartment", "cabin", "other"]

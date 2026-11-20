@@ -14,6 +14,8 @@ export interface DayPrice {
 export interface CalendarDay {
   date: string;
   available: number;
+  /** More units sold than there are. */
+  oversold: boolean;
   closed: boolean;
   /** Minimum nights for guests arriving this date. */
   min_stay: number | null;

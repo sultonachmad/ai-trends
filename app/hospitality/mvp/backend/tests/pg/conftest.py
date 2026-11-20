@@ -357,3 +357,49 @@ async def make_rate_plan(
     response = await client.post("/api/rate-plans", json=payload)
     assert response.status_code == 201, response.text
     return response.json()
+
+
+async def make_booking(
+    client: httpx.AsyncClient, room: dict, plan: dict, arrival: str, departure: str, **overrides
+) -> dict:
+    """Enter a booking for `room` on `plan`; returns its detail."""
+    payload = {
+        "arrival": arrival,
+        "departure": departure,
+        "room_type_id": room["id"],
+        "rate_plan_id": plan["id"],
+        "guest_name": "Budi Santoso",
+        **overrides,
+    }
+    response = await client.post("/api/bookings", json=payload)
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def sold_matches_bookings(session, tenant_id: str) -> bool:
+    """True when units sold per night equal what the confirmed bookings hold."""
+    result = await session.execute(
+        text(
+            """
+            WITH held AS (
+              SELECT u.unit_type_id, night::date AS stay_date, count(*) AS units
+              FROM reservationunit u
+              CROSS JOIN LATERAL generate_series(
+                u.arrival_date, u.departure_date - 1, interval '1 day') AS night
+              WHERE u.tenant_id = :t AND u.status = 'confirmed'
+              GROUP BY 1, 2
+            ),
+            sold AS (
+              SELECT unit_type_id, stay_date, sold AS units
+              FROM inventoryday WHERE tenant_id = :t AND sold > 0
+            )
+            SELECT count(*) FROM (
+              (SELECT * FROM held EXCEPT SELECT * FROM sold)
+              UNION ALL
+              (SELECT * FROM sold EXCEPT SELECT * FROM held)
+            ) AS difference
+            """
+        ),
+        {"t": tenant_id},
+    )
+    return int(result.scalar_one()) == 0

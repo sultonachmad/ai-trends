@@ -23,11 +23,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   status: number;
+  /** The server's `detail` when it was not plain text (e.g. dates that caused a refusal). */
+  detail?: unknown;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, detail?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.detail = detail;
   }
 }
 
@@ -39,17 +42,25 @@ export interface EntityApi<T> {
   remove: (id: number | string) => Promise<void>;
 }
 
-async function parseErrorMessage(response: Response): Promise<string> {
+interface ParsedError {
+  message: string;
+  detail?: unknown;
+}
+
+async function parseError(response: Response): Promise<ParsedError> {
   try {
     const body = await response.json();
     if (typeof body?.detail === "string") {
-      return body.detail;
+      return { message: body.detail };
     }
-    return JSON.stringify(body);
+    // A structured detail may carry its own sentence; keep the rest for the caller.
+    const message =
+      typeof body?.detail?.message === "string" ? body.detail.message : JSON.stringify(body);
+    return { message, detail: body?.detail };
   } catch {
-    return (
-      response.statusText || `Request failed with status ${response.status}`
-    );
+    return {
+      message: response.statusText || `Request failed with status ${response.status}`,
+    };
   }
 }
 
@@ -69,7 +80,8 @@ async function send(path: string, init?: RequestInit): Promise<Response> {
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await parseErrorMessage(response));
+    const failure = await parseError(response);
+    throw new ApiError(response.status, failure.message, failure.detail);
   }
   return response;
 }

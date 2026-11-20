@@ -20,11 +20,11 @@ from dataclasses import dataclass
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, delete, func, insert, update
+from sqlalchemy import ColumnElement, delete, insert, update
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.tenant import Property, RateDaily, RatePlan, Restriction, Unit, UnitType
+from app.models.tenant import Property, RateDaily, RatePlan, Restriction, UnitType
 from app.schemas.calendar import (
     MAX_READ_DAYS,
     CalendarChangeRequest,
@@ -41,6 +41,7 @@ from app.schemas.calendar import (
     SetPrice,
 )
 from app.services import calendar_dates as dates_of
+from app.services.inventory import sold_by_night, units_in_use
 from app.services.rate_plans import ACTIVE, check_rate, find_base_prices, find_rate_plans
 from app.services.room_types import find_room_types
 from app.tenancy.business_settings import resolve_property_settings
@@ -82,25 +83,6 @@ class AppliedChange:
 
 
 # ---- reading ----------------------------------------------------------------------------
-
-
-async def _unit_counts(
-    session: AsyncSession, context: TenantContext, room_type_ids: list[UUID]
-) -> dict[UUID, int]:
-    """Units in use and for sale, per room type."""
-    if not room_type_ids:
-        return {}
-    rows = await session.exec(
-        select(col(Unit.unit_type_id), func.count())
-        .where(
-            col(Unit.tenant_id) == context.tenant_id,
-            col(Unit.unit_type_id).in_(room_type_ids),
-            col(Unit.is_active).is_(True),
-            col(Unit.is_sellable).is_(True),
-        )
-        .group_by(col(Unit.unit_type_id))
-    )
-    return {room_type_id: int(count) for room_type_id, count in rows.all()}
 
 
 async def _price_overrides(
@@ -178,14 +160,15 @@ async def read_calendar(
     plans = await find_rate_plans(session, context, prop.id, active_only=True)
     room_ids = [room.id for room in rooms]
     plan_ids = [plan.id for plan in plans]
-    units = await _unit_counts(session, context, room_ids)
+    units = await units_in_use(session, context, room_ids)
     links = await find_base_prices(session, context, plan_ids)
     base = {(link.rate_plan_id, link.unit_type_id): link.base_amount for link in links}
     overrides = await _price_overrides(session, context, plan_ids, start, end)
     rules = await _rules(session, context, prop.id, room_ids, start, end)
+    sold = await sold_by_night(session, context, room_ids, start, end)
     days = dates_of.expand_dates(start, end, None)
     room_types = [
-        _room_calendar(room, units.get(room.id, 0), plans, base, overrides, rules, days)
+        _room_calendar(room, units.get(room.id, 0), plans, base, overrides, rules, sold, days)
         for room in rooms
     ]
     return CalendarRead(
@@ -204,6 +187,7 @@ def _room_calendar(
     base: dict[tuple[UUID, UUID], Decimal],
     overrides: dict[tuple[UUID, UUID, dt.date], Decimal],
     rules: dict[tuple[UUID, dt.date], tuple[bool, int | None]],
+    sold: dict[tuple[UUID, dt.date], int],
     days: list[dt.date],
 ) -> CalendarRoomType:
     selling = [plan for plan in plans if (plan.id, room.id) in base]
@@ -218,8 +202,16 @@ def _room_calendar(
             )
             for plan in selling
         ]
+        left = units - sold.get((room.id, day), 0)
         calendar_days.append(
-            CalendarDay(date=day, available=units, closed=closed, min_stay=min_stay, prices=prices)
+            CalendarDay(
+                date=day,
+                available=max(left, 0),
+                oversold=left < 0,
+                closed=closed,
+                min_stay=min_stay,
+                prices=prices,
+            )
         )
     return CalendarRoomType(
         id=room.id,
@@ -228,6 +220,58 @@ def _room_calendar(
         rate_plans=[CalendarRatePlan(id=plan.id, name=plan.name) for plan in selling],
         days=calendar_days,
     )
+
+
+@dataclass(frozen=True)
+class StayNight:
+    """One night of a stay in one room type on one rate plan."""
+
+    date: dt.date
+    amount: Decimal
+    units: int
+    sold: int
+    closed: bool
+    min_stay: int | None
+
+    @property
+    def available(self) -> int:
+        return self.units - self.sold
+
+
+async def stay_nights(
+    session: AsyncSession,
+    context: TenantContext,
+    property_id: UUID,
+    room_type_id: UUID,
+    rate_plan_id: UUID,
+    nights: list[dt.date],
+) -> list[StayNight]:
+    """Price, units, units sold and selling rules for each night of a stay.
+
+    The caller has checked that the room type is in use and that the plan sells it.
+    Unlike `read_calendar` this has no window limit: a stay may be a year long.
+    """
+    first, last = nights[0], nights[-1]
+    units = (await units_in_use(session, context, [room_type_id])).get(room_type_id, 0)
+    links = await find_base_prices(session, context, [rate_plan_id])
+    base = next(link.base_amount for link in links if link.unit_type_id == room_type_id)
+    overrides = await _price_overrides(session, context, [rate_plan_id], first, last)
+    rules = await _rules(session, context, property_id, [room_type_id], first, last)
+    sold = await sold_by_night(session, context, [room_type_id], first, last)
+    result = []
+    for night in nights:
+        closed, min_stay = rules.get((room_type_id, night), (False, None))
+        result.append(
+            StayNight(
+                date=night,
+                amount=overrides.get((rate_plan_id, room_type_id, night), base),
+                units=units,
+                sold=sold.get((room_type_id, night), 0),
+                closed=closed,
+                min_stay=min_stay,
+            )
+        )
+    return result
 
 
 # ---- changing ---------------------------------------------------------------------------

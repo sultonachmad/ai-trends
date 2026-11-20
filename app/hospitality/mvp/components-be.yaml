@@ -852,6 +852,9 @@ api_routers:
 - prefix: /api/settings/booking-terms
   file: backend/app/routers/settings.py
   description: Deposit share for direct bookings (PUT owner only)
+- prefix: /api/bookings
+  file: backend/app/routers/bookings.py
+  description: 'Staff: quote, create, list (tab, q, cursor), read, PATCH, cancel, record/remove a payment'
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -921,6 +924,29 @@ services:
 - name: calendar_dates
   file: backend/app/services/calendar_dates.py
   description: property_today, last_editable_date, expand_dates (weekdays), check_change_window, check_read_window
+- name: bookings
+  file: backend/app/services/bookings.py
+  description: book(order) — the single way a booking is created, whatever the source; create_booking (staff),
+    update_booking, cancel_booking; lock_property, get_for_update, lines_of, stay_of
+- name: booking_stays
+  file: backend/app/services/booking_stays.py
+  description: Stay, check_stay (dates, room type, rate plan, capacity) with named StayError types, stay_times
+- name: booking_reads
+  file: backend/app/services/booking_reads.py
+  description: list_bookings (tabs, search, keyset cursor), read_detail, read_many, quote, payment_state
+- name: booking_payments
+  file: backend/app/services/booking_payments.py
+  description: record_payment / remove_payment; paid and balance recomputed from payment records
+- name: inventory
+  file: backend/app/services/inventory.py
+  description: 'Units sold per room type per night: take_units, release_units, sold_by_night, sync_units_in_use
+    — the only place inventoryday.sold changes'
+- name: booking_guests
+  file: backend/app/services/booking_guests.py
+  description: find_guest_by_phone, find_or_create_guest (shared by the inbox and bookings)
+- name: booking_sources
+  file: backend/app/services/booking_sources.py
+  description: staff_source(code) — find-or-create the channel row for WhatsApp, walk-in, phone, Instagram, other
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1036,6 +1062,18 @@ utilities_backend:
 - name: pg rooms test helpers
   file: backend/tests/pg/conftest.py
   description: make_room_type, make_rate_plan, set_business_settings(session, property_id, **values)
+- name: booking_pricing
+  file: backend/app/services/booking_pricing.py
+  description: suggested_total, spread_total (whole-rupiah cells that always sum to the total)
+- name: booking_numbers
+  file: backend/app/services/booking_numbers.py
+  description: new_booking_number / prefix_for — readable numbers such as VK-7F3K2Q
+- name: stay_nights
+  file: backend/app/services/calendar.py
+  description: Price, units, units sold and selling rules for each night of one stay (no window limit)
+- name: pg booking test helpers
+  file: backend/tests/pg/conftest.py
+  description: make_booking(client, room, plan, arrival, departure), sold_matches_bookings(session, tenant_id)
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
@@ -1054,6 +1092,10 @@ schemas:
   file: backend/app/schemas/rooms.py, rate_plans.py, calendar.py, property_settings.py
   description: RoomTypeCreate/Update/Read, RatePlanCreate/Update/Read, CalendarRead, CalendarChangeRequest
     (discriminated change kinds), BookingTermsRead/Update
+- name: booking schemas
+  file: backend/app/schemas/bookings.py
+  description: StayFields, BookingQuoteRequest/BookingQuote, BookingCreate/Update/CancelRequest, PaymentRecordRequest,
+    BookingRead/Detail/Page
 migrations:
 - name: 0004_app_role_and_free_plan
   file: backend/migrations/versions/0004_app_role_and_free_plan.py
@@ -1069,3 +1111,6 @@ migrations:
 - name: 0007_rate_base_price
   file: backend/migrations/versions/0007_rate_base_price.py
   description: rateplanunittype.base_amount — the normal nightly price; ratedaily holds only dates that differ
+- name: 0008_booking_cancel_note
+  file: backend/migrations/versions/0008_booking_cancel_note.py
+  description: reservation.cancel_note — what staff typed when cancelling

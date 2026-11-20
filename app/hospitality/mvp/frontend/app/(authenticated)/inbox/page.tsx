@@ -390,6 +390,13 @@ function InboxScreen() {
               </button>
               <button
                 type="button"
+                onClick={() => router.push(`/bookings?from=${encodeURIComponent(selectedId)}`)}
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                {t("inbox.createBooking")}
+              </button>
+              <button
+                type="button"
                 onClick={() => void toggleResolved()}
                 className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
               >

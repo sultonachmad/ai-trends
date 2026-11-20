@@ -123,6 +123,15 @@ class PropertySettings(BaseModel):
     max_rate_plans: int = Field(
         default=10, ge=1, le=50, description="Active rate plans a property may have."
     )
+    booking_backdate_days: int = Field(
+        default=30, ge=0, le=365, description="How far back a booking's arrival may be entered."
+    )
+    booking_max_nights: int = Field(
+        default=365, ge=1, le=365, description="Longest stay one booking may cover."
+    )
+    booking_max_units: int = Field(
+        default=20, ge=1, le=100, description="Most units of a room type in one booking."
+    )
     switched_off_allowance: int = Field(
         default=3,
         ge=1,

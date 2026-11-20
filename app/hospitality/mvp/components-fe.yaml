@@ -98,6 +98,18 @@ components:
 - name: BookingTermsSection
   path: frontend/components/settings/BookingTermsSection.tsx
   description: Deposit share for direct bookings (owner edits)
+- name: BookingDialog
+  path: frontend/components/bookings/BookingDialog.tsx
+  description: Enter or change a booking; price and availability notices follow the form (debounced quote)
+- name: BookingTable
+  path: frontend/components/bookings/BookingTable.tsx
+  description: Bookings as a table (wide) or stacked rows (phone) with today, risk and payment badges
+- name: BookingDetailDialog
+  path: frontend/components/bookings/BookingDetailDialog.tsx
+  description: One booking with nightly prices and payments; record/remove a payment, change, cancel
+- name: BookingsCard
+  path: frontend/components/bookings/BookingsCard.tsx
+  description: Dashboard card with today's arrivals and bookings at risk
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -164,6 +176,10 @@ pages:
   path: frontend/app/(authenticated)/calendar/page.tsx
   layout: AuthenticatedLayout
   description: Calendar with a 14-day (7 on a phone) window, navigation, single-cell and bulk changes
+- name: BookingsPage
+  path: frontend/app/(authenticated)/bookings/page.tsx
+  layout: AuthenticatedLayout
+  description: Bookings list with tabs, search and load-more; ?from=<conversation id> starts a booking from a chat
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -238,5 +254,15 @@ utilities:
 - name: room-forms
   path: frontend/lib/room-forms.ts
   description: checkRoomType, checkRatePlan, parseWhole, numberSetting
+- name: bookings-api
+  path: frontend/lib/bookings-api.ts
+  description: fetchBookings, fetchBooking, quoteBooking, createBooking, updateBooking, cancelBooking, recordPayment,
+    removePayment
+- name: booking-format
+  path: frontend/lib/booking-format.ts
+  description: shortDate, stayRange, paymentStateKey, paymentBadgeClass, sourceLabelKey, todayNote, isOpen
+- name: booking-forms
+  path: frontend/lib/booking-forms.ts
+  description: stayOf, checkBooking, checkPayment
 api_routes:
 - api/auth/[...nextauth]

@@ -10,10 +10,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { BookingsCard } from "@/components/bookings/BookingsCard";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { LinkQuotaNotice } from "@/components/payments/LinkQuotaNotice";
 import { RoomsCard } from "@/components/rooms/RoomsCard";
 import { ApiError } from "@/lib/api-client";
+import { todayIn } from "@/lib/calendar-grid";
 import { useLocale } from "@/lib/locale-store";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
 
@@ -165,6 +167,8 @@ export default function DashboardPage() {
             {t("dashboard.openProofs")}
           </Link>
         </section>
+
+        <BookingsCard className={cardClass} today={todayIn(property.timezone)} />
 
         <RoomsCard className={cardClass} />
       </div>

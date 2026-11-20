@@ -241,6 +241,9 @@ class Reservation(TenantEntity, table=True):
     booked_by: str | None = Field(default=None, sa_type=Text)
     cancelled_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
     cancel_reason_id: UUID | None = Field(default=None, sa_type=Uuid)
+    cancel_note: str | None = Field(
+        default=None, sa_type=Text, description="what staff typed when cancelling"
+    )
     cancellation_fee: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
     is_complimentary: bool = Field(
         default=False, sa_column_kwargs={"server_default": text("false")}
@@ -289,6 +292,7 @@ class ReservationCreate(SQLModel):
     booked_by: str | None = None
     cancelled_at: dt.datetime | None = None
     cancel_reason_id: UUID | None = None
+    cancel_note: str | None = None
     cancellation_fee: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
     is_complimentary: bool = False
     is_house_use: bool = False
@@ -334,6 +338,7 @@ class ReservationUpdate(SQLModel):
     booked_by: str | None = None
     cancelled_at: dt.datetime | None = None
     cancel_reason_id: UUID | None = None
+    cancel_note: str | None = None
     cancellation_fee: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
     is_complimentary: bool | None = None
     is_house_use: bool | None = None
@@ -381,6 +386,7 @@ class ReservationRead(SQLModel):
     booked_by: str | None
     cancelled_at: dt.datetime | None
     cancel_reason_id: UUID | None
+    cancel_note: str | None
     cancellation_fee: Decimal | None
     is_complimentary: bool
     is_house_use: bool

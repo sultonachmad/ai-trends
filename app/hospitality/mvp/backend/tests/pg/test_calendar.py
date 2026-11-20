@@ -94,6 +94,7 @@ async def test_defaults_come_from_units_and_base_prices(pg_client) -> None:
     assert room["days"][0] == {
         "date": ctx["today"].isoformat(),
         "available": 3,
+        "oversold": False,
         "closed": False,
         "min_stay": None,
         "prices": [

@@ -25,6 +25,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.tenant import Conversation, Guest, Message, MessagingAccount
+from app.services.booking_guests import find_or_create_guest
 
 log = logging.getLogger(__name__)
 
@@ -68,34 +69,6 @@ async def _find_duplicate(
             )
         )
     ).first()
-
-
-async def _find_or_create_guest(
-    session: AsyncSession, tenant_id: UUID, inbound: InboundMessage
-) -> Guest:
-    guest = (
-        await session.exec(
-            select(Guest)
-            .where(
-                col(Guest.tenant_id) == tenant_id,
-                col(Guest.whatsapp_phone) == inbound.from_phone,
-                col(Guest.merged_into_guest_id).is_(None),
-            )
-            .order_by(col(Guest.created_at))
-            .limit(1)
-        )
-    ).first()
-    if guest is not None:
-        return guest
-    guest = Guest(
-        tenant_id=tenant_id,
-        full_name=inbound.guest_name or inbound.from_phone,
-        phone=inbound.from_phone,
-        whatsapp_phone=inbound.from_phone,
-    )
-    session.add(guest)
-    await session.flush()
-    return guest
 
 
 async def _find_or_create_conversation(
@@ -143,7 +116,7 @@ async def receive_inbound(
         await session.commit()
         return InboundOutcome(existing.conversation_id, existing.id, duplicate=True)
 
-    guest = await _find_or_create_guest(session, tenant_id, inbound)
+    guest = await find_or_create_guest(session, tenant_id, inbound.guest_name, inbound.from_phone)
     conversation = await _find_or_create_conversation(session, account, guest, inbound.from_phone)
     stored_at = next_message_time(conversation.last_message_at)  # after the row lock
     message = Message(

@@ -921,6 +921,7 @@ CREATE TABLE reservation (
   booked_by                  text,
   cancelled_at               timestamptz,
   cancel_reason_id           uuid,
+  cancel_note                text,  -- what staff typed when cancelling
   cancellation_fee           numeric(18,2),
   is_complimentary           boolean NOT NULL DEFAULT false,
   is_house_use               boolean NOT NULL DEFAULT false,

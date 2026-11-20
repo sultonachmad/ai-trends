@@ -160,18 +160,25 @@ menus:
     order: 4
     active: true
 
+  # Every booking, whatever its source; staff enter WhatsApp and walk-in bookings here.
+  - name: Bookings
+    path: /bookings
+    icon: clipboard
+    order: 5
+    active: true
+
   # Availability, prices, closed dates and minimum stay by date.
   - name: Calendar
     path: /calendar
     icon: calendar
-    order: 5
+    order: 6
     active: true
 
   # Room types and rate plans (what is sold, and its normal price).
   - name: Rooms & rates
     path: /rooms
     icon: key
-    order: 6
+    order: 7
     active: true
 
   # Property settings (bank account, deposit for direct bookings). Owner edits; members read.

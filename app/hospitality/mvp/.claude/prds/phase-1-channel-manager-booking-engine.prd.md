@@ -86,7 +86,7 @@ All targets are provisional and are configurable values where the product acts o
 | # | Milestone | Outcome | Status | Plan |
 |---|---|---|---|---|
 | 1 | Rooms, prices and availability | An operator can set up room types and rate plans and change price, closed dates and minimum stay on a calendar | complete | `.claude/plans/phase-1-m1-rooms-rates-availability.plan.md` |
-| 2 | Bookings list | Staff can enter a booking for a WhatsApp or walk-in guest and see every booking in one list; availability follows bookings and cancellations | pending | — |
+| 2 | Bookings list | Staff can enter a booking for a WhatsApp or walk-in guest and see every booking in one list; availability follows bookings and cancellations | complete | `.claude/plans/phase-1-m2-bookings-list.plan.md` |
 | 3 | Channel connections | An operator can connect the simulated agency, match rooms and rates, pause and resume it, and is stopped at the plan's channel limit | pending | — |
 | 4 | Updates out | A change in the calendar reaches every connected channel within 30 seconds; staff can see the history, refresh on demand and are warned when a channel falls behind | pending | — |
 | 5 | Bookings in | Channel bookings, changes and cancellations appear in the bookings list on their own, never twice; possible double bookings and unmatched rooms are flagged for staff | pending | — |
