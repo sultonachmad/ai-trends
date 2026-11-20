@@ -13,6 +13,7 @@ How it works:
   unless REQUIRE_PG_TESTS=1, which turns the skip into a failure (set it in CI).
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -302,4 +303,22 @@ async def add_staff_member(
             last_property_id=workspace["property"]["id"],
         )
     )
+    await session.commit()
+
+
+async def set_link_limit(session, tenant_id: str, limits: dict[str, object] | None) -> None:
+    """Set the tenant's payments limits (e.g. {"payment_links_per_month": 3}); None = no module."""
+    if limits is None:
+        await session.execute(
+            text("UPDATE tenantentitlement SET enabled = false WHERE tenant_id = :t"),
+            {"t": tenant_id},
+        )
+    else:
+        await session.execute(
+            text(
+                "UPDATE tenantentitlement SET limits = CAST(:limits AS jsonb) "
+                "WHERE tenant_id = :t AND module_code = 'payments'"
+            ),
+            {"t": tenant_id, "limits": json.dumps(limits)},
+        )
     await session.commit()

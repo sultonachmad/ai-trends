@@ -33,6 +33,7 @@ from app.schemas.payment_links import (
     PaymentLinkRead,
 )
 from app.services import inbox
+from app.services.link_quota import reserve_link_slot
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 
@@ -291,6 +292,8 @@ async def create_link(
     _check_amounts(request, prop)
     conversation = await _conversation_for_link(session, context, prop, request.conversation_id)
     settings = resolve_property_settings(prop.settings)
+    timezone_name = prop.timezone  # read before the quota check may roll back
+    await reserve_link_slot(session, context, timezone_name)  # held until the commit below
     hours = request.expires_in_hours or settings.payment_link_expiry_hours
     token = new_token()
     link = PaymentLink(

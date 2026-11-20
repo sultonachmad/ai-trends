@@ -1,5 +1,6 @@
 """Shapes for onboarding and the workspace summary."""
 
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -52,6 +53,10 @@ class PlanSummary(BaseModel):
 class UsageSummary(BaseModel):
     payment_links_used: int
     payment_links_limit: int | None  # None = unlimited
+    payment_links_resets_at: datetime  # start of next month, property time
+    payment_links_resets_on: date  # that moment as the property's local calendar date
+    payment_links_warning: bool  # close to the limit
+    payment_links_limit_reached: bool
 
 
 class StaffSummary(BaseModel):

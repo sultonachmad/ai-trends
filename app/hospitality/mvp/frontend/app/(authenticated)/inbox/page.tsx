@@ -214,6 +214,13 @@ function InboxScreen() {
     };
   }, [selectedId, workspace]);
 
+  // The link count follows the server: re-read it after a link is made or refused.
+  const refreshUsage = () => {
+    void fetchWorkspace()
+      .then(setWorkspace)
+      .catch(() => setPollFailed(true));
+  };
+
   const refreshThread = useCallback(async () => {
     const id = selectedId;
     if (!id) return;
@@ -424,9 +431,12 @@ function InboxScreen() {
         onClose={() => setLinkDialogOpen(false)}
         conversationId={selectedId ?? undefined}
         limits={amountLimits(workspace.settings)}
+        quota={workspace.usage}
+        onLimitReached={refreshUsage}
         onCreated={(result) => {
           setLinkDialogOpen(false);
           setCreatedLink(result);
+          refreshUsage();
           // The link message shows up in the thread on the next refresh.
           void refreshThread().catch(() => setPollFailed(true));
           void refreshList().catch(() => setPollFailed(true));

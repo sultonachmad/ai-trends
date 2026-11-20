@@ -34,7 +34,7 @@ export function PaymentLinkTable({
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="border-b border-border text-xs text-muted-foreground">
           <tr>

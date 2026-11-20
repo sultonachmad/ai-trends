@@ -2,7 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 
+import { ApiError } from "@/lib/api-client";
 import { Dialog } from "@/components/Dialog";
+import { LinkQuotaNotice } from "@/components/payments/LinkQuotaNotice";
+import { isBlocked, quotaState, type LinkUsage } from "@/lib/link-quota";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah, parseRupiah } from "@/lib/money";
 import { createPaymentLink, type CreatedLink } from "@/lib/payment-links-api";
@@ -11,6 +14,7 @@ const DESCRIPTION_MAX = 200;
 /** Hours offered in "valid for"; the empty value means the property's default. */
 const EXPIRY_CHOICES = [2, 24, 72, 168] as const;
 const HOURS_PER_DAY = 24;
+const FORBIDDEN = 403;
 const inputClass =
   "w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary";
 
@@ -22,6 +26,10 @@ interface CreateLinkDialogProps {
   conversationId?: string;
   /** The property's allowed range (workspace settings); the server enforces it too. */
   limits?: AmountLimits;
+  /** This month's usage against the plan limit; at the limit the form is not offered. */
+  quota?: LinkUsage;
+  /** The server refused for the limit (the screen was out of date): re-read the usage. */
+  onLimitReached?: () => void;
 }
 
 export interface AmountLimits {
@@ -43,6 +51,8 @@ export function CreateLinkDialog({
   onCreated,
   conversationId,
   limits,
+  quota,
+  onLimitReached,
 }: CreateLinkDialogProps) {
   const { t } = useLocale();
   const [amount, setAmount] = useState("");
@@ -100,6 +110,7 @@ export function CreateLinkDialog({
       onCreated(created);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
+      if (cause instanceof ApiError && cause.status === FORBIDDEN) onLimitReached?.();
     } finally {
       setBusy(false);
     }
@@ -110,9 +121,29 @@ export function CreateLinkDialog({
       ? t("links.form.days", { value: hours / HOURS_PER_DAY })
       : t("links.form.hours", { value: hours });
 
+  if (quota && isBlocked(quotaState(quota))) {
+    return (
+      <Dialog open={open} onClose={close} title={t("quota.reachedTitle")}>
+        <div className="space-y-4">
+          <LinkQuotaNotice usage={quota} />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={close}
+              className="rounded-md bg-secondary px-4 py-2 text-sm text-secondary-foreground"
+            >
+              {t("quota.close")}
+            </button>
+          </div>
+        </div>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onClose={close} title={t("links.new")}>
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {quota && <LinkQuotaNotice usage={quota} compact />}
         <div>
           <label htmlFor="link-amount" className="mb-1 block text-sm font-medium">
             {t("links.form.amount")}

@@ -345,4 +345,4 @@ async def test_dashboard_usage_counts_created_links(pg_client) -> None:
 
     usage = (await pg_client.get("/api/workspace")).json()["usage"]
 
-    assert usage == {"payment_links_used": 2, "payment_links_limit": 30}
+    assert (usage["payment_links_used"], usage["payment_links_limit"]) == (2, 30)

@@ -886,6 +886,10 @@ services:
 - name: property_settings
   file: backend/app/services/property_settings.py
   description: read_bank_account, update_bank_account (owner only) in property.settings business values
+- name: link_quota
+  file: backend/app/services/link_quota.py
+  description: 'Monthly payment-link limit: read_quota (LinkQuota used/limit/warning/resets_at), reserve_link_slot
+    (per-tenant lock + check on create), month_start_utc, next_month_start_utc'
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -992,6 +996,9 @@ utilities_backend:
 - name: pg proof test helpers
   file: backend/tests/pg/conftest.py
   description: image(), set_bank_account, guest_uploads, staff_uploads, add_staff_member, third_client
+- name: pg quota test helper
+  file: backend/tests/pg/conftest.py
+  description: set_link_limit(session, tenant_id, limits) — change or remove a tenant's payments limits
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py

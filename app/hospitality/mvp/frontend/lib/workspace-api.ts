@@ -18,7 +18,17 @@ export interface Workspace {
     currency: string;
   };
   plan: { code: string; name: string };
-  usage: { payment_links_used: number; payment_links_limit: number | null };
+  usage: {
+    payment_links_used: number;
+    /** null = unlimited */
+    payment_links_limit: number | null;
+    /** Start of next month in the property's timezone (ISO, UTC). */
+    payment_links_resets_at: string;
+    /** The same moment as the property's local calendar date (YYYY-MM-DD). */
+    payment_links_resets_on: string;
+    payment_links_warning: boolean;
+    payment_links_limit_reached: boolean;
+  };
   is_owner: boolean;
   staff: { display_name: string; email: string | null };
   settings: Record<string, string | number>;

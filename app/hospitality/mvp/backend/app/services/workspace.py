@@ -4,20 +4,17 @@ Every query filters on `tenant_id` explicitly, on top of row-level security, so 
 result is right whether the session is tenant-scoped or elevated (provisioning).
 """
 
-import datetime as dt
 import logging
 from uuid import UUID
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import func
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings as app_settings
-from app.models.control_plane import Plan, Tenant, TenantEntitlement, TenantSubscription
+from app.models.control_plane import Plan, Tenant, TenantSubscription
 from app.models.tenant import (
     Conversation,
-    PaymentLink,
     Property,
     StaffMember,
     TransferProof,
@@ -30,29 +27,17 @@ from app.schemas.workspace import (
     UsageSummary,
     WorkspaceRead,
 )
-from app.tenancy.business_settings import resolve_plan_limits, resolve_property_settings
+from app.services.link_quota import read_quota
+from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 
 log = logging.getLogger(__name__)
 
-PAYMENTS_MODULE = "payments"
-NO_PAYMENTS_MODULE_LIMIT = 0  # payments not enabled for the tenant: no links at all
 _ACTIVE_SUBSCRIPTION_STATES = ("trialing", "active", "past_due")
 
 
 class WorkspaceNotReadyError(RuntimeError):
     """The membership exists but the workspace data is incomplete."""
-
-
-def month_start_utc(now: dt.datetime, timezone_name: str) -> dt.datetime:
-    """Start of the current calendar month in the property's timezone, as UTC."""
-    try:
-        zone = ZoneInfo(timezone_name)
-    except (ZoneInfoNotFoundError, ValueError):
-        log.warning("Unknown property timezone %r; counting the month in UTC", timezone_name)
-        zone = ZoneInfo("UTC")
-    local = now.astimezone(zone)
-    return local.replace(day=1, hour=0, minute=0, second=0, microsecond=0).astimezone(dt.UTC)
 
 
 async def find_property(session: AsyncSession, context: TenantContext) -> Property:
@@ -85,37 +70,6 @@ async def _find_plan(session: AsyncSession, context: TenantContext) -> Plan:
     if plan is None:
         raise WorkspaceNotReadyError("workspace has no active subscription")
     return plan
-
-
-async def payment_link_limit(session: AsyncSession, context: TenantContext) -> int | None:
-    """This tenant's monthly payment-link limit (None = unlimited)."""
-    entitlement = (
-        await session.exec(
-            select(TenantEntitlement).where(
-                col(TenantEntitlement.tenant_id) == context.tenant_id,
-                col(TenantEntitlement.module_code) == PAYMENTS_MODULE,
-                col(TenantEntitlement.enabled).is_(True),
-            )
-        )
-    ).first()
-    if entitlement is None:
-        return NO_PAYMENTS_MODULE_LIMIT
-    return resolve_plan_limits(entitlement.limits).payment_links_per_month
-
-
-async def payment_links_used_this_month(
-    session: AsyncSession, context: TenantContext, timezone_name: str
-) -> int:
-    since = month_start_utc(dt.datetime.now(dt.UTC), timezone_name)
-    statement = (
-        select(func.count())
-        .select_from(PaymentLink)
-        .where(
-            col(PaymentLink.tenant_id) == context.tenant_id,
-            col(PaymentLink.created_at) >= since,
-        )
-    )
-    return int((await session.exec(statement)).one())
 
 
 async def unread_conversation_count(
@@ -169,8 +123,7 @@ async def get_workspace(session: AsyncSession, context: TenantContext) -> Worksp
     tenant = (await session.exec(select(Tenant).where(col(Tenant.id) == context.tenant_id))).one()
     prop = await find_property(session, context)
     plan = await _find_plan(session, context)
-    used = await payment_links_used_this_month(session, context, prop.timezone)
-    limit = await payment_link_limit(session, context)
+    quota = await read_quota(session, context, prop.timezone)
     staff = await _find_staff(session, context)
     return WorkspaceRead(
         tenant=TenantSummary(id=tenant.id, code=tenant.code, name=tenant.name),
@@ -184,7 +137,14 @@ async def get_workspace(session: AsyncSession, context: TenantContext) -> Worksp
             currency=prop.currency,
         ),
         plan=PlanSummary(code=plan.code, name=plan.name),
-        usage=UsageSummary(payment_links_used=used, payment_links_limit=limit),
+        usage=UsageSummary(
+            payment_links_used=quota.used,
+            payment_links_limit=quota.limit,
+            payment_links_resets_at=quota.resets_at,
+            payment_links_resets_on=quota.resets_on,
+            payment_links_warning=quota.warning,
+            payment_links_limit_reached=quota.limit_reached,
+        ),
         is_owner=context.is_owner,
         staff=staff,
         settings=resolve_property_settings(prop.settings),

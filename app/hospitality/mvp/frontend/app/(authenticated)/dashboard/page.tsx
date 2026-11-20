@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { LinkQuotaNotice } from "@/components/payments/LinkQuotaNotice";
 import { ApiError } from "@/lib/api-client";
 import { useLocale } from "@/lib/locale-store";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
@@ -110,7 +111,9 @@ export default function DashboardPage() {
           <p className="mt-1 text-lg font-semibold">
             {t("dashboard.planName", { plan: plan.name })}
           </p>
-          <p className="text-sm text-muted-foreground">{usageText}</p>
+          <div className="mt-2">
+            <LinkQuotaNotice usage={usage} />
+          </div>
         </section>
 
         <section className={cardClass} aria-labelledby="inbox-heading">

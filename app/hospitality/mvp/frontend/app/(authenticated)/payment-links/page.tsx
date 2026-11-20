@@ -27,6 +27,7 @@ import {
   type PaymentLinkPage,
 } from "@/lib/payment-links-api";
 import { usePolling } from "@/lib/use-polling";
+import { LinkQuotaNotice } from "@/components/payments/LinkQuotaNotice";
 import { maxProofMb } from "@/lib/proof-format";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
 
@@ -143,9 +144,17 @@ export default function PaymentLinksPage() {
     void refresh().catch(() => setPollFailed(true));
   };
 
+  // The count on screen follows the server: re-read it after a link is made or refused.
+  const refreshUsage = () => {
+    void fetchWorkspace()
+      .then(setWorkspace)
+      .catch(() => setPollFailed(true));
+  };
+
   const onCreated = (result: CreatedLink) => {
     setCreating(false);
     setCreated(result);
+    refreshUsage();
     void refresh().catch(() => setPollFailed(true));
   };
 
@@ -175,6 +184,8 @@ export default function PaymentLinksPage() {
           </button>
         </div>
       </div>
+
+      <LinkQuotaNotice usage={workspace.usage} />
 
       <div role="tablist" aria-label={t("links.filter")} className="flex flex-wrap gap-1">
         {FILTERS.map((option) => (
@@ -235,6 +246,8 @@ export default function PaymentLinksPage() {
         onClose={() => setCreating(false)}
         onCreated={onCreated}
         limits={amountLimits(workspace.settings)}
+        quota={workspace.usage}
+        onLimitReached={refreshUsage}
       />
       <LinkCreatedNotice created={created} onClose={() => setCreated(null)} />
       <ProofUploadDialog

@@ -79,6 +79,14 @@ def test_plan_limit_rejects_negative() -> None:
         resolve_plan_limits({"payment_links_per_month": -1})
 
 
+def test_usage_warning_percent_default_and_bounds() -> None:
+    assert resolve_plan_limits({}).usage_warning_percent == 80
+    assert resolve_plan_limits({"usage_warning_percent": 50}).usage_warning_percent == 50
+    for bad in (0, 101):
+        with pytest.raises(BusinessSettingsError):
+            resolve_plan_limits({"usage_warning_percent": bad})
+
+
 def test_settings_objects_are_immutable() -> None:
     with pytest.raises(Exception):  # noqa: B017, PT011 — pydantic frozen-instance error
         PropertySettings().proof_retention_days = 1  # type: ignore[misc]

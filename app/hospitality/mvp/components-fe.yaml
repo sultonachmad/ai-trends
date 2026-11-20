@@ -77,6 +77,9 @@ components:
 - name: ProofImage
   path: frontend/components/proofs/ProofImage.tsx
   description: Loads a proof image with the session and shows it from an object URL
+- name: LinkQuotaNotice
+  path: frontend/components/payments/LinkQuotaNotice.tsx
+  description: This month's payment links against the plan limit, with bar; warning and limit-reached styles
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -197,5 +200,8 @@ utilities:
 - name: send / requestBlob
   path: frontend/lib/api-client.ts
   description: send (FormData or JSON body), requestBlob (binary download with the session)
+- name: link-quota
+  path: frontend/lib/link-quota.ts
+  description: quotaState, isBlocked, quotaPercent, resetDateLabel, quotaTextKey
 api_routes:
 - api/auth/[...nextauth]

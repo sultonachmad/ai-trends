@@ -53,7 +53,8 @@ async def test_onboarding_creates_the_workspace(pg_client, pg_session) -> None:
     assert body["property"]["property_type"] == "villa_portfolio"
     assert body["property"]["city"] == "Ubud"
     assert body["plan"] == {"code": "free", "name": "Free"}
-    assert body["usage"] == {"payment_links_used": 0, "payment_links_limit": 30}
+    usage = body["usage"]
+    assert (usage["payment_links_used"], usage["payment_links_limit"]) == (0, 30)
     assert body["is_owner"] is True
 
     tenant = await _tenant_of(pg_session, email)

@@ -21,6 +21,7 @@ from app.schemas.payment_links import (
     PaymentLinkRead,
 )
 from app.services import payment_links as links
+from app.services.link_quota import PaymentLinkLimitReachedError
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
@@ -28,7 +29,17 @@ from app.tenancy.session import get_tenant_session
 payment_links_router = APIRouter(prefix="/api/payment-links", tags=["payment-links"])
 
 NOT_FOUND = "Payment link not found"
+NO_LINKS_IN_PLAN = "Payment links are not part of your plan."
 T = TypeVar("T")
+
+
+def _limit_message(exc: PaymentLinkLimitReachedError) -> str:
+    if exc.quota.limit == 0:
+        return NO_LINKS_IN_PLAN
+    return (
+        f"This month's limit of {exc.quota.limit} payment links is reached. "
+        f"New links can be created again on {exc.quota.resets_on.isoformat()}."
+    )
 
 
 async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
@@ -58,6 +69,10 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"This link is {exc.state} and can no longer be cancelled.",
+        ) from None
+    except PaymentLinkLimitReachedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=_limit_message(exc)
         ) from None
     except links.InvalidCursorError:
         raise HTTPException(

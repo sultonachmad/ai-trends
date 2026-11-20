@@ -81,7 +81,10 @@ class PropertySettings(BaseModel):
         default=dt.time(21, 0), description="End of the hours the reply target counts."
     )
     proof_max_upload_mb: int = Field(
-        default=5, ge=1, le=MAX_PROOF_UPLOAD_MB, description="Largest transfer-proof image accepted, in MB."
+        default=5,
+        ge=1,
+        le=MAX_PROOF_UPLOAD_MB,
+        description="Largest transfer-proof image accepted, in MB.",
     )
     proof_max_awaiting_per_link: int = Field(
         default=3, ge=1, le=10, description="Proofs one link may have waiting for review."
@@ -118,6 +121,9 @@ class PlanLimits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     payment_links_per_month: int | None = Field(default=30, ge=0)
+    usage_warning_percent: int = Field(
+        default=80, ge=1, le=100, description="Share of a limit used before staff are warned."
+    )
 
 
 @dataclass(frozen=True)

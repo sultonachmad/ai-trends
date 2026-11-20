@@ -37,7 +37,8 @@ async def test_workspace_returns_own_property_and_plan(pg_client) -> None:
     body = response.json()
     assert body["property"]["name"] == "Rumah Bambu"
     assert body["plan"] == {"code": "free", "name": "Free"}
-    assert body["usage"] == {"payment_links_used": 0, "payment_links_limit": 30}
+    usage = body["usage"]
+    assert (usage["payment_links_used"], usage["payment_links_limit"]) == (0, 30)
     assert body["is_owner"] is True
     assert body["staff"]["email"] == email
     assert body["settings"]["proof_retention_days"] == 90
@@ -89,7 +90,7 @@ async def test_usage_counts_this_months_links_for_this_tenant_only(
 
     usage = (await pg_client.get("/api/workspace")).json()["usage"]
 
-    assert usage == {"payment_links_used": 2, "payment_links_limit": 30}
+    assert (usage["payment_links_used"], usage["payment_links_limit"]) == (2, 30)
 
 
 async def test_property_setting_and_plan_limit_changes_show_without_code_change(
