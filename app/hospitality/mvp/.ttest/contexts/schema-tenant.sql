@@ -614,6 +614,7 @@ CREATE TABLE rateplanunittype (
   tenant_id     uuid NOT NULL,
   rate_plan_id  uuid NOT NULL,
   unit_type_id  uuid NOT NULL,
+  base_amount   numeric(18,2) NOT NULL DEFAULT 0 CHECK (base_amount >= 0),  -- normal nightly price; ratedaily holds the dates that differ
   PRIMARY KEY (tenant_id, rate_plan_id, unit_type_id),
   FOREIGN KEY (tenant_id, rate_plan_id) REFERENCES rateplan (tenant_id, id) ON DELETE CASCADE,
   FOREIGN KEY (tenant_id, unit_type_id) REFERENCES unittype (tenant_id, id) ON DELETE CASCADE

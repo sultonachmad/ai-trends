@@ -102,6 +102,39 @@ class PropertySettings(BaseModel):
     thread_poll_seconds: int = Field(
         default=3, ge=2, le=120, description="How often an open conversation checks for messages."
     )
+    calendar_horizon_days: int = Field(
+        default=365, ge=30, le=730, description="Days ahead (counting today) the calendar is open."
+    )
+    calendar_max_change_days: int = Field(
+        default=365, ge=1, le=730, description="Most days one calendar change may cover."
+    )
+    room_rate_min_amount_idr: int = Field(
+        default=10_000, ge=1, description="Lowest nightly price a room may be given."
+    )
+    room_rate_max_amount_idr: int = Field(
+        default=500_000_000, ge=1, description="Highest nightly price a room may be given."
+    )
+    max_room_types: int = Field(
+        default=30, ge=1, le=200, description="Active room types a property may have."
+    )
+    max_units_per_room_type: int = Field(
+        default=100, ge=1, le=1000, description="Units one room type may have."
+    )
+    max_rate_plans: int = Field(
+        default=10, ge=1, le=50, description="Active rate plans a property may have."
+    )
+    switched_off_allowance: int = Field(
+        default=3,
+        ge=1,
+        le=20,
+        description="Room types / rate plans kept in total, as a multiple of the active limit.",
+    )
+    free_cancellation_days: int = Field(
+        default=7, ge=0, le=365, description="Default days before arrival for free cancellation."
+    )
+    direct_deposit_percent: int = Field(
+        default=50, ge=10, le=100, description="Share of a direct booking paid when booking."
+    )
 
     @model_validator(mode="after")
     def _hours_in_order(self) -> Self:
@@ -109,6 +142,8 @@ class PropertySettings(BaseModel):
             raise ValueError("reply_hours_end must be after reply_hours_start")
         if self.payment_link_max_amount_idr < self.payment_link_min_amount_idr:
             raise ValueError("payment_link_max_amount_idr must not be below the minimum")
+        if self.room_rate_max_amount_idr < self.room_rate_min_amount_idr:
+            raise ValueError("room_rate_max_amount_idr must not be below the minimum")
         bank = (self.bank_name, self.bank_account_number, self.bank_account_holder)
         if any(bank) and not all(bank):
             raise ValueError("bank name, account number and account holder go together")

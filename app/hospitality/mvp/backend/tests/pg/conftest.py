@@ -322,3 +322,38 @@ async def set_link_limit(session, tenant_id: str, limits: dict[str, object] | No
             {"t": tenant_id, "limits": json.dumps(limits)},
         )
     await session.commit()
+
+
+async def make_room_type(client: httpx.AsyncClient, **overrides: object) -> dict:
+    """Create a room type on the client's property; returns it."""
+    payload = {"name": "Deluxe", "kind": "room", "units": 3, "max_guests": 2, **overrides}
+    response = await client.post("/api/room-types", json=payload)
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def set_business_settings(session, property_id: str, **values: object) -> None:
+    """Override business settings of a property (e.g. max_room_types=1)."""
+    await session.execute(
+        text(
+            "UPDATE property SET settings = settings || jsonb_build_object('business', "
+            "COALESCE(settings->'business', '{}'::jsonb) || CAST(:values AS jsonb)) "
+            "WHERE id = :p"
+        ),
+        {"values": json.dumps(values), "p": property_id},
+    )
+    await session.commit()
+
+
+async def make_rate_plan(
+    client: httpx.AsyncClient, rooms: list[dict], amount: int = 500000, **overrides: object
+) -> dict:
+    """Create a rate plan selling `rooms` at `amount` a night; returns it."""
+    payload = {
+        "name": "Harga Normal",
+        "prices": [{"room_type_id": room["id"], "amount": amount} for room in rooms],
+        **overrides,
+    }
+    response = await client.post("/api/rate-plans", json=payload)
+    assert response.status_code == 201, response.text
+    return response.json()

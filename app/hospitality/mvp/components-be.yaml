@@ -839,6 +839,19 @@ api_routers:
 - prefix: /api/pay/{token}/proofs
   file: backend/app/routers/checkout.py
   description: 'PUBLIC: guest uploads a transfer screenshot (multipart file + consent)'
+- prefix: /api/room-types
+  file: backend/app/routers/rooms.py
+  description: 'Room types: list, create, PATCH (name, kind, units, guests, on/off), rename one unit'
+- prefix: /api/rate-plans
+  file: backend/app/routers/rate_plans.py
+  description: 'Rate plans: list, create, PATCH (name, meal, cancellation terms, base prices, on/off)'
+- prefix: /api/calendar
+  file: backend/app/routers/calendar.py
+  description: GET ?from=&to= (availability, closed, min stay, prices); POST /changes (one change to a date
+    range, weekdays and room types)
+- prefix: /api/settings/booking-terms
+  file: backend/app/routers/settings.py
+  description: Deposit share for direct bookings (PUT owner only)
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -890,6 +903,24 @@ services:
   file: backend/app/services/link_quota.py
   description: 'Monthly payment-link limit: read_quota (LinkQuota used/limit/warning/resets_at), reserve_link_slot
     (per-tenant lock + check on create), month_start_utc, next_month_start_utc'
+- name: room_types
+  file: backend/app/services/room_types.py
+  description: find_room_types, list/create/update, rename_unit; units are created, retired and restored to
+    match the count
+- name: rate_plans
+  file: backend/app/services/rate_plans.py
+  description: find_rate_plans, find_base_prices, list/create/update, check_rate; base price per room type
+    on rateplanunittype.base_amount
+- name: rate_policies
+  file: backend/app/services/rate_policies.py
+  description: Find-or-create the cancellation and deposit policy rows a rate plan points at; terms_of
+- name: calendar
+  file: backend/app/services/calendar.py
+  description: 'read_calendar (the one "what is sellable, at what price" read) and apply_calendar_change (the
+    one write path for prices, closed dates, minimum stay); sparse storage'
+- name: calendar_dates
+  file: backend/app/services/calendar_dates.py
+  description: property_today, last_editable_date, expand_dates (weekdays), check_change_window, check_read_window
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -999,6 +1030,12 @@ utilities_backend:
 - name: pg quota test helper
   file: backend/tests/pg/conftest.py
   description: set_link_limit(session, tenant_id, limits) — change or remove a tenant's payments limits
+- name: property_zone
+  file: backend/app/tenancy/timezones.py
+  description: A property's timezone as ZoneInfo, falling back to UTC with a warning
+- name: pg rooms test helpers
+  file: backend/tests/pg/conftest.py
+  description: make_room_type, make_rate_plan, set_business_settings(session, property_id, **values)
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
@@ -1013,6 +1050,10 @@ schemas:
 - name: transfer proof schemas
   file: backend/app/schemas/transfer_proofs.py
   description: ProofRead/Page, DuplicateOf, RejectRequest, PublicProof, ManualTransfer, BankAccountRead/Update
+- name: rooms, rate plan and calendar schemas
+  file: backend/app/schemas/rooms.py, rate_plans.py, calendar.py, property_settings.py
+  description: RoomTypeCreate/Update/Read, RatePlanCreate/Update/Read, CalendarRead, CalendarChangeRequest
+    (discriminated change kinds), BookingTermsRead/Update
 migrations:
 - name: 0004_app_role_and_free_plan
   file: backend/migrations/versions/0004_app_role_and_free_plan.py
@@ -1025,3 +1066,6 @@ migrations:
   file: backend/migrations/versions/0006_transfer_proofs.py
   description: transferproof link/guest/conversation/amount/rejection/first-approval/duplicate columns, document.purged_at
     and sha256 index
+- name: 0007_rate_base_price
+  file: backend/migrations/versions/0007_rate_base_price.py
+  description: rateplanunittype.base_amount — the normal nightly price; ratedaily holds only dates that differ

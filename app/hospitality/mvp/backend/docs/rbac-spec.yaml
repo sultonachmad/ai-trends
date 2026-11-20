@@ -160,7 +160,21 @@ menus:
     order: 4
     active: true
 
-  # Property settings (bank account for manual transfers). Owner edits; members read.
+  # Availability, prices, closed dates and minimum stay by date.
+  - name: Calendar
+    path: /calendar
+    icon: calendar
+    order: 5
+    active: true
+
+  # Room types and rate plans (what is sold, and its normal price).
+  - name: Rooms & rates
+    path: /rooms
+    icon: key
+    order: 6
+    active: true
+
+  # Property settings (bank account, deposit for direct bookings). Owner edits; members read.
   - name: Settings
     path: /settings
     icon: settings

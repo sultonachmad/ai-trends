@@ -87,6 +87,36 @@ def test_usage_warning_percent_default_and_bounds() -> None:
             resolve_plan_limits({"usage_warning_percent": bad})
 
 
+def test_rooms_and_calendar_defaults() -> None:
+    settings = resolve_property_settings({})
+
+    assert settings.calendar_horizon_days == 365
+    assert settings.calendar_max_change_days == 365
+    assert (settings.room_rate_min_amount_idr, settings.room_rate_max_amount_idr) == (
+        10_000,
+        500_000_000,
+    )
+    assert (settings.max_room_types, settings.max_units_per_room_type) == (30, 100)
+    assert settings.max_rate_plans == 10
+    assert settings.free_cancellation_days == 7
+    assert settings.direct_deposit_percent == 50
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"direct_deposit_percent": 9},
+        {"direct_deposit_percent": 101},
+        {"calendar_horizon_days": 5},
+        {"room_rate_min_amount_idr": 500, "room_rate_max_amount_idr": 100},
+        {"max_room_types": 0},
+    ],
+)
+def test_rooms_and_calendar_bounds(overrides: dict[str, int]) -> None:
+    with pytest.raises(BusinessSettingsError):
+        with_property_overrides({}, overrides)
+
+
 def test_settings_objects_are_immutable() -> None:
     with pytest.raises(Exception):  # noqa: B017, PT011 — pydantic frozen-instance error
         PropertySettings().proof_retention_days = 1  # type: ignore[misc]

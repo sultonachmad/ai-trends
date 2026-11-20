@@ -2,11 +2,14 @@
 
 GET /api/settings/bank-account     where guests send a manual transfer (any member)
 PUT /api/settings/bank-account     set or clear it (property owner only)
+GET /api/settings/booking-terms    deposit share for direct bookings (any member)
+PUT /api/settings/booking-terms    change it (property owner only)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.schemas.property_settings import BookingTermsRead, BookingTermsUpdate
 from app.schemas.transfer_proofs import BankAccountRead, BankAccountUpdate
 from app.services import property_settings
 from app.services.workspace import find_property
@@ -46,4 +49,29 @@ async def update_bank_account(
                 "Fill in the bank, the account number and the account holder, "
                 "or leave all three empty."
             ),
+        ) from None
+
+
+@settings_router.get("/booking-terms", response_model=BookingTermsRead)
+async def read_booking_terms(
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+) -> BookingTermsRead:
+    prop = await find_property(session, context)
+    return property_settings.read_booking_terms(prop, context)
+
+
+@settings_router.put("/booking-terms", response_model=BookingTermsRead)
+async def update_booking_terms(
+    body: BookingTermsUpdate,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+) -> BookingTermsRead:
+    prop = await find_property(session, context)
+    try:
+        return await property_settings.update_booking_terms(session, context, prop, body)
+    except property_settings.OwnerOnlyError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the property owner can change the booking terms.",
         ) from None

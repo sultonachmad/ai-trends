@@ -19,3 +19,18 @@ const path = "/api/settings/bank-account";
 export const fetchBankAccount = () => request<BankAccount>(path);
 export const saveBankAccount = (input: BankAccountInput) =>
   request<BankAccount>(path, { method: "PUT", body: JSON.stringify(input) });
+
+export interface BookingTerms {
+  /** Share of a direct booking paid when booking (the deposit, "DP"). */
+  deposit_percent: number;
+  can_edit: boolean;
+}
+
+const termsPath = "/api/settings/booking-terms";
+
+export const fetchBookingTerms = () => request<BookingTerms>(termsPath);
+export const saveBookingTerms = (depositPercent: number) =>
+  request<BookingTerms>(termsPath, {
+    method: "PUT",
+    body: JSON.stringify({ deposit_percent: depositPercent }),
+  });

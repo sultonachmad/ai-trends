@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Settings — for now, the bank account guests transfer to (manual transfer).
+ * Settings — the bank account guests transfer to, and the deposit for direct bookings.
  * Reachable at `/settings`. Every member can see it; only the owner can change it.
  */
 
@@ -9,6 +9,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { BookingTermsSection } from "@/components/settings/BookingTermsSection";
 import { useLocale } from "@/lib/locale-store";
 import { bankFormProblem, type BankForm } from "@/lib/proof-format";
 import { fetchBankAccount, saveBankAccount, type BankAccount } from "@/lib/settings-api";
@@ -158,6 +159,7 @@ export default function SettingsPage() {
           )}
         </form>
       </section>
+      <BookingTermsSection />
     </div>
   );
 }

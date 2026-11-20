@@ -80,6 +80,24 @@ components:
 - name: LinkQuotaNotice
   path: frontend/components/payments/LinkQuotaNotice.tsx
   description: This month's payment links against the plan limit, with bar; warning and limit-reached styles
+- name: RoomTypeDialog / RatePlanDialog
+  path: frontend/components/rooms/RoomTypeDialog.tsx, RatePlanDialog.tsx
+  description: Create and edit forms for room types (incl. unit names) and rate plans (terms, price per room)
+- name: RoomTypeList / RatePlanList
+  path: frontend/components/rooms/RoomLists.tsx
+  description: Lists with edit and switch on/off actions
+- name: RoomsCard
+  path: frontend/components/rooms/RoomsCard.tsx
+  description: Dashboard card leading to room set-up, then to the calendar
+- name: CalendarGrid
+  path: frontend/components/calendar/CalendarGrid.tsx
+  description: One table per room type (availability, price row per rate plan, minimum stay); cells are buttons
+- name: CalendarChangeDialog
+  path: frontend/components/calendar/CalendarChangeDialog.tsx
+  description: One change for a date range, weekdays and room types; used for a single cell and for bulk changes
+- name: BookingTermsSection
+  path: frontend/components/settings/BookingTermsSection.tsx
+  description: Deposit share for direct bookings (owner edits)
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -138,6 +156,14 @@ pages:
   path: frontend/app/(authenticated)/settings/page.tsx
   layout: AuthenticatedLayout
   description: Bank account for manual transfers (owner edits)
+- name: RoomsPage
+  path: frontend/app/(authenticated)/rooms/page.tsx
+  layout: AuthenticatedLayout
+  description: Rooms & rates — room types and rate plans
+- name: CalendarPage
+  path: frontend/app/(authenticated)/calendar/page.tsx
+  layout: AuthenticatedLayout
+  description: Calendar with a 14-day (7 on a phone) window, navigation, single-cell and bulk changes
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -203,5 +229,14 @@ utilities:
 - name: link-quota
   path: frontend/lib/link-quota.ts
   description: quotaState, isBlocked, quotaPercent, resetDateLabel, quotaTextKey
+- name: rooms-api / rate-plans-api / calendar-api
+  path: frontend/lib/rooms-api.ts, rate-plans-api.ts, calendar-api.ts
+  description: Typed calls for room types, rate plans and the calendar (fetchCalendar, changeCalendar)
+- name: calendar-grid
+  path: frontend/lib/calendar-grid.ts
+  description: Date maths on YYYY-MM-DD strings, weekday names, cellState, rangeProblem, compactRupiah, todayIn
+- name: room-forms
+  path: frontend/lib/room-forms.ts
+  description: checkRoomType, checkRatePlan, parseWhole, numberSetting
 api_routes:
 - api/auth/[...nextauth]

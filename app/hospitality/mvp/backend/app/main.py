@@ -271,6 +271,15 @@ def create_app() -> FastAPI:
     app.include_router(transfer_proofs_router)
     app.include_router(settings_router)
 
+    # Phase 1 — rooms, prices and availability
+    from app.routers.calendar import calendar_router
+    from app.routers.rate_plans import rate_plans_router
+    from app.routers.rooms import rooms_router
+
+    app.include_router(rooms_router)
+    app.include_router(rate_plans_router)
+    app.include_router(calendar_router)
+
     return app
 
 

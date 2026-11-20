@@ -14,7 +14,6 @@ ever added, count from a separate usage record instead, or the limit reopens.
 import datetime as dt
 import logging
 from dataclasses import dataclass
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import func, text
 from sqlmodel import col, select
@@ -24,6 +23,7 @@ from app.models.control_plane import TenantEntitlement
 from app.models.tenant import PaymentLink
 from app.tenancy.business_settings import PlanLimits, resolve_plan_limits
 from app.tenancy.context import TenantContext
+from app.tenancy.timezones import property_zone
 
 log = logging.getLogger(__name__)
 
@@ -69,23 +69,15 @@ class LinkQuota:
         return self.used * PERCENT >= self.limit * self.warning_percent
 
 
-def _zone(timezone_name: str) -> ZoneInfo:
-    try:
-        return ZoneInfo(timezone_name)
-    except (ZoneInfoNotFoundError, ValueError):
-        log.warning("Unknown property timezone %r; counting the month in UTC", timezone_name)
-        return ZoneInfo("UTC")
-
-
 def month_start_utc(now: dt.datetime, timezone_name: str) -> dt.datetime:
     """Start of the current calendar month in the property's timezone, as UTC."""
-    local = now.astimezone(_zone(timezone_name))
+    local = now.astimezone(property_zone(timezone_name))
     return local.replace(day=1, hour=0, minute=0, second=0, microsecond=0).astimezone(dt.UTC)
 
 
 def next_month_start_utc(now: dt.datetime, timezone_name: str) -> dt.datetime:
     """Start of the next calendar month in the property's timezone, as UTC."""
-    local = now.astimezone(_zone(timezone_name))
+    local = now.astimezone(property_zone(timezone_name))
     first = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     in_next_month = first + dt.timedelta(days=DAYS_INTO_NEXT_MONTH)
     # rebuild from the calendar date so a daylight-saving change cannot shift the hour
@@ -134,7 +126,7 @@ async def read_quota(
         limit=limits.payment_links_per_month,
         warning_percent=limits.usage_warning_percent,
         resets_at=resets_at,
-        resets_on=resets_at.astimezone(_zone(timezone_name)).date(),
+        resets_on=resets_at.astimezone(property_zone(timezone_name)).date(),
     )
 
 

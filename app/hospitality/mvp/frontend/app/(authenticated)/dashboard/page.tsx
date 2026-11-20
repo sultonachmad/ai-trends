@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { LinkQuotaNotice } from "@/components/payments/LinkQuotaNotice";
+import { RoomsCard } from "@/components/rooms/RoomsCard";
 import { ApiError } from "@/lib/api-client";
 import { useLocale } from "@/lib/locale-store";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
@@ -164,6 +165,8 @@ export default function DashboardPage() {
             {t("dashboard.openProofs")}
           </Link>
         </section>
+
+        <RoomsCard className={cardClass} />
       </div>
     </div>
   );
