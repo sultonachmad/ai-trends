@@ -67,6 +67,11 @@ if ! python3 -c "import fastapi" 2>/dev/null; then
   fi
 fi
 
+# Bring the database schema up to date; the app refuses to start on an unmigrated
+# PostgreSQL database (see backend/app/db_migrations.py).
+echo "  Applying database migrations..."
+python3 -m alembic upgrade head || echo "  [WARN] migrations failed — see the error above"
+
 echo "  Starting..."
 python3 -m uvicorn app.main:app --host 0.0.0.0 --port "$BE_PORT" --reload &
 

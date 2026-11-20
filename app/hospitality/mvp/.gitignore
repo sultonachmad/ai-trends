@@ -24,6 +24,9 @@ dist/
 .eggs/
 pip-wheel-metadata/
 
+# --- Dev / test run logs (scripts/devtest.sh, scripts/dev.sh > .ttest/log/...) ---
+.ttest/log/
+
 # --- Backend runtime data ---
 backend/uploads/
 backend/*.db

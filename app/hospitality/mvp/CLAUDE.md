@@ -48,15 +48,31 @@ Check the relevant component registry to avoid duplicating existing artifacts:
 - **Backend** → read `components-be.yaml`
 - **Overview / installed modules** → read `components.yaml`
 
-## Dev Server (STRICT)
+## Run and Test After Every Change (STRICT)
 
-Both servers are started and stopped by the user via `scripts/dev.sh` (or `scripts/dev.py`) or the UI controls. **Do not** manage servers yourself.
+Code is not done until it has been run. After adding or changing code, start the app, exercise the change, read the logs, and fix what you find — before reporting the work as finished.
 
-- Do **not** run `npm run dev`, `uvicorn`, `scripts/dev.sh`, `scripts/dev.py`, `lsof`, `pkill`, or `curl` to start, stop, check, or verify servers
-- **Assume both servers are already running** — Next.js on the frontend port and FastAPI on the backend port
-- After writing code, tell the user what changed — do not verify by curling endpoints or checking ports
-- If a restart is genuinely needed (new env var, new package), tell the user to restart — do not do it yourself
-- Hot-reload handles file changes automatically — no restart needed for code edits
+**The loop**
+
+1. Run the automated checks for what you touched:
+   - Backend: `cd backend && uv run pytest -q` (tests under `tests/pg/` need PostgreSQL; set `REQUIRE_PG_TESTS=1` to make a missing database a failure instead of a skip)
+   - Frontend: `cd frontend && npx vitest run && npx tsc --noEmit && npm run lint`
+2. Start the app: `bash scripts/devtest.sh start`. It applies database migrations, starts backend and frontend in the background, and returns once both answer. It refuses to start when the ports are taken — then the user has their own servers up (`scripts/dev.sh`): test against those and do not stop them.
+3. Exercise the change in a real browser with the Playwright tools (`mcp__playwright__browser_*`): open the frontend URL the script printed, walk the user flow you built or changed (sign in, fill the form, check what the page shows), and check `browser_console_messages` for errors. For a backend-only change, call the endpoint.
+4. Read the logs: `bash scripts/devtest.sh errors` lists tracebacks, log errors and 5xx responses. A flow that "looks fine" with a 500 in the log is not fine.
+5. Fix the cause, let hot-reload pick it up (or `bash scripts/devtest.sh restart` after a new env var, package, migration or `rbac-spec.yaml` menu change), and repeat from step 3 until the flow works and `errors` is clean.
+6. Stop what you started: `bash scripts/devtest.sh stop`. Leave servers the user started alone.
+
+**Logs** — `.ttest/log/` (git-ignored): `backend.log`, `frontend.log`, and `dev.log` with both. Each line is `<ISO timestamp> [service] <text>`, stderr included, so Python tracebacks are there. The previous run is kept as `*.prev.log`.
+
+**When the user runs the app by hand** — `bash scripts/dev.sh > .ttest/log/log.log 2>&1`. The `2>&1` matters: without it tracebacks go to the terminal and the file shows only "500 Internal Server Error".
+
+**Rules**
+
+- Start and stop servers only through `scripts/devtest.sh`. Do not run `uvicorn` or `npm run dev` directly, and never `pkill` or kill by port — that can take down the user's own session.
+- A new database (changed `PREFAB_DATABASE_URL`) needs `cd backend && uv run alembic upgrade head` before the app starts; the app refuses to start on an unmigrated PostgreSQL database and says so. `scripts/devtest.sh start` does this for you.
+- Create the accounts and data a test needs through the app itself (sign up a throwaway user); do not hand-edit the dev database to make a flow pass.
+- In the final summary say what you ran and what you saw. If a step could not be run (no browser tool, port taken and no user server answering), say that instead of implying it passed.
 
 ## Installed Packages (STRICT)
 
