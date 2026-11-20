@@ -855,6 +855,13 @@ api_routers:
 - prefix: /api/bookings
   file: backend/app/routers/bookings.py
   description: 'Staff: quote, create, list (tab, q, cursor), read, PATCH, cancel, record/remove a payment'
+- prefix: /api/channels
+  file: backend/app/routers/channels.py
+  description: Catalogue with usage; /api/channel-connections start, test, PATCH settings, products, mappings,
+    go-live/pause/resume/disconnect
+- prefix: /api/simulator/channels
+  file: backend/app/routers/channel_simulator.py
+  description: 'DEV ONLY (PREFAB_CHANNEL_SIMULATOR_ENABLED): list a property on the simulated agency, read listings'
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -947,6 +954,30 @@ services:
 - name: booking_sources
   file: backend/app/services/booking_sources.py
   description: staff_source(code) — find-or-create the channel row for WhatsApp, walk-in, phone, Instagram, other
+- name: channel_catalog
+  file: backend/app/services/channel_catalog.py
+  description: What can be connected now (registered providers, simulator flag) and what is coming, with usage
+- name: channel_connections
+  file: backend/app/services/channel_connections.py
+  description: 'A connection''s life: create (draft, slot reserved), test (provider called with no lock), settings,
+    go-live / pause / resume / disconnect (state machine)'
+- name: channel_mappings
+  file: backend/app/services/channel_mappings.py
+  description: The channel's rooms and rates (snapshot on the connection), the whole matching replaced at once,
+    mapping health warnings
+- name: channel_quota
+  file: backend/app/services/channel_quota.py
+  description: read_quota / reserve_connection_slot — connected channels against the plan limit, checked under the
+    property lock
+- name: channel_test_listings
+  file: backend/app/services/channel_test_listings.py
+  description: List a property on the simulated agency from its rooms and rate plans (dev/test only, capped)
+- name: tenant_audit
+  file: backend/app/services/tenant_audit.py
+  description: record / history_of / verify — per-tenant hash-chained change history with who and when
+- name: channel_hooks
+  file: backend/app/services/channel_hooks.py
+  description: on_go_live / on_pause / on_resume — the moments milestone 4 fills with a full refresh and closing sale
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1056,6 +1087,17 @@ utilities_backend:
 - name: pg quota test helper
   file: backend/tests/pg/conftest.py
   description: set_link_limit(session, tenant_id, limits) — change or remove a tenant's payments limits
+- name: channel provider interface
+  file: backend/app/channels/provider.py
+  description: ChannelProvider protocol (fetch_property), provider registry, ChannelProperty/Room/Rate, named errors;
+    milestones 4–5 add sending updates and receiving bookings
+- name: simulated agency
+  file: backend/app/channels/simulator.py
+  description: The simulated online travel agency behind the interface — reads channelsimulatorlisting; agency-style
+    room names, an extra room, one guest less on the last room
+- name: pg channel test helpers
+  file: backend/tests/pg/conftest.py
+  description: make_test_listing(client), connect_channel(client, tested=True) — a connection to the simulated agency
 - name: property_zone
   file: backend/app/tenancy/timezones.py
   description: A property's timezone as ZoneInfo, falling back to UTC with a warning
@@ -1096,6 +1138,10 @@ schemas:
   file: backend/app/schemas/bookings.py
   description: StayFields, BookingQuoteRequest/BookingQuote, BookingCreate/Update/CancelRequest, PaymentRecordRequest,
     BookingRead/Detail/Page
+- name: channel schemas
+  file: backend/app/schemas/channels.py
+  description: ChannelsOverview/CatalogChannel/ChannelUsage, ConnectionCreate/SettingsRequest, MappingsRequest,
+    ChannelProductsRead, MappingHealth, ConnectionRead/Detail
 migrations:
 - name: 0004_app_role_and_free_plan
   file: backend/migrations/versions/0004_app_role_and_free_plan.py
@@ -1114,3 +1160,7 @@ migrations:
 - name: 0008_booking_cancel_note
   file: backend/migrations/versions/0008_booking_cancel_note.py
   description: reservation.cancel_note — what staff typed when cancelling
+- name: 0009_channel_connections
+  file: backend/migrations/versions/0009_channel_connections.py
+  description: simulated agency in the catalogue, channel_manager on the Free plan (connected_channels: 1, backfilled),
+    channelsimulatorlisting with tenant isolation and grants

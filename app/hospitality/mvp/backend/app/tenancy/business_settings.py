@@ -165,6 +165,9 @@ class PlanLimits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     payment_links_per_month: int | None = Field(default=30, ge=0)
+    connected_channels: int | None = Field(
+        default=1, ge=0, description="Channel connections a property may have at once."
+    )
     usage_warning_percent: int = Field(
         default=80, ge=1, le=100, description="Share of a limit used before staff are warned."
     )

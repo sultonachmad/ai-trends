@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # Lets anyone holding a pay link mark it paid ("Simulate payment" on the pay page).
     # Development only: keep false anywhere real money is taken.
     PAYMENT_SIMULATOR_ENABLED: bool = False
+    # Offers a simulated online travel agency to connect to (Channels page).
+    # Development only: it stands in for agencies that need partner certification.
+    CHANNEL_SIMULATOR_ENABLED: bool = False
     # Where guests open pay links (https://app.example.com). Empty = first CORS origin.
     FRONTEND_URL: str = ""
     # Folder for tenant files (transfer-proof screenshots). One sub-folder per tenant.

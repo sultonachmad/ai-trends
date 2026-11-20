@@ -282,6 +282,15 @@ def create_app() -> FastAPI:
     app.include_router(calendar_router)
     app.include_router(bookings_router)
 
+    # Phase 1 — channel connections (the simulated agency stands in for certified ones)
+    from app.channels import simulator as _channel_simulator  # noqa: F401 — registers it
+    from app.routers.channel_simulator import channel_simulator_router
+    from app.routers.channels import channels_router, connections_router
+
+    app.include_router(channels_router)
+    app.include_router(connections_router)
+    app.include_router(channel_simulator_router)
+
     return app
 
 

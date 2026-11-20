@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { BookingsCard } from "@/components/bookings/BookingsCard";
+import { ChannelsCard } from "@/components/channels/ChannelsCard";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { LinkQuotaNotice } from "@/components/payments/LinkQuotaNotice";
 import { RoomsCard } from "@/components/rooms/RoomsCard";
@@ -171,6 +172,8 @@ export default function DashboardPage() {
         <BookingsCard className={cardClass} today={todayIn(property.timezone)} />
 
         <RoomsCard className={cardClass} />
+
+        <ChannelsCard className={cardClass} />
       </div>
     </div>
   );

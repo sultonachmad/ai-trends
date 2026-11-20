@@ -147,6 +147,7 @@ def _simulator_on(monkeypatch: pytest.MonkeyPatch) -> None:
     """Integration tests play the guest through the simulator endpoint."""
     monkeypatch.setattr(settings, "MESSAGING_SIMULATOR_ENABLED", True)
     monkeypatch.setattr(settings, "PAYMENT_SIMULATOR_ENABLED", True)
+    monkeypatch.setattr(settings, "CHANNEL_SIMULATOR_ENABLED", True)
     monkeypatch.setattr(settings, "FRONTEND_URL", "https://app.test")
 
 
@@ -403,3 +404,26 @@ async def sold_matches_bookings(session, tenant_id: str) -> bool:
         {"t": tenant_id},
     )
     return int(result.scalar_one()) == 0
+
+
+async def make_test_listing(client: httpx.AsyncClient) -> dict:
+    """List the client's property on the simulated agency; returns the listing."""
+    response = await client.post("/api/simulator/channels/listings")
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def connect_channel(client: httpx.AsyncClient, *, tested: bool = True) -> dict:
+    """A connection to the simulated agency for a fresh test listing (tested by default)."""
+    listing = await make_test_listing(client)
+    created = await client.post(
+        "/api/channel-connections",
+        json={"channel_code": "simulator", "external_property_id": listing["hotel_id"]},
+    )
+    assert created.status_code == 201, created.text
+    connection = created.json()
+    if tested:
+        response = await client.post(f"/api/channel-connections/{connection['id']}/test")
+        assert response.status_code == 200, response.text
+        connection = response.json()
+    return connection

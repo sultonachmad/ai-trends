@@ -181,6 +181,13 @@ menus:
     order: 7
     active: true
 
+  # Sales channels: what is connected, and connecting one.
+  - name: Channels
+    path: /channels
+    icon: globe
+    order: 8
+    active: true
+
   # Property settings (bank account, deposit for direct bookings). Owner edits; members read.
   - name: Settings
     path: /settings

@@ -110,6 +110,24 @@ components:
 - name: BookingsCard
   path: frontend/components/bookings/BookingsCard.tsx
   description: Dashboard card with today's arrivals and bookings at risk
+- name: ChannelQuotaNotice
+  path: frontend/components/channels/ChannelQuotaNotice.tsx
+  description: Connected channels against the plan limit; not-in-plan and limit-reached wordings
+- name: ConnectionList / ChannelCatalog
+  path: frontend/components/channels/ChannelLists.tsx
+  description: The property's connections (each opens its page); connectable and coming-soon channels with features
+- name: ConnectDialog
+  path: frontend/components/channels/ConnectDialog.tsx
+  description: First step of connecting — the channel's property ID; test-listing panel for the simulated agency
+- name: MappingEditor
+  path: frontend/components/channels/MappingEditor.tsx
+  description: Match each room type + rate plan pair to a channel room + rate; duplicate use caught; warnings
+- name: ConnectionSettingsForm
+  path: frontend/components/channels/ConnectionSettingsForm.tsx
+  description: Commission, price adjustment and who collects payment for one connection
+- name: ChannelsCard
+  path: frontend/components/channels/ChannelsCard.tsx
+  description: Dashboard card with live / being-set-up counts
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -180,6 +198,14 @@ pages:
   path: frontend/app/(authenticated)/bookings/page.tsx
   layout: AuthenticatedLayout
   description: Bookings list with tabs, search and load-more; ?from=<conversation id> starts a booking from a chat
+- name: ChannelsPage
+  path: frontend/app/(authenticated)/channels/page.tsx
+  layout: AuthenticatedLayout
+  description: Channels overview — usage against the plan, my connections, connectable and coming-soon channels
+- name: ChannelConnectionPage
+  path: frontend/app/(authenticated)/channels/[id]/page.tsx
+  layout: AuthenticatedLayout
+  description: One connection — setup steps, matching editor, settings, pause/resume/disconnect, history
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -264,5 +290,15 @@ utilities:
 - name: booking-forms
   path: frontend/lib/booking-forms.ts
   description: stayOf, checkBooking, checkPayment
+- name: channels-api
+  path: frontend/lib/channels-api.ts
+  description: fetchChannels, fetchConnections, createConnection, actOnConnection, saveConnectionSettings,
+    refreshChannelProducts, saveMappings; test-listing calls for the simulated agency
+- name: channel-format
+  path: frontend/lib/channel-format.ts
+  description: statusKey, statusBadgeClass, problemKey, eventKey, nextStep, actionsFor, canMatch, parsePercent
+- name: channel-mapping
+  path: frontend/lib/channel-mapping.ts
+  description: ownPairs, channelPairs, selectionOf, usedTwice, mappingsOf, tighterRooms
 api_routes:
 - api/auth/[...nextauth]

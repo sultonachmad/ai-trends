@@ -66,7 +66,7 @@ async def test_onboarding_creates_the_workspace(pg_client, pg_session) -> None:
 
     assert await count(TenantDatabase, TenantDatabase.tenant_id) == 1
     assert await count(TenantSubscription, TenantSubscription.tenant_id) == 1
-    assert await count(TenantEntitlement, TenantEntitlement.tenant_id) == 3
+    assert await count(TenantEntitlement, TenantEntitlement.tenant_id) == 4
     assert await count(TenantProfile, TenantProfile.tenant_id) == 1
     assert await count(LegalEntity, LegalEntity.tenant_id) == 1
     assert await count(Property, Property.tenant_id) == 1

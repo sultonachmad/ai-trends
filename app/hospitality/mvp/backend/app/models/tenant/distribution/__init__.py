@@ -30,6 +30,12 @@ from app.models.tenant.distribution.channel_performance_daily import (
     ChannelPerformanceDailyRead,
     ChannelPerformanceDailyUpdate,
 )
+from app.models.tenant.distribution.channel_simulator_listing import (
+    ChannelSimulatorListing,
+    ChannelSimulatorListingCreate,
+    ChannelSimulatorListingRead,
+    ChannelSimulatorListingUpdate,
+)
 from app.models.tenant.distribution.ical_feed import (
     IcalFeed,
     IcalFeedCreate,
@@ -38,6 +44,10 @@ from app.models.tenant.distribution.ical_feed import (
 )
 
 __all__ = [
+    "ChannelSimulatorListing",
+    "ChannelSimulatorListingCreate",
+    "ChannelSimulatorListingRead",
+    "ChannelSimulatorListingUpdate",
     "ChannelConnection",
     "ChannelConnectionCreate",
     "ChannelConnectionRead",

@@ -1772,6 +1772,21 @@ CREATE TABLE channelmessage (
 CREATE INDEX ix_channelmessage_queue ON channelmessage (next_attempt_at) WHERE status IN ('queued','failed');
 CREATE INDEX ix_channelmessage_conn ON channelmessage (tenant_id, channel_connection_id, created_at);
 
+-- A listing on the simulated online travel agency (development and test only): the
+-- agency's own property ID and its rooms and rates, standing in for its extranet.
+CREATE TABLE channelsimulatorlisting (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id    uuid NOT NULL,
+  property_id  uuid NOT NULL,
+  hotel_id     text NOT NULL,                 -- the agency's id for the property
+  name         text NOT NULL,
+  rooms        jsonb NOT NULL DEFAULT '[]',   -- [{"id":"R1","name":"…","max_guests":2,"rates":[{"id":"P1","name":"…"}]}]
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, hotel_id),
+  FOREIGN KEY (tenant_id, property_id) REFERENCES property (tenant_id, id) ON DELETE CASCADE
+);
+
 CREATE TABLE icalfeed (
   id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id              uuid NOT NULL,
