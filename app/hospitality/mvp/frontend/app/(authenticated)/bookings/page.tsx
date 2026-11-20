@@ -21,6 +21,7 @@ import {
 } from "@/lib/bookings-api";
 import { todayIn } from "@/lib/calendar-grid";
 import { fetchConversation } from "@/lib/inbox-api";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { fetchRatePlans, type RatePlan } from "@/lib/rate-plans-api";
 import { fetchRoomTypes, type RoomType } from "@/lib/rooms-api";
@@ -39,6 +40,7 @@ function BookingsScreen() {
   const router = useRouter();
   const fromConversation = useSearchParams().get("from");
   const { t } = useLocale();
+  const canEdit = useCan("bookings:edit");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [plans, setPlans] = useState<RatePlan[]>([]);
@@ -65,10 +67,12 @@ function BookingsScreen() {
           router.replace(ONBOARDING_PATH);
           return;
         }
-        const [loaded, loadedRooms, loadedPlans] = await Promise.all([
-          fetchWorkspace(),
-          fetchRoomTypes(),
-          fetchRatePlans(),
+        const loaded = await fetchWorkspace();
+        // Rooms and plans feed the booking form; a viewer without rooms:view (a
+        // front-desk role, say) still gets the list — just without "New booking".
+        const [loadedRooms, loadedPlans] = await Promise.all([
+          fetchRoomTypes().catch(() => []),
+          fetchRatePlans().catch(() => []),
         ]);
         if (cancelled) return;
         setRooms(loadedRooms.filter((room) => room.is_active));
@@ -165,7 +169,7 @@ function BookingsScreen() {
           <button
             type="button"
             onClick={() => setEditing(null)}
-            disabled={rooms.length === 0 || plans.length === 0}
+            disabled={rooms.length === 0 || plans.length === 0 || !canEdit}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {t("bookings.new")}
@@ -251,6 +255,7 @@ function BookingsScreen() {
       </section>
 
       <BookingDetailDialog
+        canEdit={canEdit}
         bookingId={editing === undefined ? openId : null}
         today={today}
         onClose={() => setOpenId(null)}

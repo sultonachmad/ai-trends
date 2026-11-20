@@ -10,11 +10,11 @@ const MIN_PERCENT = 10;
 const MAX_PERCENT = 100;
 const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 
-/** The deposit ("DP") share for direct bookings. Everyone sees it; the owner edits it. */
-export function BookingTermsSection() {
+/** The deposit ("DP") share for direct bookings. Owner edits, and only with settings:edit. */
+export function BookingTermsSection({ canEdit = true }: { canEdit?: boolean }) {
   const { t } = useLocale();
   const [percent, setPercent] = useState("");
-  const [canEdit, setCanEdit] = useState(false);
+  const [ownerCanEdit, setOwnerCanEdit] = useState(false);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function BookingTermsSection() {
       .then((terms) => {
         if (cancelled) return;
         setPercent(String(terms.deposit_percent));
-        setCanEdit(terms.can_edit);
+        setOwnerCanEdit(terms.can_edit);
         setReady(true);
       })
       .catch((cause) => {
@@ -67,7 +67,7 @@ export function BookingTermsSection() {
             id="terms-deposit"
             inputMode="numeric"
             value={percent}
-            disabled={!ready || !canEdit || busy}
+            disabled={!ready || !ownerCanEdit || !canEdit || busy}
             onChange={(event) => {
               setPercent(event.target.value);
               setSaved(false);
@@ -76,7 +76,7 @@ export function BookingTermsSection() {
             className="w-28 rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
           />
         </div>
-        {ready && !canEdit && (
+        {ready && !ownerCanEdit && (
           <p className="text-sm text-muted-foreground">{t("settings.bank.ownerOnly")}</p>
         )}
         {error && (
@@ -89,7 +89,7 @@ export function BookingTermsSection() {
             {t("settings.bank.saved")}
           </p>
         )}
-        {canEdit && (
+        {ownerCanEdit && canEdit && (
           <button
             type="submit"
             disabled={busy}

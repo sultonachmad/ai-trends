@@ -87,6 +87,22 @@ async def pg_engine() -> AsyncIterator[AsyncEngine]:
         _skip_or_fail(f"PostgreSQL not reachable for integration tests: {exc}")
     _migrate(url)
     engine = create_async_engine(url)
+    # The app's lifespan creates the prefab tables and seeds RBAC on startup; tests
+    # bypass the lifespan, so do both here (create_all skips what migrations built).
+    from sqlmodel import SQLModel
+
+    import app.models  # noqa: F401 — registers all table metadata
+    import app.rbac.models  # noqa: F401
+
+    from app.rbac.seed import seed_rbac
+    from app.services.workspace_access import ensure_manager_role
+
+    async with engine.begin() as connection:
+        await connection.run_sync(SQLModel.metadata.create_all)
+    seed_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with seed_factory() as seed_session:
+        await seed_rbac(seed_session)
+        await ensure_manager_role(seed_session)
     yield engine
     await engine.dispose()
 
@@ -271,11 +287,16 @@ async def staff_uploads(
 
 
 async def add_staff_member(
-    session: AsyncSession, client: httpx.AsyncClient, workspace: dict
-) -> None:
+    session: AsyncSession,
+    client: httpx.AsyncClient,
+    workspace: dict,
+    role: str = "manager",
+) -> dict:
     """Sign `client` up as a second, non-owner staff member of `workspace`.
 
-    There is no invite flow yet, so the membership is written directly.
+    There is no invite flow yet, so the membership is written directly. Access is
+    configured as in production: the `role` ("manager" by default, or a role name
+    created by the test, or None for a member with no access at all).
     """
     from sqlmodel import select
 
@@ -305,6 +326,19 @@ async def add_staff_member(
         )
     )
     await session.commit()
+    if role is not None:
+        from app.rbac.models import Role
+
+        role_row = (await session.exec(select(Role).where(Role.name == role))).first()
+        assert role_row is not None, f"role {role!r} does not exist (create it in the test)"
+        await session.execute(
+            text(
+                "INSERT INTO user_roles (user_id, role_id) VALUES (:u, :r) ON CONFLICT DO NOTHING"
+            ),
+            {"u": user.id, "r": role_row.id},
+        )
+        await session.commit()
+    return {"user_id": user.id}
 
 
 async def set_link_limit(session, tenant_id: str, limits: dict[str, object] | None) -> None:

@@ -29,6 +29,8 @@ interface BookingDetailDialogProps {
   bookingId: string | null;
   /** Today at the property. */
   today: string;
+  /** Whether the viewer may change or cancel bookings (bookings:edit). */
+  canEdit: boolean;
   onClose: () => void;
   /** Something about the booking changed: the list behind should refresh. */
   onChanged: () => void;
@@ -42,6 +44,7 @@ const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : 
 export function BookingDetailDialog({
   bookingId,
   today,
+  canEdit,
   onClose,
   onChanged,
   onEdit,
@@ -96,6 +99,7 @@ export function BookingDetailDialog({
   const onPay = async (event: FormEvent) => {
     event.preventDefault();
     if (!booking) return;
+    if (!canEdit) return;
     const checked = checkPayment(payment, today);
     if (!checked.ok) return setError(t(checked.problem.key, checked.problem.vars));
     if (await act(() => recordPayment(booking.id, checked.value))) {
@@ -242,6 +246,7 @@ export function BookingDetailDialog({
                       aria-label={t("bookings.pay.removeLabel", {
                         amount: formatRupiah(entry.amount),
                       })}
+                      hidden={!canEdit}
                       onClick={() => void act(() => removePayment(booking.id, entry.id))}
                       className="text-xs font-medium text-destructive hover:underline disabled:opacity-50"
                     >
@@ -251,6 +256,7 @@ export function BookingDetailDialog({
                 ))}
               </ul>
             )}
+            {canEdit && (
             <form onSubmit={onPay} noValidate className="space-y-2 rounded-lg border border-border p-3">
               <p className="font-medium">{t("bookings.pay.title")}</p>
               <div className="grid grid-cols-2 gap-2">
@@ -316,6 +322,7 @@ export function BookingDetailDialog({
                 {t("bookings.pay.save")}
               </button>
             </form>
+            )}
           </section>
 
           {cancelling && (
@@ -354,7 +361,7 @@ export function BookingDetailDialog({
         </p>
       )}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        {booking && isOpen(booking) && !cancelling && (
+        {booking && canEdit && isOpen(booking) && !cancelling && (
           <>
             <button type="button" disabled={busy} onClick={() => setCancelling(true)} className={secondary}>
               {t("bookings.detail.cancel")}

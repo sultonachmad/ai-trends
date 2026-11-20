@@ -15,6 +15,7 @@ import { amountLimits, CreateLinkDialog } from "@/components/payments/CreateLink
 import { LinkCreatedNotice } from "@/components/payments/LinkCreatedNotice";
 import { PaymentLinkTable } from "@/components/payments/PaymentLinkTable";
 import { ProofUploadDialog } from "@/components/proofs/ProofUploadDialog";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 import { LINK_STATES } from "@/lib/payment-link-format";
@@ -40,6 +41,8 @@ const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : 
 export default function PaymentLinksPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const canEditLinks = useCan("links:edit");
+  const canEditProofs = useCan("proofs:edit");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<LinkFilter>("all");
@@ -178,7 +181,8 @@ export default function PaymentLinksPage() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            disabled={!canEditLinks}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {t("links.new")}
           </button>
@@ -225,8 +229,8 @@ export default function PaymentLinksPage() {
         {ready && links.length > 0 && (
           <PaymentLinkTable
             links={links}
-            onCancel={setToCancel}
-            onAddProof={setProofFor}
+            onCancel={canEditLinks ? setToCancel : undefined}
+            onAddProof={canEditProofs ? setProofFor : undefined}
             timeZone={workspace.property.timezone}
           />
         )}

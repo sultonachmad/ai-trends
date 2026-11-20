@@ -19,6 +19,7 @@ import {
   type ChannelsOverview,
   type Connection,
 } from "@/lib/channels-api";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { fetchOnboardingStatus } from "@/lib/workspace-api";
 
@@ -29,6 +30,7 @@ const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : 
 export default function ChannelsPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const canEdit = useCan("channels:edit");
   const [overview, setOverview] = useState<ChannelsOverview | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export default function ChannelsPage() {
         </h2>
         <ChannelCatalog
           channels={overview.channels}
-          canConnect={!overview.usage.limit_reached}
+          canConnect={!overview.usage.limit_reached && canEdit}
           onConnect={setConnecting}
         />
       </section>

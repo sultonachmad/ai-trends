@@ -27,6 +27,7 @@ from fastapi import (
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.documents.storage import DocumentStorage, get_document_storage
+from app.rbac.dependencies import require_permission
 from app.schemas.payment_links import Description, Rupiah
 from app.schemas.transfer_proofs import ProofFilter, ProofPage, ProofRead, RejectRequest
 from app.services import proof_review
@@ -36,6 +37,10 @@ from app.services.workspace import find_property
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("proofs:view", "See transfer proofs and their images")
+
+EDIT = require_permission("proofs:edit", "Upload, approve and reject transfer proofs")
 
 transfer_proofs_router = APIRouter(prefix="/api/transfer-proofs", tags=["transfer-proofs"])
 
@@ -145,6 +150,7 @@ async def list_transfer_proofs(
     cursor: str | None = Query(default=None, max_length=100),
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ProofPage:
     prop = await find_property(session, context)
     return await _guarded(lambda: proofs.list_proofs(session, context, prop, state, limit, cursor))
@@ -160,6 +166,7 @@ async def upload_transfer_proof(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
     storage: DocumentStorage = Depends(get_document_storage),
+    _edit=EDIT,
 ) -> ProofRead:
     """Staff upload: for a pay link, or — with amount and description — with no link."""
     for_link = payment_link_id is not None
@@ -194,6 +201,7 @@ async def read_transfer_proof(
     proof_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ProofRead:
     prop = await find_property(session, context)
 
@@ -210,6 +218,7 @@ async def read_transfer_proof_image(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
     storage: DocumentStorage = Depends(get_document_storage),
+    _view=VIEW,
 ) -> Response:
     prop = await find_property(session, context)
     content, content_type = await _guarded(
@@ -223,6 +232,7 @@ async def approve_transfer_proof(
     proof_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ProofRead:
     prop = await find_property(session, context)
 
@@ -239,6 +249,7 @@ async def reject_transfer_proof(
     body: RejectRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ProofRead:
     prop = await find_property(session, context)
 

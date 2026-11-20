@@ -13,6 +13,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.rbac.dependencies import require_permission
 from app.schemas.rooms import (
     RoomTypeCreateRequest,
     RoomTypeRead,
@@ -23,6 +24,10 @@ from app.services import room_types as rooms
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("rooms:view", "Browse room types and rate plans")
+
+EDIT = require_permission("rooms:edit", "Change room types, rate plans and their prices")
 
 rooms_router = APIRouter(prefix="/api/room-types", tags=["room-types"])
 
@@ -67,6 +72,7 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
 async def list_room_types(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> list[RoomTypeRead]:
     prop = await find_property(session, context)
     return await rooms.list_room_types(session, context, prop.id)
@@ -77,6 +83,7 @@ async def create_room_type(
     body: RoomTypeCreateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> RoomTypeRead:
     prop = await find_property(session, context)
     return await _guarded(lambda: rooms.create_room_type(session, context, prop, body))
@@ -88,6 +95,7 @@ async def update_room_type(
     body: RoomTypeUpdateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> RoomTypeRead:
     prop = await find_property(session, context)
     return await _guarded(
@@ -102,6 +110,7 @@ async def rename_unit(
     body: UnitRenameRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> RoomTypeRead:
     prop = await find_property(session, context)
     return await _guarded(

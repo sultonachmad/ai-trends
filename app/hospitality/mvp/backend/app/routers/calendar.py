@@ -11,6 +11,7 @@ from typing import TypeVar
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.rbac.dependencies import require_permission
 from app.routers.rate_plans import rate_out_of_range
 from app.schemas.calendar import CalendarChangeRequest, CalendarChangeResult, CalendarRead
 from app.services import calendar
@@ -19,6 +20,10 @@ from app.services.rate_plans import RateOutOfRangeError
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("calendar:view", "See availability, prices and restrictions")
+
+EDIT = require_permission("calendar:edit", "Change prices, closed dates and minimum stay")
 
 calendar_router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
@@ -64,6 +69,7 @@ async def read_calendar(
     end: dt.date = Query(alias="to"),
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> CalendarRead:
     prop = await find_property(session, context)
     return await _guarded(lambda: calendar.read_calendar(session, context, prop, start, end))
@@ -74,6 +80,7 @@ async def change_calendar(
     body: CalendarChangeRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> CalendarChangeResult:
     prop = await find_property(session, context)
     applied = await _guarded(lambda: calendar.apply_calendar_change(session, context, prop, body))

@@ -16,6 +16,8 @@ interface ProofReviewDialogProps {
   onClose: () => void;
   onDecided: (updated: Proof) => void;
   timeZone?: string;
+  /** Whether the viewer may decide on proofs (proofs:edit). */
+  canEdit?: boolean;
 }
 
 /** The screenshot beside what staff expect, with approve / reject (reason required). */
@@ -25,6 +27,7 @@ export function ProofReviewDialog({
   onClose,
   onDecided,
   timeZone,
+canEdit = true,
 }: ProofReviewDialogProps) {
   const { t, locale } = useLocale();
   const [rejecting, setRejecting] = useState(false);
@@ -65,7 +68,9 @@ export function ProofReviewDialog({
   };
 
   const when = (iso: string | null) => formatListTime(iso, locale, new Date(), timeZone);
-  const undecided = proof?.state === "awaiting" || proof?.state === "awaiting_second";
+  const undecided =
+    proof?.state === "awaiting" || proof?.state === "awaiting_second";
+  const decidable = undecided && canEdit;
   const firstOfTwo =
     proof !== null && proof.needs_second_approval && !isOwner && proof.state === "awaiting";
 
@@ -156,7 +161,7 @@ export function ProofReviewDialog({
                 {t("proofs.close")}
               </button>
             )}
-            {undecided && rejecting && (
+            {decidable && rejecting && (
               <>
                 <button
                   type="button"
@@ -179,7 +184,7 @@ export function ProofReviewDialog({
                 </button>
               </>
             )}
-            {undecided && !rejecting && (
+            {decidable && !rejecting && (
               <>
                 <button
                   type="button"

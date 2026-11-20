@@ -9,12 +9,17 @@ PUT /api/settings/booking-terms    change it (property owner only)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.rbac.dependencies import require_permission
 from app.schemas.property_settings import BookingTermsRead, BookingTermsUpdate
 from app.schemas.transfer_proofs import BankAccountRead, BankAccountUpdate
 from app.services import property_settings
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("settings:view", "See property settings")
+
+EDIT = require_permission("settings:edit", "Change property settings")
 
 settings_router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -23,6 +28,7 @@ settings_router = APIRouter(prefix="/api/settings", tags=["settings"])
 async def read_bank_account(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> BankAccountRead:
     prop = await find_property(session, context)
     return property_settings.read_bank_account(prop, context)
@@ -33,6 +39,7 @@ async def update_bank_account(
     body: BankAccountUpdate,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BankAccountRead:
     prop = await find_property(session, context)
     try:
@@ -56,6 +63,7 @@ async def update_bank_account(
 async def read_booking_terms(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> BookingTermsRead:
     prop = await find_property(session, context)
     return property_settings.read_booking_terms(prop, context)
@@ -66,6 +74,7 @@ async def update_booking_terms(
     body: BookingTermsUpdate,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BookingTermsRead:
     prop = await find_property(session, context)
     try:

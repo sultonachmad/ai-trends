@@ -22,6 +22,8 @@ export type CellTarget =
 interface CalendarGridProps {
   calendar: Calendar;
   onCell: (target: CellTarget) => void;
+  /** True when the viewer may not change the calendar (no permission): cells are inert. */
+  readOnly?: boolean;
 }
 
 const labelCell =
@@ -70,10 +72,10 @@ function HeaderRow({ days, today, locale }: { days: CalendarDay[]; today: string
   );
 }
 
-function RoomTable({ room, calendar, onCell }: { room: CalendarRoomType } & CalendarGridProps) {
+function RoomTable({ room, calendar, onCell, readOnly }: { room: CalendarRoomType } & CalendarGridProps) {
   const { t, locale } = useLocale();
   const { today, last_editable_date: lastEditable } = calendar;
-  const editable = (date: string) => isEditable(date, today, lastEditable);
+  const editable = (date: string) => !readOnly && isEditable(date, today, lastEditable);
   const label = (what: string, date: string) =>
     t("calendar.cell.edit", { what, room: room.name, date: longDate(date, locale) });
   const faded = (day: CalendarDay) =>
@@ -195,11 +197,17 @@ function RoomTable({ room, calendar, onCell }: { room: CalendarRoomType } & Cale
 }
 
 /** One table per room type: availability, a price row per rate plan, minimum stay. */
-export function CalendarGrid({ calendar, onCell }: CalendarGridProps) {
+export function CalendarGrid({ calendar, onCell, readOnly = false }: CalendarGridProps) {
   return (
     <div className="space-y-4">
       {calendar.room_types.map((room) => (
-        <RoomTable key={room.id} room={room} calendar={calendar} onCell={onCell} />
+        <RoomTable
+          key={room.id}
+          room={room}
+          calendar={calendar}
+          onCell={onCell}
+          readOnly={readOnly}
+        />
       ))}
     </div>
   );

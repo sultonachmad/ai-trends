@@ -24,11 +24,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     #
     # Runs after `create_db_and_tables()` so all tables exist before inserting.
 
-    from app.rbac.seed import seed_rbac
     from app.database import async_session_factory as _rbac_session_factory
+    from app.rbac.seed import seed_rbac
 
     async with _rbac_session_factory() as _rbac_db:
         await seed_rbac(_rbac_db)
+
+    # The workspace's own access model: the manager role (all application permissions)
+    # and, for owners who signed up before roles existed, a one-time grant.
+    from app.services.workspace_access import backfill_owner_access, ensure_manager_role
+
+    async with _rbac_session_factory() as _access_db:
+        await ensure_manager_role(_access_db)
+        await backfill_owner_access(_access_db)
     # ============================================================================
     # PREFAB:audit-evidence — startup check
     # ============================================================================
@@ -116,8 +124,8 @@ def create_app() -> FastAPI:
     # FastAPI instance under construction, and registering the router here is
     # safe (runs once, at import time, before the app serves any requests).
 
-    from app.auth.router import router as auth_router
     from app.auth.oauth_bridge import router as oauth_bridge_router
+    from app.auth.router import router as auth_router
 
     app.include_router(auth_router)
     app.include_router(oauth_bridge_router)
@@ -209,8 +217,8 @@ def create_app() -> FastAPI:
     # lifespan seed runs — that ordering is guaranteed because create_app()
     # completes before lifespan() fires.
 
-    from app.rbac.router import rbac_router
     from app.rbac.me import me_router
+    from app.rbac.router import rbac_router
 
     app.include_router(rbac_router)
     app.include_router(me_router)

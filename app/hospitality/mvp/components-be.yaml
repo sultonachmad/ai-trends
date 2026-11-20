@@ -978,6 +978,10 @@ services:
 - name: channel_hooks
   file: backend/app/services/channel_hooks.py
   description: on_go_live / on_pause / on_resume — the moments milestone 4 fills with a full refresh and closing sale
+- name: workspace_access
+  file: backend/app/services/workspace_access.py
+  description: 'RBAC for the workspace: ensure_manager_role (all application permissions), grant_manager
+    at onboarding, backfill_owner_access for owners who signed up before roles'
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1162,5 +1166,9 @@ migrations:
   description: reservation.cancel_note — what staff typed when cancelling
 - name: 0009_channel_connections
   file: backend/migrations/versions/0009_channel_connections.py
-  description: simulated agency in the catalogue, channel_manager on the Free plan (connected_channels: 1, backfilled),
+  description: simulated agency in the catalogue, channel_manager on the Free plan (connected_channels=1, backfilled),
     channelsimulatorlisting with tenant isolation and grants
+- name: feature permissions
+  file: backend/app/routers/*.py, backend/docs/rbac-spec.yaml
+  description: 'Every feature route checks module:view / module:edit (inbox, links, proofs, bookings, rooms,
+    calendar, channels, settings); menus are gated by module:view; the manager role holds all of them'

@@ -13,6 +13,7 @@ import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { ProofList } from "@/components/proofs/ProofList";
 import { ProofReviewDialog } from "@/components/proofs/ProofReviewDialog";
 import { ProofUploadDialog } from "@/components/proofs/ProofUploadDialog";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { maxProofMb } from "@/lib/proof-format";
 import {
@@ -35,6 +36,7 @@ const numberSetting = (value: unknown, fallback: number) =>
 export default function TransferProofsPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const canEdit = useCan("proofs:edit");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ProofFilter>("awaiting");
@@ -142,8 +144,9 @@ export default function TransferProofsPage() {
           <LanguageSwitch />
           <button
             type="button"
+            disabled={!canEdit}
             onClick={() => setUploading(true)}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {t("proofs.record")}
           </button>
@@ -201,6 +204,7 @@ export default function TransferProofsPage() {
 
       <ProofReviewDialog
         proof={open}
+        canEdit={canEdit}
         isOwner={workspace.is_owner}
         timeZone={timeZone}
         onClose={() => setOpen(null)}

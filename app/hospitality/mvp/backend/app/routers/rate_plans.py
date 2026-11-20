@@ -12,12 +12,17 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.rbac.dependencies import require_permission
 from app.schemas.rate_plans import RatePlanCreateRequest, RatePlanRead, RatePlanUpdateRequest
 from app.services import rate_plans as plans
 from app.services.payment_links import format_rupiah
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("rooms:view", "Browse room types and rate plans")
+
+EDIT = require_permission("rooms:edit", "Change room types, rate plans and their prices")
 
 rate_plans_router = APIRouter(prefix="/api/rate-plans", tags=["rate-plans"])
 
@@ -71,6 +76,7 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
 async def list_rate_plans(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> list[RatePlanRead]:
     prop = await find_property(session, context)
     return await plans.list_rate_plans(session, context, prop.id)
@@ -81,6 +87,7 @@ async def create_rate_plan(
     body: RatePlanCreateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> RatePlanRead:
     prop = await find_property(session, context)
     return await _guarded(lambda: plans.create_rate_plan(session, context, prop, body))
@@ -92,6 +99,7 @@ async def update_rate_plan(
     body: RatePlanUpdateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> RatePlanRead:
     prop = await find_property(session, context)
     return await _guarded(

@@ -8,8 +8,9 @@ import type { PaymentLink } from "@/lib/payment-links-api";
 
 interface PaymentLinkTableProps {
   links: PaymentLink[];
-  onCancel: (link: PaymentLink) => void;
-  onAddProof: (link: PaymentLink) => void;
+  /** Omitted when the viewer may not cancel links or record proofs (RBAC). */
+  onCancel?: (link: PaymentLink) => void;
+  onAddProof?: (link: PaymentLink) => void;
   timeZone?: string;
 }
 
@@ -89,7 +90,7 @@ export function PaymentLinkTable({
                   {(link.state === "pending" || link.state === "expired") && (
                     <button
                       type="button"
-                      onClick={() => onAddProof(link)}
+                      onClick={() => onAddProof?.(link)}
                       className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-accent"
                     >
                       {t("links.uploadProof")}
@@ -98,7 +99,7 @@ export function PaymentLinkTable({
                   {link.state === "pending" && (
                     <button
                       type="button"
-                      onClick={() => onCancel(link)}
+                      onClick={() => onCancel?.(link)}
                       className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-accent"
                     >
                       {t("links.cancel")}

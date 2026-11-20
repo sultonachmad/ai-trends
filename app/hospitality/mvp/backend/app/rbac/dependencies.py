@@ -109,7 +109,10 @@ def require_permission(code: str, description: str = "") -> Any:
 
     async def _check(
         user: dict = Depends(get_current_user),
-        db: AsyncSession = Depends(get_session),
+        # use_cache=False: without it this resolves to the SAME session instance as the
+        # route's tenant-scoped session (SET LOCAL ROLE app_rw + app.tenant_id), which
+        # cannot read the RBAC tables. The permission check needs its own connection.
+        db: AsyncSession = Depends(get_session, use_cache=False),
     ) -> dict:
         user_id = int(user["user_id"])
         if not await _user_has_permission(user_id, code, db):

@@ -14,11 +14,16 @@ from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings
+from app.rbac.dependencies import require_permission
 from app.schemas.channels import ChannelRoomRead
 from app.services import channel_test_listings as listings
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("channels:view", "See connected sales channels")
+
+EDIT = require_permission("channels:edit", "Connect and manage sales channels")
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +57,7 @@ class TestListingRead(BaseModel):
 async def list_test_listings(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> list[TestListingRead]:
     prop = await find_property(session, context)
     found = await listings.list_test_listings(session, context, prop)
@@ -64,6 +70,7 @@ async def list_test_listings(
 async def create_test_listing(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> TestListingRead:
     prop = await find_property(session, context)
     try:

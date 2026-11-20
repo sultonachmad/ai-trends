@@ -219,6 +219,10 @@ async def create_workspace(
         joined_at=dt.datetime.now(dt.UTC),
     )
     session.add(membership)
+    # The owner who creates the workspace gets full feature access (RBAC manager).
+    from app.services.workspace_access import grant_manager
+
+    await grant_manager(session, user_id)
     await session.commit()
     log.info("Provisioned workspace tenant=%s for user_id=%s", tenant.code, user_id)
     return TenantContext(

@@ -24,6 +24,7 @@ import {
   WIDE_WINDOW_DAYS,
   windowSize,
 } from "@/lib/calendar-grid";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { numberSetting } from "@/lib/room-forms";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
@@ -54,6 +55,7 @@ function draftFor(target: CellTarget): ChangeDraft {
 export default function CalendarPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const canEdit = useCan("calendar:edit");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [calendar, setCalendar] = useState<Calendar | null>(null);
   const [start, setStart] = useState<string | null>(null);
@@ -167,8 +169,9 @@ export default function CalendarPage() {
             </div>
             <button
               type="button"
+              disabled={!canEdit}
               onClick={() => setDraft(blankDraft())}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {t("calendar.changeMany")}
             </button>
@@ -178,7 +181,11 @@ export default function CalendarPage() {
               {done}
             </p>
           )}
-          <CalendarGrid calendar={calendar} onCell={(target) => setDraft(draftFor(target))} />
+          <CalendarGrid
+            calendar={calendar}
+            readOnly={!canEdit}
+            onCell={(target) => setDraft(draftFor(target))}
+          />
           <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
             <li>
               <span className="mr-1 inline-block h-3 w-3 rounded-sm bg-primary/10 align-middle ring-1 ring-border" />

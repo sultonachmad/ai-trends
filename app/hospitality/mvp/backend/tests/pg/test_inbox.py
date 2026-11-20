@@ -116,7 +116,7 @@ async def test_list_uses_a_constant_number_of_queries(pg_client, pg_engine) -> N
     assert len(page["items"]) == 12
     table_reads = [s for s in statements if "set_config" not in s]
     # membership, property, conversations, last messages, guests — not one per row
-    assert len(table_reads) <= 6, table_reads
+    assert len(table_reads) <= 7  # +1: the RBAC permission check, once per request, table_reads
 
 
 async def test_read_thread_oldest_first_and_incremental(pg_client) -> None:

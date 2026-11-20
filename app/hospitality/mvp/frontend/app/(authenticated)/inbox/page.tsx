@@ -36,6 +36,7 @@ import {
   mergeMessages,
   sameConversation,
 } from "@/lib/inbox-format";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import type { CreatedLink } from "@/lib/payment-links-api";
 import { usePolling } from "@/lib/use-polling";
@@ -57,6 +58,10 @@ function InboxScreen() {
   const router = useRouter();
   const selectedId = useSearchParams().get("c");
   const { t } = useLocale();
+  const canReply = useCan("inbox:edit");
+  const canBook = useCan("bookings:edit");
+  const canProve = useCan("proofs:edit");
+  const canLink = useCan("links:edit");
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -374,27 +379,34 @@ function InboxScreen() {
               <p className="text-xs text-muted-foreground">{selected.guest.phone}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setLinkDialogOpen(true)}
-                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                {t("inbox.sendLink")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setProofDialogOpen(true)}
-                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-              >
-                {t("inbox.recordProof")}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push(`/bookings?from=${encodeURIComponent(selectedId)}`)}
-                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-              >
-                {t("inbox.createBooking")}
-              </button>
+              {canLink && (
+                <button
+                  type="button"
+                  onClick={() => setLinkDialogOpen(true)}
+                  className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  {t("inbox.sendLink")}
+                </button>
+              )}
+              {canProve && (
+                <button
+                  type="button"
+                  onClick={() => setProofDialogOpen(true)}
+                  className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+                >
+                  {t("inbox.recordProof")}
+                </button>
+              )}
+              {canBook && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/bookings?from=${encodeURIComponent(selectedId)}`)}
+                  className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+                >
+                  {t("inbox.createBooking")}
+                </button>
+              )}
+              {canReply && (
               <button
                 type="button"
                 onClick={() => void toggleResolved()}
@@ -402,12 +414,15 @@ function InboxScreen() {
               >
                 {selected.status === "resolved" ? t("inbox.reopen") : t("inbox.resolve")}
               </button>
+              )}
             </div>
           </header>
           <div className="h-[50vh] overflow-y-auto">
             <MessageThread messages={messages} timeZone={timeZone} />
           </div>
-          <ReplyBox blockedReason={selected.reply_blocked_reason} onSend={reply} />
+          {canReply ? (
+            <ReplyBox blockedReason={selected.reply_blocked_reason} onSend={reply} />
+          ) : null}
         </>
       )}
       {actionError && (

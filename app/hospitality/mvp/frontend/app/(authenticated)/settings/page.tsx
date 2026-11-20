@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { BookingTermsSection } from "@/components/settings/BookingTermsSection";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { bankFormProblem, type BankForm } from "@/lib/proof-format";
 import { fetchBankAccount, saveBankAccount, type BankAccount } from "@/lib/settings-api";
@@ -31,6 +32,7 @@ const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
 export default function SettingsPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const canEditSettings = useCan("settings:edit");
   const [form, setForm] = useState<BankForm>(EMPTY);
   const [canEdit, setCanEdit] = useState(false);
   const [ready, setReady] = useState(false);
@@ -125,7 +127,7 @@ export default function SettingsPage() {
               <input
                 id={`bank-${field.name}`}
                 value={form[field.name]}
-                disabled={!canEdit || busy}
+                disabled={!canEdit || !canEditSettings || busy}
                 inputMode={field.numeric ? "numeric" : undefined}
                 autoComplete="off"
                 maxLength={80}
@@ -159,7 +161,7 @@ export default function SettingsPage() {
           )}
         </form>
       </section>
-      <BookingTermsSection />
+      <BookingTermsSection canEdit={canEditSettings} />
     </div>
   );
 }

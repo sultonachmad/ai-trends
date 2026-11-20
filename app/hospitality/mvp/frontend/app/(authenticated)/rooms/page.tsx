@@ -13,6 +13,7 @@ import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { RatePlanDialog } from "@/components/rooms/RatePlanDialog";
 import { RatePlanList, RoomTypeList } from "@/components/rooms/RoomLists";
 import { RoomTypeDialog } from "@/components/rooms/RoomTypeDialog";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { fetchRatePlans, updateRatePlan, type RatePlan } from "@/lib/rate-plans-api";
 import { numberSetting } from "@/lib/room-forms";
@@ -31,6 +32,7 @@ type Editing<T> = T | null | undefined;
 export default function RoomsPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const canEdit = useCan("rooms:edit");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [plans, setPlans] = useState<RatePlan[]>([]);
@@ -126,7 +128,12 @@ export default function RoomsPage() {
             </h2>
             <p className="text-sm text-muted-foreground">{t("rooms.types.intro")}</p>
           </div>
-          <button type="button" onClick={() => setEditingRoom(null)} className={primaryButton}>
+          <button
+            type="button"
+            onClick={() => setEditingRoom(null)}
+            disabled={!canEdit}
+            className={primaryButton}
+          >
             {t("rooms.addType")}
           </button>
         </div>
@@ -158,7 +165,7 @@ export default function RoomsPage() {
           <button
             type="button"
             onClick={() => setEditingPlan(null)}
-            disabled={activeRooms.length === 0}
+            disabled={activeRooms.length === 0 || !canEdit}
             className={primaryButton}
           >
             {t("rates.add")}

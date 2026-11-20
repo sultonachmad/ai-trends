@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.channels.provider import ChannelUnavailableError, UnknownChannelPropertyError
+from app.rbac.dependencies import require_permission
 from app.schemas.channels import (
     ChannelProductsRead,
     ChannelsOverview,
@@ -35,6 +36,10 @@ from app.services.channel_quota import ChannelLimitReachedError
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("channels:view", "See connected sales channels")
+
+EDIT = require_permission("channels:edit", "Connect and manage sales channels")
 
 channels_router = APIRouter(prefix="/api/channels", tags=["channels"])
 connections_router = APIRouter(prefix="/api/channel-connections", tags=["channels"])
@@ -105,6 +110,7 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
 async def channels_overview(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ChannelsOverview:
     prop = await find_property(session, context)
     return await channel_catalog.overview(session, context, prop.id)
@@ -114,6 +120,7 @@ async def channels_overview(
 async def list_connections(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> list[ConnectionRead]:
     prop = await find_property(session, context)
     found = await connections.list_connections(session, context, prop.id)
@@ -125,6 +132,7 @@ async def create_connection(
     body: ConnectionCreateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConnectionDetail:
     prop = await find_property(session, context)
     connection = await _guarded(lambda: connections.create_connection(session, context, prop, body))
@@ -136,6 +144,7 @@ async def read_connection(
     connection_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ConnectionDetail:
     prop = await find_property(session, context)
     connection = await _guarded(
@@ -150,6 +159,7 @@ async def update_connection(
     body: ConnectionSettingsRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConnectionDetail:
     prop = await find_property(session, context)
     connection = await _guarded(
@@ -163,6 +173,7 @@ async def test_connection(
     connection_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConnectionDetail:
     prop = await find_property(session, context)
     connection = await _guarded(
@@ -176,6 +187,7 @@ async def channel_products(
     connection_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ChannelProductsRead:
     prop = await find_property(session, context)
     return await _guarded(
@@ -189,6 +201,7 @@ async def save_mappings(
     body: MappingsRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConnectionDetail:
     prop = await find_property(session, context)
     connection = await _guarded(
@@ -203,6 +216,7 @@ async def move_connection(
     action: Move,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConnectionDetail:
     prop = await find_property(session, context)
     connection = await _guarded(

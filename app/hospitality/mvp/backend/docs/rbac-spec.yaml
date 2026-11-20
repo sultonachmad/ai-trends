@@ -41,14 +41,19 @@ roles:
     permissions: ["*"]
 
   # ── Application roles go below this line ───────────────────────────────────
-  # Copy the block format and fill in role name, description, and permissions.
-  #
-  # example_role:
-  #   description: >
-  #     Describe what this actor does in the system and any key restrictions.
-  #   permissions:
-  #     - module:view
-  #     - module:edit
+  # Roles are created and assigned in /admin (Roles, Users). One application role
+  # is also created automatically at startup (app/services/workspace_access.py):
+
+  manager:
+    description: >
+      Full access to this property's features — every application permission
+      below, none of the platform's admin permissions. Granted automatically to
+      the user who creates a workspace (the property owner); an administrator
+      can assign it to anyone else, or build narrower roles from single codes.
+
+  # Narrower roles are deliberately not predefined: build them in /admin from the
+  # permission codes below (e.g. front desk = inbox:view, inbox:edit,
+  # bookings:view, bookings:edit and nothing else).
 
 
 # ── Permissions (Capabilities) ───────────────────────────────────────────────
@@ -72,13 +77,25 @@ permissions:
   "menus:reload":      "Reload sidebar menus from this file without a restart"
 
   # ── Application permissions go below this line ─────────────────────────────
-  # Add one entry per require_permission() call you add to the backend.
-  # Use the same code string verbatim.
-  #
-  # "orders:view":    "Browse the order list and view order details"
-  # "orders:add":     "Create a new order"
-  # "orders:edit":    "Edit an existing order"
-  # "orders:delete":  "Cancel or delete an order"
+  # Every feature route checks one of these (view = read, edit = change).
+  # The manager role holds all of them; build narrower roles in /admin.
+
+  "inbox:view":        "Read guest conversations"
+  "inbox:edit":        "Reply to guests and manage conversations"
+  "links:view":        "Browse payment links"
+  "links:edit":        "Create and cancel payment links"
+  "proofs:view":       "See transfer proofs and their images"
+  "proofs:edit":       "Upload, approve and reject transfer proofs"
+  "bookings:view":     "Browse bookings and their prices"
+  "bookings:edit":     "Enter, change and cancel bookings and record payments"
+  "rooms:view":        "Browse room types and rate plans"
+  "rooms:edit":        "Change room types, rate plans and their prices"
+  "calendar:view":     "See availability, prices and restrictions"
+  "calendar:edit":     "Change prices, closed dates and minimum stay"
+  "channels:view":     "See connected sales channels"
+  "channels:edit":     "Connect and manage sales channels"
+  "settings:view":     "See property settings"
+  "settings:edit":     "Change property settings"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────
@@ -139,61 +156,69 @@ menus:
     order: 1
     active: true
 
-  # Guest conversations (WhatsApp). Visible to every member of the workspace.
+  # Guest conversations (WhatsApp). Permission-gated (inbox:view / inbox:edit).
   - name: Inbox
     path: /inbox
     icon: chat
     order: 2
     active: true
+    permission: inbox:view
 
-  # Payment links sent to guests. Visible to every member of the workspace.
+  # Payment links sent to guests. Permission-gated (links:view / links:edit).
   - name: Payment links
     path: /payment-links
     icon: money
     order: 3
     active: true
+    permission: links:view
 
-  # Transfer screenshots waiting for a person to approve or reject.
+  # Transfer screenshots to approve or reject. Permission-gated (proofs:...).
   - name: Transfer proofs
     path: /transfer-proofs
     icon: invoice
     order: 4
     active: true
+    permission: proofs:view
 
-  # Every booking, whatever its source; staff enter WhatsApp and walk-in bookings here.
+  # Every booking, whatever its source. Permission-gated (bookings:...).
   - name: Bookings
     path: /bookings
     icon: clipboard
     order: 5
     active: true
+    permission: bookings:view
 
-  # Availability, prices, closed dates and minimum stay by date.
+  # Availability, prices, closed dates and minimum stay. Permission-gated (calendar:...).
   - name: Calendar
     path: /calendar
     icon: calendar
     order: 6
     active: true
+    permission: calendar:view
 
-  # Room types and rate plans (what is sold, and its normal price).
+  # Room types and rate plans. Permission-gated (rooms:view / rooms:edit).
   - name: Rooms & rates
     path: /rooms
     icon: key
     order: 7
     active: true
+    permission: rooms:view
 
-  # Sales channels: what is connected, and connecting one.
+  # Sales channels. Permission-gated (channels:view / channels:edit).
   - name: Channels
     path: /channels
     icon: globe
     order: 8
     active: true
+    permission: channels:view
 
-  # Property settings (bank account, deposit for direct bookings). Owner edits; members read.
+  # Property settings. Permission-gated (settings:...); the bank account stays owner-only.
   - name: Settings
     path: /settings
     icon: settings
     order: 9
     active: true
+    permission: settings:view
 
   # Add an entry for each new page that should appear in the sidebar / nav.
   #

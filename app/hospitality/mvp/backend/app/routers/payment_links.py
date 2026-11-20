@@ -13,6 +13,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.rbac.dependencies import require_permission
 from app.schemas.payment_links import (
     LinkFilter,
     PaymentLinkCreated,
@@ -25,6 +26,10 @@ from app.services.link_quota import PaymentLinkLimitReachedError
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+EDIT = require_permission("links:edit", "Create and cancel payment links")
+
+VIEW = require_permission("links:view", "Browse payment links")
 
 payment_links_router = APIRouter(prefix="/api/payment-links", tags=["payment-links"])
 
@@ -87,6 +92,7 @@ async def create_payment_link(
     body: PaymentLinkCreateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> PaymentLinkCreated:
     prop = await find_property(session, context)
     return await _guarded(lambda: links.create_link(session, context, prop, body))
@@ -99,6 +105,7 @@ async def list_payment_links(
     cursor: str | None = Query(default=None, max_length=100),
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> PaymentLinkPage:
     prop = await find_property(session, context)
     return await _guarded(lambda: links.list_links(session, context, prop.id, state, limit, cursor))
@@ -109,6 +116,7 @@ async def read_payment_link(
     link_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> PaymentLinkRead:
     prop = await find_property(session, context)
     return await _guarded(lambda: links.read_link(session, context, prop.id, link_id))
@@ -119,6 +127,7 @@ async def cancel_payment_link(
     link_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> PaymentLinkRead:
     prop = await find_property(session, context)
     return await _guarded(lambda: links.cancel_link(session, context, prop.id, link_id))

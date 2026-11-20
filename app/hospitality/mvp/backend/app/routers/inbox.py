@@ -17,6 +17,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.rbac.dependencies import require_permission
 from app.schemas.inbox import (
     ConversationFilter,
     ConversationPage,
@@ -29,6 +30,10 @@ from app.services import inbox
 from app.services.workspace import find_property, unread_conversation_count
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("inbox:view", "Read guest conversations")
+
+EDIT = require_permission("inbox:edit", "Reply to guests and manage conversations")
 
 inbox_router = APIRouter(tags=["inbox"])
 
@@ -70,6 +75,7 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
 async def inbox_summary(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> InboxSummary:
     prop = await find_property(session, context)
     return InboxSummary(
@@ -84,6 +90,7 @@ async def list_conversations(
     cursor: str | None = Query(default=None, max_length=100),
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ConversationPage:
     prop = await find_property(session, context)
     return await _guarded(
@@ -96,6 +103,7 @@ async def read_conversation(
     conversation_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ConversationRead:
     prop = await find_property(session, context)
     return await _guarded(
@@ -109,6 +117,7 @@ async def list_messages(
     after: UUID | None = Query(default=None, description="Only messages newer than this one"),
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> list[MessageRead]:
     prop = await find_property(session, context)
     return await _guarded(
@@ -126,6 +135,7 @@ async def reply(
     body: ReplyRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> MessageRead:
     prop = await find_property(session, context)
     return await _guarded(
@@ -138,6 +148,7 @@ async def mark_read(
     conversation_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> ConversationRead:
     prop = await find_property(session, context)
     return await _guarded(lambda: inbox.mark_read(session, context, prop.id, conversation_id))
@@ -148,6 +159,7 @@ async def resolve(
     conversation_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConversationRead:
     prop = await find_property(session, context)
     return await _guarded(
@@ -160,6 +172,7 @@ async def reopen(
     conversation_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> ConversationRead:
     prop = await find_property(session, context)
     return await _guarded(

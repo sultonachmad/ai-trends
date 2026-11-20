@@ -29,6 +29,7 @@ import {
   type ConnectionDetail,
 } from "@/lib/channels-api";
 import { formatListTime } from "@/lib/inbox-format";
+import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { fetchRatePlans, type RatePlan } from "@/lib/rate-plans-api";
 import { fetchRoomTypes, type RoomType } from "@/lib/rooms-api";
@@ -46,6 +47,7 @@ export default function ChannelConnectionPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { t, locale } = useLocale();
+  const canEdit = useCan("channels:edit");
   const [connection, setConnection] = useState<ConnectionDetail | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [plans, setPlans] = useState<RatePlan[]>([]);
@@ -200,7 +202,7 @@ export default function ChannelConnectionPage() {
               <button
                 key={action}
                 type="button"
-                disabled={busy}
+                disabled={busy || !canEdit}
                 onClick={() => (action === "disconnect" ? setConfirming(true) : void act(action))}
                 className={index === 0 && action !== "disconnect" ? primary : secondary}
               >

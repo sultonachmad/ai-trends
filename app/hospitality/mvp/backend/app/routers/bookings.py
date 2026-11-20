@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.messaging.phone import InvalidPhoneError
+from app.rbac.dependencies import require_permission
 from app.schemas.bookings import (
     BookingCancelRequest,
     BookingCreateRequest,
@@ -37,6 +38,10 @@ from app.services import bookings
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
+
+VIEW = require_permission("bookings:view", "Browse bookings and their prices")
+
+EDIT = require_permission("bookings:edit", "Enter, change and cancel bookings and record payments")
 
 bookings_router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
@@ -124,6 +129,7 @@ async def quote_booking(
     body: BookingQuoteRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> BookingQuote:
     prop = await find_property(session, context)
     return await _guarded(lambda: reads.quote(session, context, prop, body))
@@ -134,6 +140,7 @@ async def create_booking(
     body: BookingCreateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BookingDetail:
     prop = await find_property(session, context)
     booking = await _guarded(lambda: bookings.create_booking(session, context, prop, body))
@@ -148,6 +155,7 @@ async def list_bookings(
     cursor: str | None = Query(default=None, max_length=100),
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> BookingPage:
     prop = await find_property(session, context)
     return await _guarded(
@@ -160,6 +168,7 @@ async def read_booking(
     booking_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _view=VIEW,
 ) -> BookingDetail:
     prop = await find_property(session, context)
     booking = await _guarded(lambda: reads.find_booking(session, context, prop.id, booking_id))
@@ -172,6 +181,7 @@ async def update_booking(
     body: BookingUpdateRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BookingDetail:
     prop = await find_property(session, context)
     booking = await _guarded(
@@ -186,6 +196,7 @@ async def cancel_booking(
     body: BookingCancelRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BookingDetail:
     prop = await find_property(session, context)
     booking = await _guarded(
@@ -202,6 +213,7 @@ async def record_payment(
     body: PaymentRecordRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BookingDetail:
     prop = await find_property(session, context)
     booking = await _guarded(
@@ -216,6 +228,7 @@ async def remove_payment(
     payment_id: UUID,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> BookingDetail:
     prop = await find_property(session, context)
     booking = await _guarded(

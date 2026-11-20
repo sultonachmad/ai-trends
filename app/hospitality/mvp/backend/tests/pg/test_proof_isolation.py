@@ -181,4 +181,4 @@ async def test_queue_uses_a_constant_number_of_queries(pg_client, pg_engine) -> 
 
     assert len(page["items"]) == 8
     # membership, property, proofs, staff names, documents, earlier proofs — not one per row
-    assert len(statements) <= 7, statements
+    assert len(statements) <= 8, statements  # +1: the RBAC permission check

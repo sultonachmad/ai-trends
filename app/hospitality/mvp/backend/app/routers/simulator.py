@@ -18,6 +18,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings
 from app.messaging.phone import InvalidPhoneError, normalise_phone
+from app.rbac.dependencies import require_permission
 from app.routers.checkout import guarded as checkout_guarded
 from app.schemas.inbox import InboundResult, SimulatedInboundRequest
 from app.schemas.payment_links import PublicPaymentLink, SimulatePaymentRequest
@@ -29,6 +30,8 @@ from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.public import PublicLinkScope, get_public_link_scope
 from app.tenancy.session import get_tenant_session
+
+EDIT = require_permission("inbox:edit", "Reply to guests and manage conversations")
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +61,7 @@ async def simulate_inbound(
     body: SimulatedInboundRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
 ) -> InboundResult:
     try:
         phone = normalise_phone(body.from_phone)
