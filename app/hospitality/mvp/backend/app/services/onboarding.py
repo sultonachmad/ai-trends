@@ -36,6 +36,7 @@ from app.models.tenant import (
     TenantProfile,
 )
 from app.schemas.workspace import OnboardingRequest
+from app.services.gateway_accounts import new_gateway_account
 from app.services.messaging_accounts import new_whatsapp_account
 from app.tenancy.context import TenantContext
 
@@ -181,6 +182,7 @@ async def _create_tenant_data(
     )
     await session.flush()
     session.add(new_whatsapp_account(prop))
+    session.add(new_gateway_account(prop))
     await session.flush()
     return prop, staff
 

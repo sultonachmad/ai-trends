@@ -148,6 +148,14 @@ class Payment(TenantEntity, table=True):
             postgresql_where=text("reservation_id IS NOT NULL"),
         ),
         Index(
+            "ux_payment_gateway_ref",
+            "tenant_id",
+            "gateway_account_id",
+            "gateway_reference",
+            unique=True,
+            postgresql_where=text("gateway_reference IS NOT NULL"),
+        ),
+        Index(
             "ix_payment_gateway_ref",
             "tenant_id",
             "gateway_reference",

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 import { fetchSession, logout as logoutRequest, type SessionUser } from "@/lib/session";
 
@@ -22,18 +23,33 @@ const SessionContext = createContext<SessionState | undefined>(undefined);
  * server-verified check, not a client-only cookie presence check — the
  * session cookie is httpOnly and cannot be read from JavaScript at all.
  */
+/** Paths that guests open without signing in; no session check is made there. */
+const SESSIONLESS_PREFIXES = ["/pay/"];
+
+function isSessionlessPath(pathname: string | null): boolean {
+  return SESSIONLESS_PREFIXES.some((prefix) => (pathname ?? "").startsWith(prefix));
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Guest-facing pages (the public pay page) have no staff session to look up.
+  const sessionless = isSessionlessPath(usePathname());
+
   const refresh = useCallback(async () => {
+    if (sessionless) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       setUser(await fetchSession());
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sessionless]);
 
   const logout = useCallback(async () => {
     await logoutRequest();

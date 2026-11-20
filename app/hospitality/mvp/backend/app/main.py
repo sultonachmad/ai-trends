@@ -57,6 +57,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         AUDIT_WRITE_MODE.value,
         len(AUDIT_EVENTS),
     )
+    # Development-only switches must not be on in a production-like deployment.
+    from app.security.startup_checks import assert_safe_configuration
+
+    assert_safe_configuration(settings)
+
     # Fail fast, with a clear message, when the database is missing migrations.
     from app.database import engine as _engine
     from app.db_migrations import assert_database_migrated
@@ -86,6 +91,11 @@ def create_app() -> FastAPI:
     from app.security.origin_check import OriginCheckMiddleware
 
     app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.CORS_ORIGINS)
+
+    # Pay-link addresses carry a secret token: never cached, never sent as a referrer.
+    from app.security.token_paths import TokenPathHeadersMiddleware
+
+    app.add_middleware(TokenPathHeadersMiddleware)
 
     # ============================================================================
     # PREFAB:auth-oauth2 — auth router registration
@@ -234,6 +244,15 @@ def create_app() -> FastAPI:
 
     app.include_router(inbox_router)
     app.include_router(simulator_router)
+
+    # Phase 0 wedge — payment links (staff), public pay page, payment simulator
+    from app.routers.checkout import checkout_router
+    from app.routers.payment_links import payment_links_router
+    from app.routers.simulator import payment_simulator_router
+
+    app.include_router(payment_links_router)
+    app.include_router(checkout_router)
+    app.include_router(payment_simulator_router)
 
     return app
 

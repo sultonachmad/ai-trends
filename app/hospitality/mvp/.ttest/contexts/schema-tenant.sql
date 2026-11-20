@@ -1184,7 +1184,7 @@ CREATE TABLE paymentgatewayaccount (
   id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id              uuid NOT NULL,
   property_id            uuid,                        -- NULL = tenant-wide
-  provider               text NOT NULL CHECK (provider IN ('midtrans','xendit','doku','faspay','stripe','adyen','manual_bank','other')),
+  provider               text NOT NULL CHECK (provider IN ('midtrans','xendit','doku','faspay','stripe','adyen','manual_bank','simulator','other')),
   display_name           text NOT NULL,
   merchant_ref           text,
   credentials_secret_ref text,                        -- secret-manager key; never the key itself
@@ -2947,6 +2947,27 @@ CREATE TABLE aisuggestion (
 );
 CREATE INDEX ix_aisuggestion_subject ON aisuggestion (tenant_id, subject_table, subject_id);
 
+-- Payment links know which chat they were sent in and which guest they are for, and
+-- can be a down payment (DP) of a larger total. Added after conversation/guest exist.
+ALTER TABLE paymentlink
+  ADD COLUMN conversation_id uuid,
+  ADD COLUMN guest_id uuid,
+  ADD COLUMN deposit_of_total numeric(18,2) CHECK (deposit_of_total IS NULL OR deposit_of_total >= amount),
+  ADD FOREIGN KEY (tenant_id, conversation_id) REFERENCES conversation (tenant_id, id) ON DELETE SET NULL (conversation_id),
+  ADD FOREIGN KEY (tenant_id, guest_id) REFERENCES guest (tenant_id, id) ON DELETE SET NULL (guest_id);
+CREATE INDEX ix_paymentlink_list ON paymentlink (tenant_id, property_id, created_at DESC);
+CREATE INDEX ix_paymentlink_conversation ON paymentlink (tenant_id, conversation_id) WHERE conversation_id IS NOT NULL;
+
+-- Public pay page: which tenant does this link token belong to? Returns only that.
+CREATE FUNCTION resolve_payment_link(link_token_hash text) RETURNS uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
+AS $$ SELECT tenant_id FROM public.paymentlink WHERE token_hash = link_token_hash $$;
+REVOKE ALL ON FUNCTION resolve_payment_link(text) FROM PUBLIC;
+-- FORCE RLS binds the owner too; let the function's owner (and only it) read for the lookup.
+-- Created after section V enables RLS: see the end of this file.
+CREATE UNIQUE INDEX ux_payment_gateway_ref ON payment (tenant_id, gateway_account_id, gateway_reference)
+  WHERE gateway_reference IS NOT NULL;
+
 ALTER TABLE message
   ADD FOREIGN KEY (tenant_id, ai_suggestion_id) REFERENCES aisuggestion (tenant_id, id) ON DELETE SET NULL (ai_suggestion_id);
 
@@ -3203,3 +3224,7 @@ BEGIN
     $p$, r.table_name);
   END LOOP;
 END $$;
+
+-- The public pay-link lookup (resolve_payment_link) runs as the table owner with no
+-- tenant set; this lets the owner read paymentlink for that one purpose.
+CREATE POLICY payment_link_lookup ON paymentlink FOR SELECT TO CURRENT_USER USING (true);

@@ -146,6 +146,13 @@ menus:
     order: 2
     active: true
 
+  # Payment links sent to guests. Visible to every member of the workspace.
+  - name: Payment links
+    path: /payment-links
+    icon: money
+    order: 3
+    active: true
+
   # Add an entry for each new page that should appear in the sidebar / nav.
   #
   # Standalone link example:

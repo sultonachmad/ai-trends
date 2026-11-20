@@ -96,3 +96,16 @@ def test_polling_intervals_default_and_bounds() -> None:
     for bad in ({"inbox_poll_seconds": 1}, {"thread_poll_seconds": 121}):
         with pytest.raises(BusinessSettingsError):
             resolve_property_settings({"business": bad})
+
+
+def test_payment_link_amount_limits_default_and_validation() -> None:
+    settings = resolve_property_settings({})
+    assert settings.payment_link_min_amount_idr == 10_000
+    assert settings.payment_link_max_amount_idr == 500_000_000
+
+    for bad in (
+        {"payment_link_min_amount_idr": 0},
+        {"payment_link_min_amount_idr": 2_000_000, "payment_link_max_amount_idr": 1_000_000},
+    ):
+        with pytest.raises(BusinessSettingsError):
+            resolve_property_settings({"business": bad})

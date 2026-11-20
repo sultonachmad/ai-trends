@@ -16,6 +16,7 @@ from sqlalchemy import (
     CHAR,
     CheckConstraint,
     ForeignKeyConstraint,
+    Index,
     Text,
     UniqueConstraint,
     Uuid,
@@ -63,12 +64,35 @@ class PaymentLink(TenantEntity, table=True):
             name="paymentlink_tenant_id_folio_id_fkey",
             ondelete="SET NULL (folio_id)",
         ),
+        ForeignKeyConstraint(
+            ["tenant_id", "conversation_id"],
+            ["conversation.tenant_id", "conversation.id"],
+            name="paymentlink_tenant_id_conversation_id_fkey",
+            ondelete="SET NULL (conversation_id)",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "guest_id"],
+            ["guest.tenant_id", "guest.id"],
+            name="paymentlink_tenant_id_guest_id_fkey",
+            ondelete="SET NULL (guest_id)",
+        ),
         CheckConstraint("(amount > (0)::numeric)", name="paymentlink_amount_check"),
+        CheckConstraint(
+            "((deposit_of_total IS NULL) OR (deposit_of_total >= amount))",
+            name="paymentlink_deposit_of_total_check",
+        ),
         CheckConstraint(
             "status IN ('active', 'paid', 'expired', 'cancelled')", name="paymentlink_status_check"
         ),
         CheckConstraint(
             "sent_via IN ('whatsapp', 'email', 'sms', 'copied')", name="paymentlink_sent_via_check"
+        ),
+        Index("ix_paymentlink_list", "tenant_id", "property_id", text("created_at DESC")),
+        Index(
+            "ix_paymentlink_conversation",
+            "tenant_id",
+            "conversation_id",
+            postgresql_where=text("conversation_id IS NOT NULL"),
         ),
         MIGRATION_ONLY,
     )
@@ -76,8 +100,18 @@ class PaymentLink(TenantEntity, table=True):
     property_id: UUID = Field(sa_type=Uuid)
     reservation_id: UUID | None = Field(default=None, sa_type=Uuid)
     folio_id: UUID | None = Field(default=None, sa_type=Uuid)
+    conversation_id: UUID | None = Field(
+        default=None, sa_type=Uuid, description="Chat thread the link was sent in, if any"
+    )
+    guest_id: UUID | None = Field(default=None, sa_type=Uuid)
     token_hash: str = Field(sa_type=Text)
     amount: Decimal = Field(max_digits=18, decimal_places=2)
+    deposit_of_total: Decimal | None = Field(
+        default=None,
+        max_digits=18,
+        decimal_places=2,
+        description="Set when the link is a down payment (DP): the full amount it is part of",
+    )
     currency: str = Field(
         default="IDR", sa_type=CHAR(3), sa_column_kwargs={"server_default": text("'IDR'::bpchar")}
     )
@@ -102,7 +136,10 @@ class PaymentLinkCreate(SQLModel):
     property_id: UUID
     reservation_id: UUID | None = None
     folio_id: UUID | None = None
+    conversation_id: UUID | None = None
+    guest_id: UUID | None = None
     amount: Decimal = Field(max_digits=18, decimal_places=2, gt=0)
+    deposit_of_total: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
     currency: str = Field(default="IDR", min_length=3, max_length=3)
     description: str | None = None
     allowed_methods: list[str] = Field(default_factory=list)
@@ -119,7 +156,10 @@ class PaymentLinkUpdate(SQLModel):
     property_id: UUID | None = None
     reservation_id: UUID | None = None
     folio_id: UUID | None = None
+    conversation_id: UUID | None = None
+    guest_id: UUID | None = None
     amount: Decimal | None = Field(default=None, max_digits=18, decimal_places=2, gt=0)
+    deposit_of_total: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     description: str | None = None
     allowed_methods: list[str] | None = None
@@ -138,7 +178,10 @@ class PaymentLinkRead(SQLModel):
     property_id: UUID
     reservation_id: UUID | None
     folio_id: UUID | None
+    conversation_id: UUID | None
+    guest_id: UUID | None
     amount: Decimal
+    deposit_of_total: Decimal | None
     currency: str
     description: str | None
     allowed_methods: list[str]

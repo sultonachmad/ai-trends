@@ -49,6 +49,19 @@ components:
 - name: SimulatorPanel
   path: frontend/components/inbox/SimulatorPanel.tsx
   description: Dev-only form to send a message in as a guest
+- name: CreateLinkDialog
+  path: frontend/components/payments/CreateLinkDialog.tsx
+  description: New payment link form (amount, purpose, DP total, validity); optional conversationId sends
+    it in chat
+- name: LinkCreatedNotice
+  path: frontend/components/payments/LinkCreatedNotice.tsx
+  description: 'Shown once after creation: sent/not-sent reason and the address to copy'
+- name: PaymentLinkTable
+  path: frontend/components/payments/PaymentLinkTable.tsx
+  description: Links table with state badge, time left / paid via, cancel action
+- name: PaymentInstructions
+  path: frontend/components/payments/PaymentInstructions.tsx
+  description: 'Guest instructions: simulated QRIS box or virtual account number with copy'
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -90,6 +103,15 @@ pages:
   path: frontend/app/(authenticated)/inbox/page.tsx
   layout: AuthenticatedLayout
   description: Two-pane inbox (list + thread), ?c=<conversation id>, timed re-fetch
+- name: PaymentLinksPage
+  path: frontend/app/(authenticated)/payment-links/page.tsx
+  layout: AuthenticatedLayout
+  description: Staff list of payment links with state tabs, create and cancel; timed re-fetch
+- name: PayPage
+  path: frontend/app/pay/[token]/page.tsx
+  layout: RootLayout
+  description: 'PUBLIC guest pay page (no sign-in, no sidebar): choose QRIS / virtual account, instructions,
+    auto-updating state'
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -128,5 +150,17 @@ utilities:
   path: frontend/lib/inbox-format.ts
   description: applyFirstPage, mergeConversations, mergeMessages, formatListTime, formatClock, dayLabel,
     startsNewDay
+- name: money
+  path: frontend/lib/money.ts
+  description: formatRupiah, parseRupiah (whole rupiah only)
+- name: payment-link-format
+  path: frontend/lib/payment-link-format.ts
+  description: stateLabelKey, stateBadgeClass, timeLeft, timeLeftKey
+- name: payment-links-api
+  path: frontend/lib/payment-links-api.ts
+  description: fetchPaymentLinks, createPaymentLink, cancelPaymentLink
+- name: checkout-api
+  path: frontend/lib/checkout-api.ts
+  description: 'Public: fetchPublicLink, startPayment, simulatePayment'
 api_routes:
 - api/auth/[...nextauth]

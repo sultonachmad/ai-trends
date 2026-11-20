@@ -1,11 +1,13 @@
-"""WhatsApp simulator — a signed-in tester sends a message in "as a guest".
+"""Simulators — play the outside world while providers are simulated.
 
-POST /api/simulator/whatsapp/inbound
+POST /api/simulator/whatsapp/inbound     a signed-in tester writes in "as a guest"
+POST /api/simulator/payments/{token}/pay  the holder of a pay link "pays" it
 
-Development only. Every request answers 404 unless
-PREFAB_MESSAGING_SIMULATOR_ENABLED is true. The message always goes to the
-caller's own property, through the same `receive_inbound` a real provider
-webhook will use.
+Development only. Each answers 404 unless its switch is true
+(PREFAB_MESSAGING_SIMULATOR_ENABLED / PREFAB_PAYMENT_SIMULATOR_ENABLED).
+
+A simulated guest message always goes to the caller's own property, through the same
+`receive_inbound` a real provider webhook will use.
 """
 
 import logging
@@ -16,11 +18,16 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings
 from app.messaging.phone import InvalidPhoneError, normalise_phone
+from app.routers.checkout import guarded as checkout_guarded
 from app.schemas.inbox import InboundResult, SimulatedInboundRequest
+from app.schemas.payment_links import PublicPaymentLink, SimulatePaymentRequest
+from app.services import checkout
+from app.services.gateway_events import PAID_EVENT, GatewayEvent, handle_gateway_event
 from app.services.inbound import InboundMessage, receive_inbound
 from app.services.messaging_accounts import get_or_create_whatsapp_account
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
+from app.tenancy.public import PublicLinkScope, get_public_link_scope
 from app.tenancy.session import get_tenant_session
 
 log = logging.getLogger(__name__)
@@ -75,3 +82,53 @@ async def simulate_inbound(
         message_id=outcome.message_id,
         duplicate=outcome.duplicate,
     )
+
+
+# ---- payments ------------------------------------------------------------------------
+
+if settings.PAYMENT_SIMULATOR_ENABLED:
+    log.warning(
+        "Payment SIMULATOR is ENABLED (PREFAB_PAYMENT_SIMULATOR_ENABLED): anyone holding a "
+        "pay link can mark it paid. Development only — never enable where money is taken."
+    )
+
+
+def require_payment_simulator_enabled() -> None:
+    if not settings.PAYMENT_SIMULATOR_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
+
+payment_simulator_router = APIRouter(
+    prefix="/api/simulator/payments",
+    tags=["simulator"],
+    dependencies=[Depends(require_payment_simulator_enabled)],
+)
+
+
+@payment_simulator_router.post("/{token}/pay", response_model=PublicPaymentLink)
+async def simulate_payment(
+    body: SimulatePaymentRequest | None = None,
+    scope: PublicLinkScope = Depends(get_public_link_scope),
+) -> PublicPaymentLink:
+    """Play the guest's banking app: report the open payment attempt as paid.
+
+    Public like the pay page itself (the token is the credential). Goes through the
+    same `handle_gateway_event` a real gateway webhook will use.
+    """
+    payment, account_id = await checkout_guarded(
+        lambda: checkout.payment_awaiting_simulation(scope, body.reference if body else None)
+    )
+    await handle_gateway_event(
+        scope.session,
+        scope.tenant_id,
+        account_id,
+        GatewayEvent(
+            gateway_event_id=f"sim-evt-{uuid.uuid4().hex}",
+            event_type=PAID_EVENT,
+            gateway_reference=payment.gateway_reference or "",
+            amount=payment.amount,
+            signature_valid=True,
+            raw={"simulated": True, "reference": payment.gateway_reference},
+        ),
+    )
+    return await checkout_guarded(lambda: checkout.public_view(scope))

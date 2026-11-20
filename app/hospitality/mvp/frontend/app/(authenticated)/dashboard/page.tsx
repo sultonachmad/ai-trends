@@ -134,8 +134,15 @@ export default function DashboardPage() {
           <h2 id="links-heading" className="text-sm font-medium text-muted-foreground">
             {t("dashboard.paymentLinks")}
           </h2>
-          <p className="mt-1 text-sm">{t("dashboard.paymentLinksEmpty")}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{t("dashboard.comingSoon")}</p>
+          <p className="mt-1 text-sm">
+            {usage.payment_links_used > 0 ? usageText : t("dashboard.paymentLinksEmpty")}
+          </p>
+          <Link
+            href="/payment-links"
+            className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+          >
+            {t("dashboard.openLinks")}
+          </Link>
         </section>
       </div>
     </div>

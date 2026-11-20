@@ -14,6 +14,8 @@ import { MessageThread } from "@/components/inbox/MessageThread";
 import { ReplyBox } from "@/components/inbox/ReplyBox";
 import { SimulatorPanel } from "@/components/inbox/SimulatorPanel";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { amountLimits, CreateLinkDialog } from "@/components/payments/CreateLinkDialog";
+import { LinkCreatedNotice } from "@/components/payments/LinkCreatedNotice";
 import { ApiError } from "@/lib/api-client";
 import {
   fetchConversation,
@@ -34,6 +36,7 @@ import {
   sameConversation,
 } from "@/lib/inbox-format";
 import { useLocale } from "@/lib/locale-store";
+import type { CreatedLink } from "@/lib/payment-links-api";
 import { usePolling } from "@/lib/use-polling";
 import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
 
@@ -64,6 +67,8 @@ function InboxScreen() {
   const [pollFailed, setPollFailed] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [createdLink, setCreatedLink] = useState<CreatedLink | null>(null);
   const lastMessageId = useRef<string | null>(null);
   const olderLoaded = useRef(false);
   // What the screen is showing *now*; async results for anything else are dropped.
@@ -358,13 +363,22 @@ function InboxScreen() {
               <h2 className="truncate text-base font-semibold">{selected.guest.name}</h2>
               <p className="text-xs text-muted-foreground">{selected.guest.phone}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => void toggleResolved()}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-            >
-              {selected.status === "resolved" ? t("inbox.reopen") : t("inbox.resolve")}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setLinkDialogOpen(true)}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                {t("inbox.sendLink")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void toggleResolved()}
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                {selected.status === "resolved" ? t("inbox.reopen") : t("inbox.resolve")}
+              </button>
+            </div>
           </header>
           <div className="h-[50vh] overflow-y-auto">
             <MessageThread messages={messages} timeZone={timeZone} />
@@ -395,6 +409,20 @@ function InboxScreen() {
         {listPane}
         {threadPane}
       </div>
+      <CreateLinkDialog
+        open={linkDialogOpen && selectedId !== null}
+        onClose={() => setLinkDialogOpen(false)}
+        conversationId={selectedId ?? undefined}
+        limits={amountLimits(workspace.settings)}
+        onCreated={(result) => {
+          setLinkDialogOpen(false);
+          setCreatedLink(result);
+          // The link message shows up in the thread on the next refresh.
+          void refreshThread().catch(() => setPollFailed(true));
+          void refreshList().catch(() => setPollFailed(true));
+        }}
+      />
+      <LinkCreatedNotice created={createdLink} onClose={() => setCreatedLink(null)} />
       {workspace.simulator_enabled && (
         <SimulatorPanel
           onSent={(conversationId) => {

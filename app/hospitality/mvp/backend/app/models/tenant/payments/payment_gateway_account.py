@@ -33,6 +33,7 @@ PaymentGatewayAccountProvider = Literal[
     "stripe",
     "adyen",
     "manual_bank",
+    "simulator",
     "other",
 ]
 PaymentGatewayAccountStatus = Literal[
@@ -57,7 +58,7 @@ class PaymentGatewayAccount(TenantEntity, table=True):
         CheckConstraint(
             (
                 "provider IN ('midtrans', 'xendit', 'doku', 'faspay', 'stripe', 'adyen', "
-                "'manual_bank', 'other')"
+                "'manual_bank', 'simulator', 'other')"
             ),
             name="paymentgatewayaccount_provider_check",
         ),

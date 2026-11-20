@@ -145,6 +145,8 @@ async def other_client(_pg_override: None) -> AsyncIterator[httpx.AsyncClient]:
 def _simulator_on(monkeypatch: pytest.MonkeyPatch) -> None:
     """Integration tests play the guest through the simulator endpoint."""
     monkeypatch.setattr(settings, "MESSAGING_SIMULATOR_ENABLED", True)
+    monkeypatch.setattr(settings, "PAYMENT_SIMULATOR_ENABLED", True)
+    monkeypatch.setattr(settings, "FRONTEND_URL", "https://app.test")
 
 
 async def start_workspace(client: httpx.AsyncClient, **overrides: object) -> dict:
@@ -184,3 +186,24 @@ def onboarding_payload(**overrides: object) -> dict[str, object]:
         "city": "Ubud",
         **overrides,
     }
+
+
+async def make_link(client: httpx.AsyncClient, **overrides: object) -> dict:
+    """Create a payment link on the client's property; returns the creation answer."""
+    payload = {"amount": 850000, "description": "DP Villa 2 malam", **overrides}
+    response = await client.post("/api/payment-links", json=payload)
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def token_of(created: dict) -> str:
+    """The secret token from a creation answer's url."""
+    return created["url"].rsplit("/", 1)[1]
+
+
+async def pay(client: httpx.AsyncClient, token: str, method: str = "qris", bank: str | None = None):
+    """Choose a method on the public page and simulate the guest paying."""
+    body = {"method": method} if bank is None else {"method": method, "bank": bank}
+    started = await client.post(f"/api/pay/{token}/payments", json=body)
+    assert started.status_code == 201, started.text
+    return await client.post(f"/api/simulator/payments/{token}/pay")

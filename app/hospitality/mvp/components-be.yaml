@@ -821,6 +821,15 @@ api_routers:
 - prefix: /api/simulator
   file: backend/app/routers/simulator.py
   description: POST /whatsapp/inbound — dev-only simulated guest message; 404 unless PREFAB_MESSAGING_SIMULATOR_ENABLED
+- prefix: /api/payment-links
+  file: backend/app/routers/payment_links.py
+  description: 'Staff: create (and send to a conversation), list (state, limit, cursor), read, cancel'
+- prefix: /api/pay
+  file: backend/app/routers/checkout.py
+  description: 'PUBLIC pay page: GET /{token}, POST /{token}/payments — the link token is the credential'
+- prefix: /api/simulator/payments
+  file: backend/app/routers/simulator.py
+  description: POST /{token}/pay — dev-only simulated payment; 404 unless PREFAB_PAYMENT_SIMULATOR_ENABLED
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -842,6 +851,19 @@ services:
 - name: workspace.find_property
   file: backend/app/services/workspace.py
   description: The property the caller works in; also unread_conversation_count()
+- name: payment_links
+  file: backend/app/services/payment_links.py
+  description: create_link, list_links, read_link, cancel_link; effective_status (expired on read), format_rupiah,
+    chat_message
+- name: checkout
+  file: backend/app/services/checkout.py
+  description: 'Public side: public_view, start_payment (record first, then ask the gateway)'
+- name: gateway_events.handle_gateway_event
+  file: backend/app/services/gateway_events.py
+  description: Single entry point for gateway notifications; idempotent; locks link first, then payments
+- name: gateway_accounts
+  file: backend/app/services/gateway_accounts.py
+  description: get_or_create_gateway_account / new_gateway_account for a property
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -866,6 +888,14 @@ patterns:
 - name: MessagingProvider
   file: backend/app/messaging/provider.py
   description: Provider protocol (send_text -> SendResult) + register_provider/get_provider keyed by messagingaccount.provider
+- name: PaymentGateway
+  file: backend/app/payments/gateway.py
+  description: Gateway protocol (create_charge -> ChargeInstructions) + register_gateway/get_gateway keyed
+    by paymentgatewayaccount.provider
+- name: get_public_link_scope
+  file: backend/app/tenancy/public.py
+  description: 'FastAPI dependency for token-addressed public routes: resolves the token to its tenant
+    (resolve_payment_link) and scopes the session'
 utilities_backend:
 - name: BaseEntity
   file: backend/app/crud/base_model.py
@@ -912,6 +942,18 @@ utilities_backend:
 - name: pg test helpers
   file: backend/tests/pg/conftest.py
   description: start_workspace(client), guest_says(client, text, phone, name)
+- name: payment tokens
+  file: backend/app/payments/tokens.py
+  description: new_token, fingerprint (SHA-256, the only thing stored), is_well_formed
+- name: SimulatedGateway
+  file: backend/app/payments/simulator.py
+  description: Simulated gateway registered as provider 'simulator' (QRIS payload / VA number)
+- name: frontend_base_url
+  file: backend/app/config.py
+  description: PREFAB_FRONTEND_URL or the first CORS origin; used to build pay-link addresses
+- name: pg payment test helpers
+  file: backend/tests/pg/conftest.py
+  description: make_link(client, **overrides), token_of(created), pay(client, token, method, bank)
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
@@ -919,7 +961,15 @@ schemas:
 - name: inbox schemas
   file: backend/app/schemas/inbox.py
   description: ReplyRequest, SimulatedInboundRequest, ConversationRead/Page, MessageRead, InboxSummary
+- name: payment link schemas
+  file: backend/app/schemas/payment_links.py
+  description: PaymentLinkCreateRequest, PaymentLinkRead/Page/Created, StartPaymentRequest, PaymentInstructions,
+    PublicPaymentLink
 migrations:
 - name: 0004_app_role_and_free_plan
   file: backend/migrations/versions/0004_app_role_and_free_plan.py
   description: app_rw role + grants, local pooled cluster, Free plan with payment_links_per_month limit
+- name: 0005_payment_links
+  file: backend/migrations/versions/0005_payment_links.py
+  description: paymentlink.conversation_id/guest_id/deposit_of_total, 'simulator' gateway provider, resolve_payment_link()
+    for the public page

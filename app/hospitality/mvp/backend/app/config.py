@@ -32,7 +32,18 @@ class Settings(BaseSettings):
     # Lets a signed-in tester send messages in "as a guest" (POST /api/simulator/...).
     # Development only: keep false anywhere real guests are served.
     MESSAGING_SIMULATOR_ENABLED: bool = False
+    # Lets anyone holding a pay link mark it paid ("Simulate payment" on the pay page).
+    # Development only: keep false anywhere real money is taken.
+    PAYMENT_SIMULATOR_ENABLED: bool = False
+    # Where guests open pay links (https://app.example.com). Empty = first CORS origin.
+    FRONTEND_URL: str = ""
     # PREFAB:config-fields
 
 
 settings = Settings()
+
+
+def frontend_base_url() -> str:
+    """Base address of the web app, without a trailing slash."""
+    base = settings.FRONTEND_URL or (settings.CORS_ORIGINS[0] if settings.CORS_ORIGINS else "")
+    return base.rstrip("/")

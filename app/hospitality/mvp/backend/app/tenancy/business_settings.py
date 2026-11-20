@@ -41,6 +41,12 @@ class PropertySettings(BaseModel):
     payment_link_expiry_hours: int = Field(
         default=24, gt=0, le=24 * 90, description="Default lifetime of a new payment link."
     )
+    payment_link_min_amount_idr: int = Field(
+        default=10_000, ge=1, description="Smallest amount a payment link may ask for."
+    )
+    payment_link_max_amount_idr: int = Field(
+        default=500_000_000, ge=1, description="Largest amount a payment link may ask for."
+    )
     first_reply_target_minutes: int = Field(
         default=15, gt=0, le=24 * 60, description="Target for the first reply to a new chat."
     )
@@ -61,6 +67,8 @@ class PropertySettings(BaseModel):
     def _hours_in_order(self) -> Self:
         if self.reply_hours_end <= self.reply_hours_start:
             raise ValueError("reply_hours_end must be after reply_hours_start")
+        if self.payment_link_max_amount_idr < self.payment_link_min_amount_idr:
+            raise ValueError("payment_link_max_amount_idr must not be below the minimum")
         return self
 
 
