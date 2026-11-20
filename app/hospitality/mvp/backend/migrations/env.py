@@ -10,6 +10,8 @@ from app.config import settings
 import app.auth.models  # noqa: F401 — registers auth User table with Alembic
 import app.rbac.models  # noqa: F401 — registers RBAC table metadata with Alembic
 import app.models  # noqa: F401 — registers domain models (sample, control plane, tenant)
+import app.audit.models  # noqa: F401 — startup-created; keeps autogenerate from dropping it
+import app.upload.models  # noqa: F401 — startup-created; keeps autogenerate from dropping it
 # PREFAB:alembic-models
 
 config = context.config

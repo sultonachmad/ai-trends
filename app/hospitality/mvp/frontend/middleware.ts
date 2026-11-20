@@ -48,5 +48,5 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
 export const config = {
   // `/` is matched for the redirect above; the rest are the (authenticated)
   // group. Add new protected path prefixes here as you create them.
-  matcher: ["/", "/dashboard/:path*", "/settings/:path*", "/protected/:path*"],
+  matcher: ["/", "/dashboard/:path*", "/onboarding/:path*", "/settings/:path*", "/protected/:path*"],
 };

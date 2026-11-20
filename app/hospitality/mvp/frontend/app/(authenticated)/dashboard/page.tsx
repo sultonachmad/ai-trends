@@ -1,58 +1,133 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSessionState } from "@/components/SessionProvider";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-interface DashboardData {
-  greeting: string;
-  items_count: number;
-}
-
 /**
- * Sample authenticated page — no individual auth check needed.
- *
- * This page lives inside the `(authenticated)` route group, so the
- * layout.tsx already handles the auth guard. It is reachable at `/dashboard`.
- *
- * Delete this page once you've built your own — it exists only as a
- * working reference.
+ * Workspace home — the operator's property, plan and this month's usage.
+ * Reachable at `/dashboard`. An account without a workspace is sent to
+ * `/onboarding`. Auth is handled by the `(authenticated)` layout.
  */
+
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { ApiError } from "@/lib/api-client";
+import { useLocale } from "@/lib/locale-store";
+import { fetchOnboardingStatus, fetchWorkspace, type Workspace } from "@/lib/workspace-api";
+
+const ONBOARDING_PATH = "/onboarding";
+const NO_WORKSPACE_STATUS = 403;
+
+const cardClass = "rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm";
+
 export default function DashboardPage() {
-  const { user } = useSessionState();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const router = useRouter();
+  const { t } = useLocale();
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      // Ask first, so a brand-new account is redirected without a failed request.
+      const status = await fetchOnboardingStatus();
+      if (!status.has_workspace) {
+        router.replace(ONBOARDING_PATH);
+        return;
+      }
+      setWorkspace(await fetchWorkspace());
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === NO_WORKSPACE_STATUS) {
+        router.replace(ONBOARDING_PATH);
+        return;
+      }
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
+  }, [router]);
+
   useEffect(() => {
-    fetch(`${API_URL}/protected/dashboard-data`, { credentials: "include" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.json();
-      })
-      .then(setData)
-      .catch((err) => setError(String(err)));
-  }, []);
+    void load();
+  }, [load]);
+
+  if (error) {
+    return (
+      <div role="alert" className="mx-auto max-w-xl space-y-3 p-8">
+        <p className="text-sm text-destructive">{t("common.loadFailed", { reason: error })}</p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+        >
+          {t("common.retry")}
+        </button>
+      </div>
+    );
+  }
+
+  if (!workspace) {
+    return <p className="p-8 text-sm text-muted-foreground">{t("common.loading")}</p>;
+  }
+
+  const { property, plan, usage, staff, is_owner: isOwner } = workspace;
+  const usageText =
+    usage.payment_links_limit === null
+      ? t("dashboard.linksUnlimited", { used: usage.payment_links_used })
+      : t("dashboard.linksUsed", {
+          used: usage.payment_links_used,
+          limit: usage.payment_links_limit,
+        });
 
   return (
-    <div className="mx-auto max-w-xl p-8">
-      <h1 className="mb-4 text-2xl font-bold">Dashboard</h1>
-      <p className="mb-6 text-sm text-gray-500">
-        Welcome, {typeof user?.email === "string" ? user.email : "user"}. This page is only visible to authenticated users.
-      </p>
-
-      {error && <p className="text-red-600">Failed to load: {error}</p>}
-
-      {!error && !data && <p className="text-gray-500">Loading...</p>}
-
-      {data && (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-lg">{data.greeting}</p>
-          <p className="mt-2 text-sm text-gray-600">
-            You have <strong>{data.items_count}</strong> items.
+          <h1 className="text-2xl font-bold">
+            {t("dashboard.welcome", { name: staff.display_name })}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isOwner ? t("dashboard.owner") : t("dashboard.staff")}
           </p>
         </div>
-      )}
+        <LanguageSwitch />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className={cardClass} aria-labelledby="property-heading">
+          <h2 id="property-heading" className="text-sm font-medium text-muted-foreground">
+            {t("dashboard.property")}
+          </h2>
+          <p className="mt-1 text-lg font-semibold">{property.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {t(`propertyType.${property.property_type}`)}
+            {property.city ? ` · ${property.city}` : ""}
+          </p>
+        </section>
+
+        <section className={cardClass} aria-labelledby="plan-heading">
+          <h2 id="plan-heading" className="text-sm font-medium text-muted-foreground">
+            {t("dashboard.plan")}
+          </h2>
+          <p className="mt-1 text-lg font-semibold">
+            {t("dashboard.planName", { plan: plan.name })}
+          </p>
+          <p className="text-sm text-muted-foreground">{usageText}</p>
+        </section>
+
+        <section className={cardClass} aria-labelledby="inbox-heading">
+          <h2 id="inbox-heading" className="text-sm font-medium text-muted-foreground">
+            {t("dashboard.inbox")}
+          </h2>
+          <p className="mt-1 text-sm">{t("dashboard.inboxEmpty")}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("dashboard.comingSoon")}</p>
+        </section>
+
+        <section className={cardClass} aria-labelledby="links-heading">
+          <h2 id="links-heading" className="text-sm font-medium text-muted-foreground">
+            {t("dashboard.paymentLinks")}
+          </h2>
+          <p className="mt-1 text-sm">{t("dashboard.paymentLinksEmpty")}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("dashboard.comingSoon")}</p>
+        </section>
+      </div>
     </div>
   );
 }

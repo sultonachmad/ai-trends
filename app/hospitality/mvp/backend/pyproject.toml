@@ -34,6 +34,7 @@ dev = [
     "pytest-asyncio==1.4.0",
     "httpx==0.28.1",
     "ruff==0.16.10",
+    "pytest-cov>=7.1.0",
 ]
 
 [build-system]
@@ -59,6 +60,15 @@ asyncio_mode = "auto"
 # every async fixture and test shares one event loop.
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
+markers = [
+    "unit: fast tests with no external services",
+    "integration: needs a PostgreSQL server (tests/pg); skipped when none is reachable",
+]
+
+[tool.coverage.run]
+# SQLAlchemy's async engine runs driver calls in greenlets; without this, every line
+# after an awaited database call is reported as not covered.
+concurrency = ["greenlet", "thread"]
 
 [tool.uv]
 constraint-dependencies = [

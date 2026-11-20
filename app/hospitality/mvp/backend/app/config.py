@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     CONTACT_RECIPIENT: str = ""
+    # Send the session cookie over HTTPS only. Keep False for local http://localhost;
+    # set PREFAB_SESSION_COOKIE_SECURE=true wherever the app is served over HTTPS.
+    SESSION_COOKIE_SECURE: bool = False
     # PREFAB:config-fields
 
 

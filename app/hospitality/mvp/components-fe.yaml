@@ -17,24 +17,26 @@ components:
 - Sidebar
 - name: RbacGuard
   path: frontend/components/RbacGuard.tsx
-  description: "Permission-based route guard \u2014 hides or redirects when user lacks\
-    \ required permission"
+  description: Permission-based route guard — hides or redirects when user lacks required permission
 - name: DynamicNav
   path: frontend/components/DynamicNav.tsx
-  description: Whole app nav frame (aside or top bar) with menu items based on user
-    permissions; do not mount it beside the layout Sidebar or Nav
+  description: Whole app nav frame (aside or top bar) with menu items based on user permissions; do not
+    mount it beside the layout Sidebar or Nav
 - RbacProvider
 - GoogleSSOForm
 - MicrosoftSSOForm
 - name: Dialog
   path: frontend/components/Dialog.tsx
-  description: "Modal dialog \u2014 dimmed overlay + opaque panel (bg-card). Use for\
-    \ all modals, confirmations and detail panels so nothing shows through."
+  description: Modal dialog — dimmed overlay + opaque panel (bg-card). Use for all modals, confirmations
+    and detail panels so nothing shows through.
 - DataTable
 - EntityForm
 - DeleteConfirm
 - UploadZone
 - FileList
+- name: LanguageSwitch
+  path: frontend/components/LanguageSwitch.tsx
+  description: Bahasa Indonesia / English toggle for staff screens
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -63,11 +65,22 @@ pages:
   layout: AuthenticatedLayout
   description: Permission list (read-only, seeded from rbac-spec.yaml)
 - SampleContactPage
+- name: OnboardingPage
+  path: frontend/app/(authenticated)/onboarding/page.tsx
+  layout: AuthenticatedLayout
+  description: 'Create the workspace: property name, type, city; redirects to /dashboard when one exists'
+- name: WorkspaceDashboardPage
+  path: frontend/app/(authenticated)/dashboard/page.tsx
+  layout: AuthenticatedLayout
+  description: 'Workspace home: property, Free plan usage, empty inbox and payment-link states; redirects
+    to /onboarding when no workspace'
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
-  description: "React context hook \u2014 exposes user, roles, permissions, hasPermission(),\
-    \ menus"
+  description: React context hook — exposes user, roles, permissions, hasPermission(), menus
+- name: useLocale
+  path: frontend/lib/locale-store.ts
+  description: Current UI language, setLocale() and t(key, vars); remembered per browser
 utilities:
 - name: RbacProvider
   path: frontend/lib/rbac-store.tsx
@@ -79,5 +92,14 @@ utilities:
 - upload-client
 - audit_service
 - audit_erasure
+- name: i18n
+  path: frontend/lib/i18n.ts
+  description: translate(locale, key, vars) with id/en dictionaries; add every new UI string here
+- name: workspace-api
+  path: frontend/lib/workspace-api.ts
+  description: fetchOnboardingStatus, createWorkspace, fetchWorkspace
+- name: request
+  path: frontend/lib/api-client.ts
+  description: Shared fetch helper (session cookie, ApiError) for non-CRUD endpoints
 api_routes:
 - api/auth/[...nextauth]

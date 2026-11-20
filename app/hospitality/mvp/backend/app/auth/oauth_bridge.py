@@ -26,6 +26,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.auth.jwt import verify_token
 from app.auth.models import User
+from app.config import settings
 from app.database import get_session
 from app.session.middleware import DEFAULT_COOKIE_NAME, DEFAULT_COOKIE_PATH
 
@@ -90,6 +91,6 @@ async def oauth_bridge(
         path=DEFAULT_COOKIE_PATH,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=settings.SESSION_COOKIE_SECURE,
     )
     return {"user_id": str(user.id), "email": email, "name": name}

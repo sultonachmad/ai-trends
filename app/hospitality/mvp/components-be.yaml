@@ -807,9 +807,26 @@ api_routers:
 - extract
 - contact_router
 - audit_router
-services: []
+- prefix: /api/onboarding
+  file: backend/app/routers/onboarding.py
+  description: GET /status, POST — a signed-in account creates its workspace (tenant + property on the
+    Free plan)
+- prefix: /api/workspace
+  file: backend/app/routers/workspace.py
+  description: GET — the caller's property, plan, monthly payment-link usage and business settings
+services:
+- name: onboarding.create_workspace
+  file: backend/app/services/onboarding.py
+  description: All-or-nothing workspace provisioning (control-plane rows + first tenant rows)
+- name: workspace.get_workspace
+  file: backend/app/services/workspace.py
+  description: Workspace summary; also payment_link_limit() and payment_links_used_this_month()
 middleware:
 - session
+- name: OriginCheckMiddleware
+  file: backend/app/security/origin_check.py
+  description: 'CSRF defence: POST/PUT/PATCH/DELETE must come from a PREFAB_CORS_ORIGINS origin or the
+    API itself (403 otherwise)'
 patterns:
 - name: create_crud_router
   file: backend/app/crud/router_factory.py
@@ -818,6 +835,13 @@ patterns:
   file: backend/app/rbac/dependencies.py
   description: FastAPI dependency — raises 403 if current user lacks the required permission code
 - crud-router-factory
+- name: get_tenant_session
+  file: backend/app/tenancy/session.py
+  description: FastAPI dependency — session scoped to the caller's tenant (SET LOCAL ROLE app_rw + app.tenant_id
+    each transaction). Use for every tenant-table read/write
+- name: get_tenant_context
+  file: backend/app/tenancy/context.py
+  description: FastAPI dependency — the caller's active tenant membership (403 when none)
 utilities_backend:
 - name: BaseEntity
   file: backend/app/crud/base_model.py
@@ -847,3 +871,19 @@ utilities_backend:
 - name: startup_tables
   file: backend/app/database.py
   description: Tables create_db_and_tables() may build (excludes migration-only tables)
+- name: business_settings
+  file: backend/app/tenancy/business_settings.py
+  description: 'Configurable business values: PropertySettings (property.settings[''business'']) and PlanLimits
+    (entitlement limits), with PRD defaults'
+- name: pg test fixtures
+  file: backend/tests/pg/conftest.py
+  description: PostgreSQL integration-test database (pg_client, other_client, pg_session); skipped when
+    no server
+schemas:
+- name: workspace schemas
+  file: backend/app/schemas/workspace.py
+  description: OnboardingRequest, OnboardingStatus, WorkspaceRead
+migrations:
+- name: 0004_app_role_and_free_plan
+  file: backend/migrations/versions/0004_app_role_and_free_plan.py
+  description: app_rw role + grants, local pooled cluster, Free plan with payment_links_per_month limit

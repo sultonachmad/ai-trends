@@ -23,6 +23,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.auth.models import User
 from app.auth.security import verify_password
+from app.config import settings
 from app.database import get_session
 from app.session.middleware import DEFAULT_COOKIE_NAME, DEFAULT_COOKIE_PATH
 
@@ -62,7 +63,7 @@ async def login(
         path=DEFAULT_COOKIE_PATH,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=settings.SESSION_COOKIE_SECURE,
     )
     return {"message": "Logged in", "email": user.email}
 

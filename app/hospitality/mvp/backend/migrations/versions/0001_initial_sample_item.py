@@ -17,6 +17,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # The app creates this table itself at startup (create_db_and_tables), so on a
+    # database the app has already run against it exists before the first migration.
+    if sa.inspect(op.get_bind()).has_table("sampleitem"):
+        return
     op.create_table(
         "sampleitem",
         sa.Column("id", sa.Integer(), nullable=False),

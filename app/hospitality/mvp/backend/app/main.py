@@ -57,6 +57,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         AUDIT_WRITE_MODE.value,
         len(AUDIT_EVENTS),
     )
+    # Fail fast, with a clear message, when the database is missing migrations.
+    from app.database import engine as _engine
+    from app.db_migrations import assert_database_migrated
+
+    await assert_database_migrated(_engine)
     # PREFAB:startup-tasks
     yield
 
@@ -75,6 +80,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # CSRF defence for the cookie session: unsafe methods must come from a configured
+    # frontend origin (or this API itself). See app/security/origin_check.py.
+    from app.security.origin_check import OriginCheckMiddleware
+
+    app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.CORS_ORIGINS)
 
     # ============================================================================
     # PREFAB:auth-oauth2 — auth router registration
@@ -137,7 +148,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         SessionMiddleware,
         store=_session_store,
-        secure=False,
+        secure=settings.SESSION_COOKIE_SECURE,
         httponly=True,
     )
 
@@ -164,6 +175,7 @@ def create_app() -> FastAPI:
 
     # ── Feature routers ──────────────────────────────────────────────────────
     from app.routers.sample_items import sample_items_router
+
     app.include_router(sample_items_router)
 
     # ============================================================================
@@ -208,6 +220,13 @@ def create_app() -> FastAPI:
     # Custom (non-CRUD) action endpoints must be attached to that same router
     # object BEFORE it is included — see crud-scaffold AGENTS-be.md → "Custom
     # action endpoints" for the ordering rule that avoids `/{id}` collisions.
+
+    # Phase 0 wedge — property workspace
+    from app.routers.onboarding import onboarding_router
+    from app.routers.workspace import workspace_router
+
+    app.include_router(onboarding_router)
+    app.include_router(workspace_router)
 
     return app
 
@@ -273,4 +292,3 @@ app.include_router(upload_router)
 from app.extract.router import router as extract_router
 
 app.include_router(extract_router)
-

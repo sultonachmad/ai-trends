@@ -130,6 +130,15 @@ menus:
         active: true
 
   # ── Application menus go below this line ───────────────────────────────────
+
+  # Workspace home (Phase 0). Visible to every signed-in user; an account with no
+  # workspace is redirected from here to /onboarding, which has no entry of its own.
+  - name: Dashboard
+    path: /dashboard
+    icon: home
+    order: 1
+    active: true
+
   # Add an entry for each new page that should appear in the sidebar / nav.
   #
   # Standalone link example:
