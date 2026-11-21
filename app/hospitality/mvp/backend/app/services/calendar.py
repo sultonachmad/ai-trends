@@ -471,6 +471,10 @@ async def apply_calendar_change(
         await _apply_price(session, context, property_id, request, change, days, source)
     else:
         await _apply_rule(session, context, property_id, request, change, days, source)
+    # Queued inside the change's transaction: a change is never silently un-queued.
+    from app.services.channel_queue import enqueue as enqueue_channels
+
+    await enqueue_channels(session, context, property_id, request.room_type_ids, days)
     await session.commit()
     log.info(
         "Calendar changed property=%s kind=%s dates=%s room_types=%s",

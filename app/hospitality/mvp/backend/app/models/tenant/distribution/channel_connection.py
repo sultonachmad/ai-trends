@@ -110,6 +110,12 @@ class ChannelConnection(TenantEntity, table=True):
     last_ari_success_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
     last_booking_pull_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
     error_message: str | None = Field(default=None, sa_type=Text)
+    next_push_at: dt.datetime | None = utc_datetime_field(
+        nullable=True, description="a failed push is not retried before this (backoff)"
+    )  # type: ignore[assignment]
+    failing_since: dt.datetime | None = utc_datetime_field(
+        nullable=True, description="pushes have failed repeatedly since; a success clears it"
+    )  # type: ignore[assignment]
     settings: dict[str, Any] = Field(
         default_factory=dict,
         sa_type=JSONB,

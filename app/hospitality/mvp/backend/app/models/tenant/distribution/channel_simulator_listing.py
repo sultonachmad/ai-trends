@@ -46,6 +46,15 @@ class ChannelSimulatorListing(TenantRecord, table=True):
         sa_column_kwargs={"server_default": text("'[]'::jsonb")},
         description='[{"id":"R1","name":"…","max_guests":2,"rates":[{"id":"P1","name":"…"}]}]',
     )
+    # What the agency has been told and acknowledged: {room id: {date: day}}.
+    ari: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": text("'{}'::jsonb")},
+        description="acknowledged ARI as stored by push_ari (development and test only)",
+    )
+    # Fail the next N pushes, so retries and drift can be exercised (dev/test only).
+    fail_next: int = Field(default=0, sa_column_kwargs={"server_default": text("0")})
     created_at: dt.datetime = utc_datetime_field(
         nullable=False, default_now=True, server_default_now=True
     )  # type: ignore[assignment]

@@ -25,9 +25,11 @@ from app.schemas.channels import (
     ChannelsOverview,
     ConnectionCreateRequest,
     ConnectionDetail,
+    ConnectionDrift,
     ConnectionRead,
     ConnectionSettingsRequest,
     MappingsRequest,
+    SyncRequest,
 )
 from app.services import channel_catalog
 from app.services import channel_connections as connections
@@ -210,6 +212,46 @@ async def save_mappings(
     return await mappings.read_detail(session, context, prop, connection)
 
 
+@connections_router.post("/{connection_id}/sync", response_model=ConnectionDetail)
+async def sync_connection(
+    connection_id: UUID,
+    body: SyncRequest | None = None,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _edit: dict = EDIT,
+) -> ConnectionDetail:
+    """Re-send a date range (or the next 60 days) to the channel now."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+    from sqlmodel.ext.asyncio.session import AsyncSession as SQLSession
+
+    from app.services.channel_push import sync_connection as run_sync
+
+    prop = await find_property(session, context)
+    await _guarded(lambda: connections.get_connection(session, context, prop.id, connection_id))
+
+    async def _sync() -> None:
+        await run_sync(
+            async_sessionmaker(
+                bind=session.bind,
+                class_=SQLSession,
+                expire_on_commit=False,
+            ),
+            context.tenant_id,
+            connection_id,
+            date_from=body.date_from if body else None,
+            date_to=body.date_to if body else None,
+        )
+
+    try:
+        await _sync()
+    except ValueError as exc:  # pragma: no cover - guarded above
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Connection not found") from exc
+    connection = await _guarded(
+        lambda: connections.get_connection(session, context, prop.id, connection_id)
+    )
+    return await mappings.read_detail(session, context, prop, connection)
+
+
 @connections_router.post("/{connection_id}/{action}", response_model=ConnectionDetail)
 async def move_connection(
     connection_id: UUID,
@@ -223,3 +265,26 @@ async def move_connection(
         lambda: connections.move(session, context, prop.id, connection_id, action.replace("-", "_"))
     )
     return await mappings.read_detail(session, context, prop, connection)
+
+
+@connections_router.get("/{connection_id}/drift", response_model=ConnectionDrift)
+async def connection_drift(
+    connection_id: UUID,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _view: dict = VIEW,
+) -> ConnectionDrift:
+    """Where what the channel holds differs from our truth (next 60 days)."""
+    from app.channels.provider import ChannelUnavailableError, UnknownChannelPropertyError
+    from app.services.channel_push import drift_for_connection
+
+    prop = await find_property(session, context)
+    connection = await _guarded(
+        lambda: connections.get_connection(session, context, prop.id, connection_id)
+    )
+    try:
+        return ConnectionDrift(differences=await drift_for_connection(session, context, connection))
+    except (ChannelUnavailableError, UnknownChannelPropertyError):
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, "The channel did not answer. Try again in a moment."
+        ) from None

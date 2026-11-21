@@ -14,15 +14,17 @@ from sqlalchemy import delete, insert
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.tenant import ChannelConnection, ChannelMapping, Property
+from app.models.tenant import ChannelConnection, ChannelMapping, ChannelMessage, Property
 from app.schemas.channels import (
     ChannelProductsRead,
     ConnectionDetail,
+    ConnectionHealth,
     ConnectionRead,
     HistoryEntry,
     MappingHealth,
     MappingPair,
     MappingsRequest,
+    MessageLogEntry,
 )
 from app.services import tenant_audit
 from app.services.channel_connections import (
@@ -155,6 +157,26 @@ async def save_mappings(
                 for pair in request.mappings
             ],
         )
+    if request.mappings:
+        from app.services.calendar_dates import property_today
+        from app.services.channel_queue import enqueue as enqueue_channels
+        from app.services.channel_queue import horizon as channel_horizon
+
+        prop = (
+            await session.exec(
+                select(Property).where(
+                    col(Property.tenant_id) == context.tenant_id,
+                    col(Property.id) == property_id,
+                )
+            )
+        ).one()
+        await enqueue_channels(
+            session,
+            context,
+            property_id,
+            list({pair.room_type_id for pair in request.mappings}),
+            channel_horizon(property_today(prop.timezone), 366),
+        )
     await tenant_audit.record(
         session,
         context,
@@ -265,6 +287,66 @@ async def _health(
     )
 
 
+async def push_health(
+    session: AsyncSession, context: TenantContext, prop: Property, connection: ChannelConnection
+) -> ConnectionHealth:
+    """Sender health of one connection: what is waiting, what is failing, how stale."""
+    from app.services.channel_queue import oldest_pending_at, pending_counts
+    from app.tenancy.business_settings import resolve_property_settings
+
+    settings = resolve_property_settings(prop.settings)
+    pending = (await pending_counts(session, context, prop.id)).get(connection.id, 0)
+    oldest = await oldest_pending_at(session, context, connection.id)
+    now = dt.datetime.now(dt.UTC)
+    stale_after = dt.timedelta(hours=settings.channel_stale_after_hours)
+    pending_after = dt.timedelta(minutes=settings.channel_pending_stale_minutes)
+    last_success = connection.last_ari_success_at
+    at_risk = (
+        (pending > 0 and oldest is not None and (now - oldest) > pending_after)
+        or (connection.status in ("live", "paused") and connection.failing_since is not None)
+        or (
+            connection.status == "live"
+            and (last_success is None or (now - last_success) > stale_after)
+        )
+    )
+    return ConnectionHealth(
+        pending_updates=pending,
+        oldest_pending_at=oldest,
+        failing_since=connection.failing_since,
+        next_push_at=connection.next_push_at,
+        at_risk=at_risk,
+        last_success_at=last_success,
+    )
+
+
+async def recent_messages(
+    session: AsyncSession, context: TenantContext, connection_id: UUID, limit: int = 30
+) -> list[MessageLogEntry]:
+    rows = await session.exec(
+        select(ChannelMessage)
+        .where(
+            col(ChannelMessage.tenant_id) == context.tenant_id,
+            col(ChannelMessage.channel_connection_id) == connection_id,
+        )
+        .order_by(col(ChannelMessage.created_at).desc(), col(ChannelMessage.id).desc())
+        .limit(limit)
+    )
+    return [
+        MessageLogEntry(
+            message_type=row.message_type,
+            status=row.status,
+            attempts=row.attempts,
+            date_from=row.date_from,
+            date_to=row.date_to,
+            error=row.error,
+            next_attempt_at=row.next_attempt_at,
+            sent_at=row.sent_at,
+            created_at=row.created_at,
+        )
+        for row in rows.all()
+    ]
+
+
 async def read_detail(
     session: AsyncSession, context: TenantContext, prop: Property, connection: ChannelConnection
 ) -> ConnectionDetail:
@@ -277,6 +359,8 @@ async def read_detail(
         mappings=pairs,
         products=ChannelProductsRead.model_validate(products) if products else None,
         health=await _health(session, context, prop.id, connection, pairs),
+        push_health=await push_health(session, context, prop, connection),
+        messages=await recent_messages(session, context, connection.id),
         history=[
             HistoryEntry(
                 event=entry.event_id,

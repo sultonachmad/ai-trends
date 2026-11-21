@@ -989,6 +989,22 @@ services:
   file: backend/app/services/workspace_access.py
   description: 'RBAC for the workspace: ensure_manager_role (all application permissions), grant_manager
     at onboarding, backfill_owner_access for owners who signed up before roles'
+- name: channel_queue
+  file: backend/app/services/channel_queue.py
+  description: 'The pending-ARI queue: enqueue (ON CONFLICT dedup per connection+room+date), due_by_connection,
+    pending_counts, horizon'
+- name: channel_truth
+  file: backend/app/services/channel_truth.py
+  description: What a property sells on one channel per date — availability (units − sold − hold-back), closed,
+    minimum stay, price per mapped rate with the connection's adjustment (adjusted_price)
+- name: channel_push
+  file: backend/app/services/channel_push.py
+  description: 'The sender: push_connection (read → commit → provider, no lock), process_due per tenant,
+    backoff/failing flags, sync_connection (range, clears backoff), drift_for_connection, run_channel_pusher loop'
+- name: channel push hooks
+  file: backend/app/services/channel_hooks.py
+  description: go-live / resume queue the whole window; pause queues it (the sender sends a paused connection as
+    closed everywhere)
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1129,7 +1145,7 @@ utilities_backend:
   description: make_booking(client, room, plan, arrival, departure), sold_matches_bookings(session, tenant_id)
 - name: LLM_MODEL
   file: backend/app/config.py
-  description: Settings field for default litellm model (env: PREFAB_LLM_MODEL)
+  description: Settings field for default litellm model (env=PREFAB_LLM_MODEL)
 - name: complete_json
   file: backend/app/llm/complete_json.py
   description: Async helper calling litellm.acompletion(settings.LLM_MODEL) that returns a parsed JSON
@@ -1148,6 +1164,9 @@ utilities_backend:
   file: backend/app/access.py
   description: ADR-0058 access gate for prefab routes — rbac permission when rbac is installed, else a
     session, else open; defines FEATURES_USE / FEATURES_DELETE codes
+- name: channel_ari job
+  file: backend/app/jobs/sync_channels.py
+  description: 'python -m app.jobs.sync_channels: daily full re-sync of every live connection'
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
@@ -1200,3 +1219,7 @@ migrations:
   file: backend/app/routers/*.py, backend/docs/rbac-spec.yaml
   description: 'Every feature route checks module:view / module:edit (inbox, links, proofs, bookings, rooms,
     calendar, channels, settings); menus are gated by module:view; the manager role holds all of them'
+- name: 0010_channel_ari_queue
+  file: backend/migrations/versions/0010_channel_ari_queue.py
+  description: channelariupdate (the pending-ARI queue) with tenant isolation; channelconnection.next_push_at and
+    failing_since; the simulator listing's ari store and fail_next knob

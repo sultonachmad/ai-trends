@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 MANAGER_ROLE = "manager"
 # The platform's own administration; a property manager never needs these.
-SYSTEM_PREFIXES = ("users:", "roles:", "permissions:", "menus:", "audit:")
+SYSTEM_PREFIXES = ("users:", "roles:", "permissions:", "menus:", "audit:", "features:")
 
 
 def _application_codes() -> list[str]:

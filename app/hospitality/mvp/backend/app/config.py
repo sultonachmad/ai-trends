@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     CHANNEL_SIMULATOR_ENABLED: bool = False
     # Where guests open pay links (https://app.example.com). Empty = first CORS origin.
     FRONTEND_URL: str = ""
+    # How often the channel pusher looks for due work (seconds).
+    CHANNEL_PUSH_INTERVAL_SECONDS: int = 5
     # Folder for tenant files (transfer-proof screenshots). One sub-folder per tenant.
     DOCUMENT_STORAGE_DIR: str = "uploads/documents"
     # LLM model for litellm (https://docs.litellm.ai/docs/providers).

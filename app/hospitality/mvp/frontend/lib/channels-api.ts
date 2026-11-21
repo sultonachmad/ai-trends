@@ -74,12 +74,43 @@ export interface MappingHealth {
   missing_on_channel: MappingPair[];
 }
 
+export interface PushHealth {
+  pending_updates: number;
+  oldest_pending_at: string | null;
+  failing_since: string | null;
+  next_push_at: string | null;
+  at_risk: boolean;
+  last_success_at: string | null;
+}
+
+export interface MessageLogEntry {
+  message_type: string;
+  status: string;
+  attempts: number;
+  date_from: string | null;
+  date_to: string | null;
+  error: string | null;
+  next_attempt_at: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
 export interface ConnectionDetail extends Connection {
   mappings: MappingPair[];
   /** The channel's rooms and rates as last fetched. */
   products: ChannelProducts | null;
   health: MappingHealth;
+  push_health: PushHealth;
+  messages: MessageLogEntry[];
   history: { event: string; actor: string | null; at: string; details: Record<string, unknown> }[];
+}
+
+export interface DriftEntry {
+  room: string;
+  date: string;
+  kind: "missing_on_channel" | "differs";
+  channel: Record<string, unknown> | null;
+  ours: Record<string, unknown> | null;
 }
 
 export interface ConnectionSettings {
@@ -114,6 +145,13 @@ export const refreshChannelProducts = (id: string) =>
   request<ChannelProducts>(`${base}/${id}/products`);
 export const saveMappings = (id: string, mappings: MappingPair[]) =>
   request<ConnectionDetail>(`${base}/${id}/mappings`, json("PUT", { mappings }));
+export const syncConnection = (id: string, range?: { from: string; to: string }) =>
+  request<ConnectionDetail>(
+    `${base}/${id}/sync`,
+    json("POST", range ? { date_from: range.from, date_to: range.to } : {}),
+  );
+export const fetchDrift = (id: string) =>
+  request<{ differences: DriftEntry[] }>(`${base}/${id}/drift`);
 
 const listings = "/api/simulator/channels/listings";
 export const fetchTestListings = () => request<TestListing[]>(listings);

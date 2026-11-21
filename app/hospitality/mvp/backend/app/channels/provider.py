@@ -70,11 +70,48 @@ class ChannelCall:
     session: AsyncSession
 
 
+@dataclass(frozen=True)
+class AriDay:
+    """One day of one room as it is sold on a channel: the unit of every push.
+
+    `prices` maps the channel's own rate ids to the whole-rupiah price a guest pays
+    there (our price with the connection's adjustment applied). Availability is what
+    the channel may sell: our units left, minus any units held back for direct sale,
+    never below zero — and zero on a date closed for sale.
+    """
+
+    date: str  # ISO date
+    available: int
+    closed: bool
+    min_stay: int | None
+    prices: dict[str, int]
+
+
 class ChannelProvider(Protocol):
     async def fetch_property(self, call: ChannelCall, property_id: str) -> ChannelProperty:
         """The property and its rooms and rates on the channel.
 
         Raises `UnknownChannelPropertyError` or `ChannelUnavailableError`.
+        """
+        ...
+
+    async def push_ari(
+        self, call: ChannelCall, property_id: str, days: dict[str, list[AriDay]]
+    ) -> None:
+        """Send availability, prices and restrictions for the given rooms.
+
+        `days` maps the channel's room id to the days that changed. The channel
+        acknowledges by not raising; `ChannelUnavailableError` means: try again later.
+        """
+        ...
+
+    async def fetch_current_ari(
+        self, call: ChannelCall, property_id: str, room_ids: list[str], dates: list[str]
+    ) -> dict[str, list[AriDay]]:
+        """What the channel currently holds for those rooms and dates (drift check).
+
+        Rooms or dates the channel has never been told about come back with an empty
+        day list or are absent — that is itself drift.
         """
         ...
 

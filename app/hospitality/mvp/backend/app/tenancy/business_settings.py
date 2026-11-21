@@ -141,6 +141,24 @@ class PropertySettings(BaseModel):
     free_cancellation_days: int = Field(
         default=7, ge=0, le=365, description="Default days before arrival for free cancellation."
     )
+    channel_hold_back_units: int = Field(
+        default=0,
+        ge=0,
+        le=20,
+        description="Units of each room type kept off channels for direct or walk-in sale.",
+    )
+    channel_stale_after_hours: int = Field(
+        default=48,
+        ge=1,
+        le=24 * 90,
+        description="No successful channel update for this long = at risk.",
+    )
+    channel_pending_stale_minutes: int = Field(
+        default=15, ge=1, le=24 * 60, description="Channel work waiting this long = at risk."
+    )
+    channel_push_interval_seconds: int = Field(
+        default=5, ge=2, le=300, description="How often the channel sender looks for due work."
+    )
     direct_deposit_percent: int = Field(
         default=50, ge=10, le=100, description="Share of a direct booking paid when booking."
     )

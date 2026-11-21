@@ -81,3 +81,22 @@ async def create_test_listing(
             detail="This property already has enough test listings.",
         ) from None
     return TestListingRead.model_validate(listing, from_attributes=True)
+
+
+@channel_simulator_router.post("/listings/{hotel_id}/fail-next/{pushes}")
+async def fail_next_pushes(
+    hotel_id: str,
+    pushes: int,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _edit: dict = EDIT,
+) -> dict:
+    """Make the simulated agency refuse its next `pushes` pushes (development and test)."""
+    from app.channels.provider import UnknownChannelPropertyError
+    from app.channels.simulator import set_fail_next
+
+    try:
+        await set_fail_next(session, context.tenant_id, hotel_id, pushes)
+    except UnknownChannelPropertyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Listing not found") from None
+    return {"hotel_id": hotel_id, "fail_next": pushes}

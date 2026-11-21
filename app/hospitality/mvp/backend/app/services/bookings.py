@@ -242,6 +242,7 @@ async def book(
     session.add(booking)
     await session.flush()
     await _write_lines(session, context, prop, booking, checked, cells)
+    await _queue_channel_update(session, context, prop.id, [checked.stay])
     await session.commit()
     await session.refresh(booking)  # amounts and times as the database stores them
     log.info("Booking created booking=%s number=%s units=%s", booking.id, number, order.stay.units)
@@ -308,6 +309,17 @@ async def create_booking(
         booked_by=str(context.user_id),
     )
     return await book(session, context, prop, order)
+
+
+async def _queue_channel_update(
+    session: AsyncSession, context: TenantContext, property_id: UUID, stays: list[Stay]
+) -> None:
+    """Every night a stay held (before or after a change) is a date channels must hear about."""
+    from app.services.channel_queue import enqueue as enqueue_channels
+
+    room_type_ids = list({stay.room_type_id for stay in stays})
+    dates = [night for stay in stays for night in stay.nights]
+    await enqueue_channels(session, context, property_id, room_type_ids, dates)
 
 
 # ---- changing ---------------------------------------------------------------------------
@@ -511,6 +523,7 @@ async def update_booking(
     booking.balance_due = booking.total_amount - booking.paid_amount
     booking.updated_by = str(context.user_id)
     session.add(booking)
+    await _queue_channel_update(session, context, prop.id, [old, new])
     await session.commit()
     await session.refresh(booking)  # amounts as the database stores them
     log.info("Booking updated booking=%s", booking.id)
@@ -540,6 +553,7 @@ async def cancel_booking(
     booking.cancel_note = reason or None
     booking.updated_by = str(context.user_id)
     session.add(booking)
+    await _queue_channel_update(session, context, prop.id, [stay])
     await session.commit()
     await session.refresh(booking)  # amounts as the database stores them
     log.info("Booking cancelled booking=%s", booking.id)

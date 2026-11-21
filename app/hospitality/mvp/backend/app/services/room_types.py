@@ -301,6 +301,16 @@ async def update_room_type(
         await sync_units_in_use(
             session, context, room.id, changes["units"], property_today(prop.timezone)
         )
+        from app.services.channel_queue import enqueue as enqueue_channels
+        from app.services.channel_queue import horizon as channel_horizon
+
+        await enqueue_channels(
+            session,
+            context,
+            property_id,
+            [room.id],
+            channel_horizon(property_today(prop.timezone), 366),
+        )
     room.updated_by = str(context.user_id)
     session.add(room)
     await session.commit()

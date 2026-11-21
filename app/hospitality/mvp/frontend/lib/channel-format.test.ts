@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   actionsFor,
+  driftKindKey,
+  messageBadgeClass,
+  messageStatusKey,
   canMatch,
   eventKey,
   nextStep,
@@ -104,5 +107,29 @@ describe("parsePercent", () => {
     expect(
       ["51", "-1", "1.234", "abc", "", "10%"].map((value) => parsePercent(value, 0, 50)),
     ).toEqual(Array(6).fill(null));
+  });
+});
+
+describe("push labels", () => {
+  it("has a label and badge for every push status in every language", () => {
+    for (const status of ["queued", "sent", "acked", "failed", "dead"]) {
+      expect(messageBadgeClass(status)).not.toBe("");
+      for (const locale of LOCALES) {
+        expect(translate(locale, messageStatusKey(status))).not.toBe(messageStatusKey(status));
+      }
+    }
+    for (const kind of ["ari_delta", "ari_full_sync"]) {
+      for (const locale of LOCALES) {
+        expect(translate(locale, `channels.push.kind.${kind}`)).not.toBe(`channels.push.kind.${kind}`);
+      }
+    }
+  });
+
+  it("labels each drift kind in every language", () => {
+    for (const kind of ["missing_on_channel", "differs"]) {
+      for (const locale of LOCALES) {
+        expect(translate(locale, driftKindKey(kind))).not.toBe(driftKindKey(kind));
+      }
+    }
   });
 });

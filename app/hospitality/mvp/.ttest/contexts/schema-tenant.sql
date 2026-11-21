@@ -1772,6 +1772,28 @@ CREATE TABLE channelmessage (
 CREATE INDEX ix_channelmessage_queue ON channelmessage (next_attempt_at) WHERE status IN ('queued','failed');
 CREATE INDEX ix_channelmessage_conn ON channelmessage (tenant_id, channel_connection_id, created_at);
 
+-- One row per (connection, room type, date) whose availability, prices or restrictions
+-- must again reach the channel. The unique key collapses repeated changes; the sender
+-- deletes rows as the channel acknowledges them.
+CREATE TABLE channelariupdate (
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id              uuid NOT NULL,
+  property_id            uuid NOT NULL,
+  channel_connection_id  uuid NOT NULL,
+  unit_type_id           uuid NOT NULL,
+  stay_date              date NOT NULL,
+  created_at             timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, channel_connection_id, unit_type_id, stay_date),
+  FOREIGN KEY (tenant_id, property_id) REFERENCES property (tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, channel_connection_id) REFERENCES channelconnection (tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, unit_type_id) REFERENCES unittype (tenant_id, id) ON DELETE CASCADE
+);
+CREATE INDEX ix_channelariupdate_due ON channelariupdate (tenant_id, channel_connection_id, stay_date);
+
+-- Retry scheduling on the connection: a failed push is not retried before next_push_at
+-- (backoff); failing_since is set after repeated failures and cleared by a success.
+-- (columns added by migration 0010)
 -- A listing on the simulated online travel agency (development and test only): the
 -- agency's own property ID and its rooms and rates, standing in for its extranet.
 CREATE TABLE channelsimulatorlisting (
@@ -1781,6 +1803,8 @@ CREATE TABLE channelsimulatorlisting (
   hotel_id     text NOT NULL,                 -- the agency's id for the property
   name         text NOT NULL,
   rooms        jsonb NOT NULL DEFAULT '[]',   -- [{"id":"R1","name":"…","max_guests":2,"rates":[{"id":"P1","name":"…"}]}]
+  ari          jsonb NOT NULL DEFAULT '{}',  -- acknowledged ARI as stored by push_ari (dev/test only)
+  fail_next    integer NOT NULL DEFAULT 0,      -- fail the next N pushes (dev/test only)
   created_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, id),
   UNIQUE (tenant_id, hotel_id),

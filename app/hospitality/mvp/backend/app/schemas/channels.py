@@ -24,6 +24,7 @@ ExternalId = Annotated[
     ),
 ]
 Percent = Annotated[Decimal, Field(max_digits=5, decimal_places=2)]
+MAX_SYNC_DAYS = 366  # one selling window is the most anyone can ask for at once
 
 CatalogState = Literal["connectable", "coming_soon"]
 ConnectionStatus = Literal["draft", "testing", "live", "paused", "error", "disconnected"]
@@ -129,6 +130,53 @@ class MappingHealth(BaseModel):
     missing_on_channel: list[MappingPair]  # the channel no longer lists that room or rate
 
 
+class SyncRequest(BaseModel):
+    """Re-send a date range now; omitted = the next 60 days."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date_from: dt.date | None = None
+    date_to: dt.date | None = None
+
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if self.date_from and self.date_to and self.date_to < self.date_from:
+            raise ValueError("date_to must not be before date_from")
+        if self.date_from and self.date_to:
+            if (self.date_to - self.date_from).days + 1 > MAX_SYNC_DAYS:
+                raise ValueError(f"a sync range can cover at most {MAX_SYNC_DAYS} days")
+        return self
+
+
+class ConnectionHealth(BaseModel):
+    pending_updates: int
+    oldest_pending_at: dt.datetime | None
+    failing_since: dt.datetime | None
+    next_push_at: dt.datetime | None
+    at_risk: bool
+    last_success_at: dt.datetime | None
+
+
+class MessageLogEntry(BaseModel):
+    message_type: str
+    status: str
+    attempts: int
+    date_from: dt.date | None
+    date_to: dt.date | None
+    error: str | None
+    next_attempt_at: dt.datetime | None
+    sent_at: dt.datetime | None
+    created_at: dt.datetime
+
+
+class DriftEntry(BaseModel):
+    room: str
+    date: str
+    kind: str  # missing_on_channel | differs
+    channel: dict[str, object] | None = None
+    ours: dict[str, object] | None = None
+
+
 class HistoryEntry(BaseModel):
     event: str
     actor: str | None
@@ -156,4 +204,10 @@ class ConnectionDetail(ConnectionRead):
     mappings: list[MappingPair]
     products: ChannelProductsRead | None  # as last fetched from the channel
     health: MappingHealth
+    push_health: ConnectionHealth
+    messages: list[MessageLogEntry]  # newest first, latest 30
     history: list[HistoryEntry]
+
+
+class ConnectionDrift(BaseModel):
+    differences: list[DriftEntry]

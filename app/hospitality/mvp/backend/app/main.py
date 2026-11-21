@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
-from app.database import create_db_and_tables
 import app.models  # noqa: F401 — registers all SQLModel table metadata
 import app.rbac.models  # noqa: F401 — registers RBAC table metadata for Alembic
+from app.config import settings
+from app.database import create_db_and_tables
+
 # PREFAB:module-imports
 
 
@@ -80,8 +81,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.services.proof_retention import run_startup_purge
 
     await run_startup_purge(_engine)
+
+    # Keep connected channels up to date: every few seconds, push what changed.
+    # A single process owns pushing (documented assumption until we run more than one).
+    # The queue lives in PostgreSQL (a tenant table); the SQLite fallback used by the
+    # unit-test app has no channels to keep up to date.
+    import asyncio
+
+    from app.services.channel_push import run_channel_pusher
+
+    app.state.channel_pusher_task = None
+    if _engine.dialect.name == "postgresql":
+        app.state.channel_pusher_stop = asyncio.Event()
+        app.state.channel_pusher_task = asyncio.create_task(
+            run_channel_pusher(
+                _rbac_session_factory,
+                app.state.channel_pusher_stop,
+                settings.CHANNEL_PUSH_INTERVAL_SECONDS,
+            )
+        )
     # PREFAB:startup-tasks
     yield
+
+    # Stop the channel pusher before the app goes away.
+    if app.state.channel_pusher_task is not None:
+        app.state.channel_pusher_stop.set()
+        await app.state.channel_pusher_task
 
 
 def create_app() -> FastAPI:

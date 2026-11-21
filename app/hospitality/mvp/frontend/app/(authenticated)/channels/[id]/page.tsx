@@ -9,8 +9,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
+import { ChannelStateDiff } from "@/components/channels/ChannelStateDiff";
 import { ConnectionSettingsForm } from "@/components/channels/ConnectionSettingsForm";
 import { MappingEditor } from "@/components/channels/MappingEditor";
+import { MessageLog } from "@/components/channels/MessageLog";
+import { PushStatus } from "@/components/channels/PushStatus";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import {
   actionsFor,
@@ -29,6 +32,7 @@ import {
   type ConnectionDetail,
 } from "@/lib/channels-api";
 import { formatListTime } from "@/lib/inbox-format";
+import { usePolling } from "@/lib/use-polling";
 import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { fetchRatePlans, type RatePlan } from "@/lib/rate-plans-api";
@@ -57,8 +61,12 @@ export default function ChannelConnectionPage() {
   const [confirming, setConfirming] = useState(false);
 
   const reload = useCallback(async () => {
-    setConnection(await fetchConnection(id));
+    const fresh = await fetchConnection(id);
+    setConnection((current) => (current && current.status !== fresh.status ? fresh : fresh));
   }, [id]);
+
+  // Push status moves on its own (the sender runs in the background): keep it fresh.
+  usePolling(reload, 5000, connection !== null && connection.status !== "disconnected");
 
   useEffect(() => {
     let cancelled = false;
@@ -211,6 +219,23 @@ export default function ChannelConnectionPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className={cardClass} aria-labelledby="push-heading">
+        <h2 id="push-heading" className="border-b border-border p-4 text-lg font-semibold">
+          {t("channels.push.log")}
+        </h2>
+        <PushStatus connection={connection} onSynced={setConnection} />
+        <div className="border-t border-border">
+          <MessageLog messages={connection.messages} />
+        </div>
+      </section>
+
+      <section className={cardClass} aria-labelledby="drift-heading">
+        <h2 id="drift-heading" className="border-b border-border p-4 text-lg font-semibold">
+          {t("channels.drift.title")}
+        </h2>
+        <ChannelStateDiff connectionId={connection.id} />
       </section>
 
       {canMatch(connection.status) && (

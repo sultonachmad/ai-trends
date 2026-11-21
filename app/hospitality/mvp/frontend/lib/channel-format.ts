@@ -74,3 +74,20 @@ export function parsePercent(input: string, min: number, max: number): number | 
   const value = Number(text);
   return value >= min && value <= max ? value : null;
 }
+
+/** i18n key of a push-message status. */
+export function messageStatusKey(status: string): string {
+  return `channels.push.status.${status}`;
+}
+
+/** Tailwind classes for a push-message status badge. */
+export function messageBadgeClass(status: string): string {
+  if (status === "acked") return "bg-primary text-primary-foreground";
+  if (status === "failed") return "bg-destructive/15 text-destructive";
+  return "bg-muted text-muted-foreground ring-1 ring-border";
+}
+
+/** i18n key of a drift kind. */
+export function driftKindKey(kind: string): string {
+  return `channels.drift.${kind}`;
+}

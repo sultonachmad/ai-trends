@@ -1,5 +1,11 @@
 """Tenant database — K. Distribution (channel manager)."""
 
+from app.models.tenant.distribution.channel_ari_update import (
+    ChannelAriUpdate,
+    ChannelAriUpdateCreate,
+    ChannelAriUpdateRead,
+    ChannelAriUpdateUpdate,
+)
 from app.models.tenant.distribution.channel_booking import (
     ChannelBooking,
     ChannelBookingCreate,
@@ -44,6 +50,10 @@ from app.models.tenant.distribution.ical_feed import (
 )
 
 __all__ = [
+    "ChannelAriUpdate",
+    "ChannelAriUpdateCreate",
+    "ChannelAriUpdateRead",
+    "ChannelAriUpdateUpdate",
     "ChannelSimulatorListing",
     "ChannelSimulatorListingCreate",
     "ChannelSimulatorListingRead",

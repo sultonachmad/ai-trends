@@ -93,7 +93,6 @@ async def pg_engine() -> AsyncIterator[AsyncEngine]:
 
     import app.models  # noqa: F401 — registers all table metadata
     import app.rbac.models  # noqa: F401
-
     from app.rbac.seed import seed_rbac
     from app.services.workspace_access import ensure_manager_role
 
@@ -461,3 +460,13 @@ async def connect_channel(client: httpx.AsyncClient, *, tested: bool = True) -> 
         assert response.status_code == 200, response.text
         connection = response.json()
     return connection
+
+
+async def push_now(pg_session_factory, tenant_id: str) -> int:
+    """Run one sender pass for a tenant, as the background worker would."""
+    from app.services.channel_push import process_tenant
+    from app.tenancy.session import bind_tenant
+
+    async with pg_session_factory() as session:
+        await bind_tenant(session, tenant_id)
+        return await process_tenant(session, tenant_id)

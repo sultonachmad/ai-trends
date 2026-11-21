@@ -254,6 +254,18 @@ async def _replace_prices(
     ]
     for room_type_id in dropped:
         await session.delete(current[room_type_id])
+        # a mapping to a plan that no longer prices the room would break every push
+        from sqlalchemy import delete as _delete
+
+        from app.models.tenant import ChannelMapping
+
+        await session.exec(
+            _delete(ChannelMapping).where(
+                col(ChannelMapping.tenant_id) == context.tenant_id,
+                col(ChannelMapping.rate_plan_id) == plan.id,
+                col(ChannelMapping.unit_type_id) == room_type_id,
+            )
+        )
     if dropped:
         await session.exec(
             delete(RateDaily).where(
@@ -400,6 +412,20 @@ async def update_rate_plan(
     plan.status = ACTIVE if will_be_active else INACTIVE
     plan.updated_by = str(context.user_id)
     session.add(plan)
+    if request.prices is not None:
+        # every room the plan now prices differently, over the whole window
+        from app.services.calendar_dates import property_today
+        from app.services.channel_queue import enqueue as enqueue_channels
+        from app.services.channel_queue import horizon as channel_horizon
+
+        touched = list({price.room_type_id for price in request.prices})
+        await enqueue_channels(
+            session,
+            context,
+            property_id,
+            touched,
+            channel_horizon(property_today(prop.timezone), 366),
+        )
     await session.commit()
     log.info("Rate plan updated rate_plan=%s", plan.id)
     return (await _read_many(session, context, [plan]))[0]
