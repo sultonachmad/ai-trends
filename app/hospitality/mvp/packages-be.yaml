@@ -17,3 +17,7 @@ packages:
 - aiofiles
 - pdfplumber
 - python-docx
+- litellm
+- boto3
+- qdrant-client
+- pypdf

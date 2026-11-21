@@ -1,0 +1,2 @@
+# --- Agent browser-test artifacts (unrelated to app code) ---
+.playwright-mcp/

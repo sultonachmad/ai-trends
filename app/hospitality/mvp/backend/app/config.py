@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = ""
     # Folder for tenant files (transfer-proof screenshots). One sub-folder per tenant.
     DOCUMENT_STORAGE_DIR: str = "uploads/documents"
+    # LLM model for litellm (https://docs.litellm.ai/docs/providers).
+    LLM_MODEL: str = "openai/gpt-4o"
+    # Qdrant vector database URL (rag-base).
+    QDRANT_URL: str = "http://localhost:6333"
+    # Embedding model for litellm (https://docs.litellm.ai/docs/embedding/supported_embedding).
+    EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
+    # Qdrant collection name for the RAG pipeline.
+    RAG_COLLECTION: str = "sendo_app"
+    # Max accepted upload size in bytes for POST /api/rag/upload.
+    RAG_MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MiB upload cap
     # PREFAB:config-fields
 
 

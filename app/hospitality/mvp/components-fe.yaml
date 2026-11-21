@@ -206,6 +206,14 @@ pages:
   path: frontend/app/(authenticated)/channels/[id]/page.tsx
   layout: AuthenticatedLayout
   description: One connection — setup steps, matching editor, settings, pause/resume/disconnect, history
+- name: LlmChatPage
+  path: frontend/app/(authenticated)/sample-llm-call/page.tsx
+  layout: AuthenticatedLayout
+  description: Sample chat page demonstrating LLM integration — send messages and see completions
+- name: RagSamplePage
+  path: frontend/app/(authenticated)/sample-rag/page.tsx
+  layout: AuthenticatedLayout
+  description: Sample RAG page — upload documents and ask questions with LLM-powered answers
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx

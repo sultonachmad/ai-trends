@@ -8,3 +8,4 @@ packages:
 - '@tailwindcss/postcss'
 - next-auth
 - jose
+- react-markdown

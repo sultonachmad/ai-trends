@@ -26,6 +26,14 @@ dependencies = [
     "aiofiles==25.1.0",
     "pdfplumber==0.11.10",
     "python-docx==1.2.0",
+    # llm-call prefab: LLM chat completion (https://docs.litellm.ai)
+    "litellm==1.104.1",
+    # llm-call prefab: AWS SDK for Bedrock model access
+    "boto3==1.43.109",
+    # rag-base prefab: Qdrant vector store client
+    "qdrant-client==1.19.1",
+    # rag-base prefab: PDF text extraction for /api/rag/upload
+    "pypdf==6.19.0",
 ]
 
 [dependency-groups]

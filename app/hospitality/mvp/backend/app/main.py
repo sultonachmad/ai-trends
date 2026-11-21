@@ -249,6 +249,32 @@ def create_app() -> FastAPI:
     # object BEFORE it is included — see crud-scaffold AGENTS-be.md → "Custom
     # action endpoints" for the ordering rule that avoids `/{id}` collisions.
 
+    # ============================================================================
+    # PREFAB:llm-call — LLM router registration
+    # ============================================================================
+    # Added by the `llm-call` prefab. Registers POST /api/llm/chat — a
+    # litellm-backed chat completion endpoint guarded by app.access
+    # (features:use). Importing the router also registers the permission code
+    # with rbac before the lifespan seed runs.
+
+    from app.llm.router import router as llm_router
+
+    app.include_router(llm_router)
+    # PREFAB:llm-call
+
+    # ============================================================================
+    # PREFAB:rag-base — RAG router registration
+    # ============================================================================
+    # Added by the `rag-base` prefab. Registers the RAG endpoints (upload,
+    # search, ask, deletes) guarded by app.access (features:use /
+    # features:delete). The Qdrant client connects lazily on first use — no
+    # Qdrant server is contacted at import or startup time.
+
+    from app.rag.router import router as rag_router
+
+    app.include_router(rag_router)
+    # PREFAB:rag-base
+
     # Phase 0 wedge — property workspace
     from app.routers.onboarding import onboarding_router
     from app.routers.workspace import workspace_router

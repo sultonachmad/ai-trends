@@ -53,5 +53,11 @@ installed_prefabs:
   version: 0.1.0
   summary: "Append-only audit trail with hash-chain tamper evidence, HMAC-sealed erasure,\
     \ and configurable retention \u2014 realises a DS-3 audit_evidence_model design"
+- id: llm-call
+  version: 0.1.0
+  summary: LLM chat completion via litellm \u2014 supports Bedrock, OpenAI, Anthropic and 100+ providers
+- id: rag-base
+  version: 0.1.0
+  summary: Base RAG pipeline \u2014 upload docs to Qdrant, similarity search, and LLM-powered Q&A via litellm
 styles:
   framework: tailwindcss

@@ -19,6 +19,8 @@ and ONLY when you are about to write code for that task:
 | Role-Based Access Control — when Required using RBAC logic (i.e need actors, roles, permissions) or adding new roles/permissions | `instructions/rbac.md` |
 | Email — when working on email | `instructions/email.md` |
 | Audit — when working on audit | `instructions/audit.md` |
+| LLM — when calling an LLM or chat completion (app/llm, litellm) | `instructions/llm.md` |
+| RAG — when building retrieval, vector search or Q&A features (app/rag, Qdrant) | `instructions/rag.md` |
 
 - Do NOT read feature-specific files (auth, crud, files, etc.) unless the task involves that feature.
 - NEVER read all instruction files to understand the project.

@@ -862,6 +862,13 @@ api_routers:
 - prefix: /api/simulator/channels
   file: backend/app/routers/channel_simulator.py
   description: 'DEV ONLY (PREFAB_CHANNEL_SIMULATOR_ENABLED): list a property on the simulated agency, read listings'
+- prefix: /api/llm
+  file: backend/app/llm/router.py
+  description: LLM chat completion endpoint via litellm — POST /api/llm/chat (features:use)
+- prefix: /api/rag
+  file: backend/app/rag/router.py
+  description: RAG endpoints — upload documents, similarity search, LLM-powered Q&A (features:use;
+    deletes need features:delete)
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -1120,6 +1127,27 @@ utilities_backend:
 - name: pg booking test helpers
   file: backend/tests/pg/conftest.py
   description: make_booking(client, room, plan, arrival, departure), sold_matches_bookings(session, tenant_id)
+- name: LLM_MODEL
+  file: backend/app/config.py
+  description: Settings field for default litellm model (env: PREFAB_LLM_MODEL)
+- name: complete_json
+  file: backend/app/llm/complete_json.py
+  description: Async helper calling litellm.acompletion(settings.LLM_MODEL) that returns a parsed JSON
+    object; tolerates a ```json fence and prose around it; raises LlmJsonError on an empty/unparseable
+    reply (never returns a default)
+- name: vectorstore
+  file: backend/app/rag/vectorstore.py
+  description: Qdrant client wrapper — collection management, upsert points, cosine search (lazy connect)
+- name: embedder
+  file: backend/app/rag/embedder.py
+  description: Text embedding via litellm — embed_texts() and embed_query()
+- name: chunker
+  file: backend/app/rag/chunker.py
+  description: Recursive text splitter — chunk_text() with configurable size and overlap
+- name: require_access
+  file: backend/app/access.py
+  description: ADR-0058 access gate for prefab routes — rbac permission when rbac is installed, else a
+    session, else open; defines FEATURES_USE / FEATURES_DELETE codes
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
