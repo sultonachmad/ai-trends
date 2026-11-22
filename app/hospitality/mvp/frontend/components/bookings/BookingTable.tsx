@@ -34,6 +34,11 @@ function Flags({ booking, today }: { booking: Booking; today: string }) {
           {t("bookings.risk")}
         </span>
       )}
+      {booking.channel_attention && (
+        <span className={`${badge} bg-accent text-accent-foreground`}>
+          {t(`bookings.channel.attention.${booking.channel_attention}`)}
+        </span>
+      )}
     </>
   );
 }

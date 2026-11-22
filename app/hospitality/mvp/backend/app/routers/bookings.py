@@ -28,6 +28,7 @@ from app.schemas.bookings import (
     BookingQuoteRequest,
     BookingTab,
     BookingUpdateRequest,
+    ChannelAttentionEntry,
     PaymentRecordRequest,
     SearchText,
 )
@@ -161,6 +162,30 @@ async def list_bookings(
     return await _guarded(
         lambda: reads.list_bookings(session, context, prop, tab, q, limit, cursor)
     )
+
+
+@bookings_router.get("/channel-attention", response_model=list[ChannelAttentionEntry])
+async def channel_attention_list(
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _view: dict = VIEW,
+) -> list[ChannelAttentionEntry]:
+    """Channel bookings that need a person (unmapped rooms, overbooking, price mismatch)."""
+    prop = await find_property(session, context)
+    entries = await reads.channel_attention(session, context, prop.id)
+    return [
+        ChannelAttentionEntry(
+            id=row.id,
+            external_booking_id=row.external_booking_id,
+            version=int(row.external_version),
+            kind=row.event_kind,
+            reason=row.attention_reason,
+            reservation_id=row.reservation_id,
+            connection_id=row.channel_connection_id,
+            received_at=row.received_at,
+        )
+        for row in entries
+    ]
 
 
 @bookings_router.get("/{booking_id}", response_model=BookingDetail)

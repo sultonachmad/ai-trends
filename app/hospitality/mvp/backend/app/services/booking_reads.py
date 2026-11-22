@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.tenant import (
     Channel,
+    ChannelConnection,
     Guest,
     Payment,
     Property,
@@ -78,6 +79,67 @@ async def _by_id(session: AsyncSession, context: TenantContext, model, ids: set[
     return {row.id: row for row in rows.all()}
 
 
+async def _channel_attention_for(
+    session: AsyncSession, context: TenantContext, reservation_ids: list[UUID]
+) -> dict[UUID, str]:
+    """The newest needs_attention reason per reservation, if any."""
+    from app.models.tenant import ChannelBooking as Envelope
+
+    if not reservation_ids:
+        return {}
+    rows = await session.exec(
+        select(Envelope)
+        .where(
+            col(Envelope.tenant_id) == context.tenant_id,
+            col(Envelope.reservation_id).in_(reservation_ids),
+        )
+        .order_by(col(Envelope.received_at).desc())
+    )
+    # newest envelope per reservation decides the flag — a later clean version
+    # clears an older warning instead of leaking it forever
+    result: dict[UUID, str] = {}
+    for row in rows.all():
+        if row.reservation_id is None:
+            continue
+        flag = ""
+        if row.processing_status == "needs_attention":
+            flag = row.attention_reason or "needs_attention"
+        elif (row.raw or {}).get("_server", {}).get("attention_flag"):
+            flag = str(row.raw["_server"]["attention_flag"])
+        if row.reservation_id not in result:
+            result[row.reservation_id] = flag
+    return {k: v for k, v in result.items() if v}
+
+
+def _channel_attention(booking: Reservation) -> str | None:
+    """Why this channel booking needs a person, from the latest envelope that made it."""
+    return getattr(booking, "_channel_attention", None)
+
+
+async def channel_attention(
+    session: AsyncSession, context: TenantContext, property_id: UUID
+) -> list:
+    """Channel bookings flagged needs_attention, newest first (with their reservations)."""
+    from app.models.tenant import ChannelBooking as Envelope
+
+    rows = await session.exec(
+        select(Envelope)
+        .join(
+            ChannelConnection,
+            (col(ChannelConnection.tenant_id) == col(Envelope.tenant_id))
+            & (col(ChannelConnection.id) == col(Envelope.channel_connection_id)),
+        )
+        .where(
+            col(Envelope.tenant_id) == context.tenant_id,
+            col(ChannelConnection.property_id) == property_id,
+            col(Envelope.processing_status).in_(("needs_attention", "failed")),
+        )
+        .order_by(col(Envelope.received_at).desc())
+        .limit(50)
+    )
+    return list(rows.all())
+
+
 async def _oversold_bookings(
     session: AsyncSession,
     context: TenantContext,
@@ -112,6 +174,9 @@ async def read_many(
 ) -> list[BookingRead]:
     """List rows for stored bookings, in the order given."""
     lines = await lines_of(session, context, [booking.id for booking in bookings])
+    attention = await _channel_attention_for(session, context, [b.id for b in bookings])
+    for booking in bookings:
+        booking._channel_attention = attention.get(booking.id)  # type: ignore[attr-defined]
     by_booking: dict[UUID, list[ReservationUnit]] = {booking.id: [] for booking in bookings}
     for line in lines:
         by_booking[line.reservation_id].append(line)
@@ -156,6 +221,8 @@ async def read_many(
                 payment_state=payment_state(booking.total_amount, booking.paid_amount),
                 price_edited=bool(booking.source_detail.get(PRICE_EDITED)),
                 overbooking_risk=booking.id in at_risk,
+                channel_attention=_channel_attention(booking),
+                channel_reference=booking.channel_reference,
                 notes=booking.internal_notes,
                 cancel_note=booking.cancel_note,
                 cancelled_at=booking.cancelled_at,

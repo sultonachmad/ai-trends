@@ -55,6 +55,13 @@ class ChannelSimulatorListing(TenantRecord, table=True):
     )
     # Fail the next N pushes, so retries and drift can be exercised (dev/test only).
     fail_next: int = Field(default=0, sa_column_kwargs={"server_default": text("0")})
+    # The agency's booking history: one entry per new/modify/cancel event.
+    bookings: list[Any] = Field(
+        default_factory=list,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": text("'[]'::jsonb")},
+        description="booking events as the agency reports them (dev/test only)",
+    )
     created_at: dt.datetime = utc_datetime_field(
         nullable=False, default_now=True, server_default_now=True
     )  # type: ignore[assignment]

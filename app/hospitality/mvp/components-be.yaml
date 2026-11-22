@@ -1005,6 +1005,15 @@ services:
   file: backend/app/services/channel_hooks.py
   description: go-live / resume queue the whole window; pause queues it (the sender sends a paused connection as
     closed everywhere)
+- name: channel_bookings
+  file: backend/app/services/channel_bookings.py
+  description: 'handle_booking_event — the idempotent inbound path: envelope first (unique id+version),
+    then book/update/cancel through the staff services; overbooking always allowed and flagged,
+    unmapped rooms stored for attention, price mismatch a warning on an applied envelope'
+- name: channel_booking_pull
+  file: backend/app/services/channel_booking_pull.py
+  description: The booking poller (per live connection, cursor on last_booking_pull_at with a one-second
+    overlap; the handler's idempotency makes replays safe)
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1167,6 +1176,9 @@ utilities_backend:
 - name: channel_ari job
   file: backend/app/jobs/sync_channels.py
   description: 'python -m app.jobs.sync_channels: daily full re-sync of every live connection'
+- name: agency booking routes
+  file: backend/app/routers/channel_simulator.py
+  description: 'DEV ONLY: place and change a booking on the simulated agency (channels:edit)'
 schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py

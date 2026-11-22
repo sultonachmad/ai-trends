@@ -65,3 +65,13 @@ export function todayNote(
 export function isOpen(booking: Pick<Booking, "status">): boolean {
   return booking.status === "confirmed";
 }
+
+/** i18n key of a channel attention reason. */
+export function channelAttentionKey(reason: string): string {
+  return `bookings.channel.attention.${reason}`;
+}
+
+/** i18n key of a channel event kind. */
+export function channelKindKey(kind: string): string {
+  return `bookings.channel.kind.${kind}`;
+}

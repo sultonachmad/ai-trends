@@ -179,6 +179,8 @@ class BookingRead(BaseModel):
     payment_state: PaymentState
     price_edited: bool  # staff set the total by hand
     overbooking_risk: bool  # a night of this stay has more sold than there are units
+    channel_attention: str | None = None  # overbooking_risk / unmapped_product / price_mismatch
+    channel_reference: str | None = None  # the channel's own booking id
     notes: str | None
     cancel_note: str | None
     cancelled_at: dt.datetime | None
@@ -213,3 +215,16 @@ class BookingDetail(BookingRead):
 class BookingPage(BaseModel):
     items: list[BookingRead]
     next_cursor: str | None
+
+
+class ChannelAttentionEntry(BaseModel):
+    """A channel booking that needs a person, and why."""
+
+    id: UUID
+    external_booking_id: str
+    version: int
+    kind: str
+    reason: str | None
+    reservation_id: UUID | None
+    connection_id: UUID
+    received_at: dt.datetime

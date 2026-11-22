@@ -87,6 +87,40 @@ class AriDay:
     prices: dict[str, int]
 
 
+@dataclass(frozen=True)
+class ChannelStayGuest:
+    """A channel booking's guest as the channel reports them."""
+
+    name: str
+    phone: str | None = None
+
+
+@dataclass(frozen=True)
+class ChannelBookingEvent:
+    """One new/modified/cancelled booking as the channel reports it.
+
+    `version` orders deliveries of the same booking: a higher version supersedes a
+    lower one; the same version delivered twice is a duplicate. `raw` is the channel's
+    own payload, kept verbatim for the log and for later features.
+    """
+
+    external_booking_id: str
+    version: int
+    kind: str  # 'new' | 'modify' | 'cancel'
+    external_room_id: str
+    external_rate_id: str
+    arrival: str  # ISO date
+    departure: str  # ISO date
+    units: int
+    guests: ChannelStayGuest
+    total_amount: int  # whole rupiah the guest pays on the channel
+    nightly_amounts: list[int]  # one per night, in stay order
+    currency: str
+    payment_collect: str  # 'property' | 'channel'
+    occurred_at: str  # ISO datetime, the channel's own timestamp
+    raw: dict
+
+
 class ChannelProvider(Protocol):
     async def fetch_property(self, call: ChannelCall, property_id: str) -> ChannelProperty:
         """The property and its rooms and rates on the channel.
@@ -102,6 +136,15 @@ class ChannelProvider(Protocol):
 
         `days` maps the channel's room id to the days that changed. The channel
         acknowledges by not raising; `ChannelUnavailableError` means: try again later.
+        """
+        ...
+
+    async def fetch_booking_changes(
+        self, call: ChannelCall, property_id: str, since: str | None
+    ) -> list[ChannelBookingEvent]:
+        """Booking changes since `since` (ISO datetime), oldest first.
+
+        An empty list is a healthy answer. Raises `ChannelUnavailableError` to retry.
         """
         ...
 

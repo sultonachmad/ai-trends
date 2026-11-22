@@ -1805,6 +1805,7 @@ CREATE TABLE channelsimulatorlisting (
   rooms        jsonb NOT NULL DEFAULT '[]',   -- [{"id":"R1","name":"…","max_guests":2,"rates":[{"id":"P1","name":"…"}]}]
   ari          jsonb NOT NULL DEFAULT '{}',  -- acknowledged ARI as stored by push_ari (dev/test only)
   fail_next    integer NOT NULL DEFAULT 0,      -- fail the next N pushes (dev/test only)
+  bookings     jsonb NOT NULL DEFAULT '[]',  -- booking events as the agency reports them (dev/test only)
   created_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, id),
   UNIQUE (tenant_id, hotel_id),

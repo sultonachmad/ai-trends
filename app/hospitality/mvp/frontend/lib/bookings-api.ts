@@ -39,6 +39,10 @@ export interface Booking {
   price_edited: boolean;
   /** A night of this stay has more sold than there are units. */
   overbooking_risk: boolean;
+  /** Why this channel booking needs a person (overbooking_risk / unmapped_product / price_mismatch). */
+  channel_attention: string | null;
+  /** The channel's own booking id. */
+  channel_reference: string | null;
   notes: string | null;
   cancel_note: string | null;
   cancelled_at: string | null;
@@ -143,3 +147,17 @@ export const recordPayment = (id: string, input: PaymentInput) =>
   request<BookingDetail>(`${base}/${id}/payments`, json("POST", input));
 export const removePayment = (id: string, paymentId: string) =>
   request<BookingDetail>(`${base}/${id}/payments/${paymentId}`, { method: "DELETE" });
+
+export interface ChannelAttentionEntry {
+  id: string;
+  external_booking_id: string;
+  version: number;
+  kind: "new" | "modify" | "cancel";
+  reason: string | null;
+  reservation_id: string | null;
+  connection_id: string;
+  received_at: string;
+}
+
+export const fetchChannelAttention = () =>
+  request<ChannelAttentionEntry[]>("/api/bookings/channel-attention");

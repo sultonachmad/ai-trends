@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  channelAttentionKey,
+  channelKindKey,
   isOpen,
   paymentBadgeClass,
   paymentStateKey,
@@ -65,5 +67,20 @@ describe("todayNote", () => {
     expect(todayNote({ ...stay, status: "cancelled" }, "2026-11-20")).toBeNull();
     expect(isOpen({ status: "cancelled" })).toBe(false);
     expect(isOpen(stay)).toBe(true);
+  });
+});
+
+describe("channel attention labels", () => {
+  it("labels every reason and kind in every language", () => {
+    for (const reason of ["unmapped_product", "overbooking_risk", "price_mismatch"]) {
+      for (const locale of LOCALES) {
+        expect(translate(locale, channelAttentionKey(reason))).not.toBe(channelAttentionKey(reason));
+      }
+    }
+    for (const kind of ["new", "modify", "cancel"]) {
+      for (const locale of LOCALES) {
+        expect(translate(locale, channelKindKey(kind))).not.toBe(channelKindKey(kind));
+      }
+    }
   });
 });

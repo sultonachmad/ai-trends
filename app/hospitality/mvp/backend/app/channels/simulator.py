@@ -10,6 +10,7 @@ listing (`ari`), so the agency can be asked what it currently holds — and a te
 make it fail its next N pushes (`fail_next`) to exercise retries and drift.
 """
 
+import datetime as dt
 import secrets
 from uuid import UUID
 
@@ -18,10 +19,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.channels.provider import (
     AriDay,
+    ChannelBookingEvent,
     ChannelCall,
     ChannelProperty,
     ChannelRate,
     ChannelRoom,
+    ChannelStayGuest,
     ChannelUnavailableError,
     UnknownChannelPropertyError,
     register_channel,
@@ -170,6 +173,17 @@ class SimulatedChannel:
         call.session.add(listing)
         await call.session.commit()
 
+    async def fetch_booking_changes(
+        self, call: ChannelCall, property_id: str, since: str | None
+    ) -> list["ChannelBookingEvent"]:
+        listing = await find_listing(call.session, call.tenant_id, property_id)
+        if listing is None:
+            raise UnknownChannelPropertyError(property_id)
+        history = [booking_event_from_stored(item) for item in (listing.bookings or [])]
+        if since is None:
+            return history
+        return [event for event in history if event.occurred_at > since]
+
     async def fetch_current_ari(
         self, call: ChannelCall, property_id: str, room_ids: list[str], dates: list[str]
     ) -> dict[str, list[AriDay]]:
@@ -192,3 +206,116 @@ class SimulatedChannel:
 
 
 register_channel(SIMULATOR_CHANNEL, SimulatedChannel())
+
+
+def new_booking_reference() -> str:
+    """An agency-style booking reference, e.g. AGY-7F3K2Q."""
+    code = "".join(secrets.choice(_HOTEL_ID_ALPHABET) for _ in range(_HOTEL_ID_LENGTH))
+    return f"AGY-{code}"
+
+
+def booking_event_from_stored(stored: dict[str, object]) -> ChannelBookingEvent:
+    """Rebuild an event from the listing's booking store."""
+    guest = stored.get("guest") or {}
+    return ChannelBookingEvent(
+        external_booking_id=str(stored["external_booking_id"]),
+        version=int(stored["version"]),
+        kind=str(stored["kind"]),
+        external_room_id=str(stored["external_room_id"]),
+        external_rate_id=str(stored["external_rate_id"]),
+        arrival=str(stored["arrival"]),
+        departure=str(stored["departure"]),
+        units=int(stored.get("units", 1)),
+        guests=ChannelStayGuest(
+            name=str(guest.get("name", "Tamu Kanal")), phone=guest.get("phone")
+        ),
+        total_amount=int(stored["total_amount"]),
+        nightly_amounts=[int(n) for n in stored.get("nightly_amounts", [])],
+        currency=str(stored.get("currency", "IDR")),
+        payment_collect=str(stored.get("payment_collect", "channel")),
+        occurred_at=str(stored["occurred_at"]),
+        raw=dict(stored.get("raw", stored)),  # type: ignore[arg-type]
+    )
+
+
+def store_booking_event(
+    listing: ChannelSimulatorListing,
+    event: ChannelBookingEvent,
+) -> list[dict[str, object]]:
+    """Add the event to the listing's booking history (a copy, not a mutation)."""
+    history = [dict(item) for item in (listing.bookings or [])]
+    history.append(
+        {
+            "external_booking_id": event.external_booking_id,
+            "version": event.version,
+            "kind": event.kind,
+            "external_room_id": event.external_room_id,
+            "external_rate_id": event.external_rate_id,
+            "arrival": event.arrival,
+            "departure": event.departure,
+            "units": event.units,
+            "guest": {"name": event.guests.name, "phone": event.guests.phone},
+            "total_amount": event.total_amount,
+            "nightly_amounts": list(event.nightly_amounts),
+            "currency": event.currency,
+            "payment_collect": event.payment_collect,
+            "occurred_at": event.occurred_at,
+            "raw": dict(event.raw),
+        }
+    )
+    return history
+
+
+def make_booking_event(
+    *,
+    external_room_id: str,
+    external_rate_id: str,
+    arrival: str,
+    departure: str,
+    total_amount: int,
+    guest_name: str = "Tamu Kanal",
+    guest_phone: str | None = None,
+    external_booking_id: str | None = None,
+    version: int = 1,
+    kind: str = "new",
+    units: int = 1,
+    payment_collect: str = "channel",
+    occurred_at: str | None = None,
+) -> ChannelBookingEvent:
+    """Build an agency booking event; nightly amounts split the total evenly."""
+    from datetime import date
+
+    nights = (date.fromisoformat(departure) - date.fromisoformat(arrival)).days
+    nights = max(nights, 1)
+    base, extra = divmod(total_amount, nights)
+    nightly = [base + (1 if i < extra else 0) for i in range(nights)]
+    occurred = occurred_at or dt.datetime.now(dt.UTC).isoformat()
+    return ChannelBookingEvent(
+        external_booking_id=external_booking_id or new_booking_reference(),
+        version=version,
+        kind=kind,
+        external_room_id=external_room_id,
+        external_rate_id=external_rate_id,
+        arrival=arrival,
+        departure=departure,
+        units=units,
+        guests=ChannelStayGuest(name=guest_name, phone=guest_phone),
+        total_amount=total_amount,
+        nightly_amounts=nightly,
+        currency="IDR",
+        payment_collect=payment_collect,
+        occurred_at=occurred,
+        raw={"source": "simulator", "reference_verified": True},
+    )
+
+
+async def add_booking(
+    session: AsyncSession, tenant_id: UUID, hotel_id: str, event: ChannelBookingEvent
+) -> None:
+    """Record a booking event on the agency's listing. Commits."""
+    listing = await find_listing(session, tenant_id, hotel_id)
+    if listing is None:
+        raise UnknownChannelPropertyError(hotel_id)
+    listing.bookings = store_booking_event(listing, event)
+    session.add(listing)
+    await session.commit()

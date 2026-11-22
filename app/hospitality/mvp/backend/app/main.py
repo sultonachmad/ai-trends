@@ -100,13 +100,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 settings.CHANNEL_PUSH_INTERVAL_SECONDS,
             )
         )
+    # Bookings made on connected channels: fetched and applied on a timer.
+    from app.services.channel_booking_pull import run_booking_poller
+
+    if _engine.dialect.name == "postgresql":
+        app.state.booking_poller_stop = asyncio.Event()
+        app.state.booking_poller_task = asyncio.create_task(
+            run_booking_poller(
+                _rbac_session_factory,
+                app.state.booking_poller_stop,
+                settings.CHANNEL_PUSH_INTERVAL_SECONDS * 2,
+            )
+        )
+    else:
+        app.state.booking_poller_task = None
     # PREFAB:startup-tasks
     yield
 
-    # Stop the channel pusher before the app goes away.
+    # Stop the background loops before the app goes away.
     if app.state.channel_pusher_task is not None:
         app.state.channel_pusher_stop.set()
         await app.state.channel_pusher_task
+    if getattr(app.state, "booking_poller_task", None) is not None:
+        app.state.booking_poller_stop.set()
+        await app.state.booking_poller_task
 
 
 def create_app() -> FastAPI:

@@ -175,6 +175,12 @@ export function BookingDetailDialog({
               {t("bookings.adults", { count: booking.adults })}
               {booking.children > 0 && `, ${t("bookings.children", { count: booking.children })}`}
             </dd>
+            {booking.channel_reference && (
+              <>
+                <dt className="text-muted-foreground">{t("bookings.channel.title")}</dt>
+                <dd>{t("bookings.channel.reference", { ref: booking.channel_reference })}</dd>
+              </>
+            )}
             <dt className="text-muted-foreground">{t("bookings.detail.terms")}</dt>
             <dd>{terms(booking)}</dd>
             {booking.notes && (

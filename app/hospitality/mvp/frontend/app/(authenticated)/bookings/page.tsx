@@ -10,6 +10,7 @@ import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } fr
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { BookingDetailDialog } from "@/components/bookings/BookingDetailDialog";
+import { ChannelAttentionCard } from "@/components/bookings/ChannelAttentionCard";
 import { BookingDialog, type BookingPrefill } from "@/components/bookings/BookingDialog";
 import { BookingTable } from "@/components/bookings/BookingTable";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -179,6 +180,7 @@ function BookingsScreen() {
       {(rooms.length === 0 || plans.length === 0) && (
         <p className="rounded-lg bg-muted px-4 py-3 text-sm">{t("calendar.needSetup")}</p>
       )}
+      <ChannelAttentionCard />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div role="tablist" aria-label={t("bookings.tablist")} className="flex flex-wrap gap-1">

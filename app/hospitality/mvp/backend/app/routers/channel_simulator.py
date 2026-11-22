@@ -8,9 +8,10 @@ Answers 404 unless PREFAB_CHANNEL_SIMULATOR_ENABLED is on.
 
 import datetime as dt
 import logging
+from typing import Literal, Self
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings
@@ -100,3 +101,97 @@ async def fail_next_pushes(
     except UnknownChannelPropertyError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Listing not found") from None
     return {"hotel_id": hotel_id, "fail_next": pushes}
+
+
+MAX_AGENCY_NIGHTS = 60
+CollectModel = Literal["property", "channel", "mixed"]
+
+
+class AgencyBookingRequest(BaseModel):
+    """A booking to place on the simulated agency (development and test only)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hotel_id: str
+    external_room_id: str = "R1"
+    external_rate_id: str = "P1"
+    arrival: dt.date
+    departure: dt.date
+    total_amount: int = Field(gt=0)
+    guest_name: str = "Tamu Kanal"
+    guest_phone: str | None = None
+    units: int = Field(default=1, ge=1, le=20)
+    payment_collect: CollectModel = "channel"
+
+    @model_validator(mode="after")
+    def _stayable(self) -> Self:
+        nights = (self.departure - self.arrival).days
+        if nights < 1:
+            raise ValueError("departure must be after arrival")
+        if nights > MAX_AGENCY_NIGHTS:
+            raise ValueError(f"a stay can cover at most {MAX_AGENCY_NIGHTS} nights")
+        return self
+
+
+class AgencyBookingChangeRequest(AgencyBookingRequest):
+    external_booking_id: str
+    version: int = Field(ge=2)
+    kind: Literal["modify", "cancel"] | None = None  # omitted: derived from dates
+
+
+@channel_simulator_router.post("/listings/bookings", status_code=status.HTTP_201_CREATED)
+async def place_agency_booking(
+    body: AgencyBookingRequest,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _edit: dict = EDIT,
+) -> dict:
+    """Place a new booking on the agency, as a guest booking there would."""
+    from app.channels import simulator
+
+    event = simulator.make_booking_event(
+        external_room_id=body.external_room_id,
+        external_rate_id=body.external_rate_id,
+        arrival=body.arrival.isoformat(),
+        departure=body.departure.isoformat(),
+        total_amount=body.total_amount,
+        guest_name=body.guest_name,
+        guest_phone=body.guest_phone,
+        units=body.units,
+        payment_collect=body.payment_collect,
+    )
+    await simulator.add_booking(session, context.tenant_id, body.hotel_id, event)
+    return {"external_booking_id": event.external_booking_id, "version": event.version}
+
+
+@channel_simulator_router.post("/listings/bookings/change", status_code=status.HTTP_201_CREATED)
+async def change_agency_booking(
+    body: AgencyBookingChangeRequest,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _edit: dict = EDIT,
+) -> dict:
+    """Deliver a new version of an agency booking (a modification or a cancellation)."""
+    from app.channels import simulator
+
+    kind = body.kind or ("cancel" if body.arrival == body.departure else "modify")
+    event = simulator.make_booking_event(
+        external_booking_id=body.external_booking_id,
+        version=body.version,
+        kind=kind,
+        external_room_id=body.external_room_id,
+        external_rate_id=body.external_rate_id,
+        arrival=body.arrival.isoformat(),
+        departure=body.departure.isoformat(),
+        total_amount=body.total_amount,
+        guest_name=body.guest_name,
+        guest_phone=body.guest_phone,
+        units=body.units,
+        payment_collect=body.payment_collect,
+    )
+    await simulator.add_booking(session, context.tenant_id, body.hotel_id, event)
+    return {
+        "external_booking_id": event.external_booking_id,
+        "version": event.version,
+        "kind": kind,
+    }
