@@ -35,6 +35,7 @@ from app.schemas.bookings import (
     NamedRef,
     PaymentState,
     QuoteNight,
+    RefundRecord,
 )
 from app.services import calendar_dates as dates_of
 from app.services.booking_pricing import suggested_total
@@ -45,6 +46,7 @@ from app.services.bookings import (
     PRICE_EDITED,
     TENTATIVE,
     BookingNotFoundError,
+    balance_to_collect,
     lines_of,
     stay_of,
 )
@@ -222,7 +224,7 @@ async def read_many(
                 ),
                 total_amount=booking.total_amount,
                 paid_amount=booking.paid_amount,
-                balance_due=booking.balance_due,
+                balance_due=balance_to_collect(booking),
                 payment_state=payment_state(booking.total_amount, booking.paid_amount),
                 price_edited=bool(booking.source_detail.get(PRICE_EDITED)),
                 overbooking_risk=booking.id in at_risk,
@@ -278,6 +280,11 @@ async def captured_payments(
     return list(rows.all())
 
 
+def _refund_record(booking: Reservation) -> RefundRecord | None:
+    record = (booking.source_detail or {}).get("refund_done")
+    return RefundRecord.model_validate(record) if record else None
+
+
 async def read_detail(
     session: AsyncSession, context: TenantContext, prop: Property, booking: Reservation
 ) -> BookingDetail:
@@ -309,6 +316,7 @@ async def read_detail(
         nightly=await _nightly(session, context, booking.id),
         payments=payments,
         terms=terms,
+        refund_done=_refund_record(booking),
     )
 
 

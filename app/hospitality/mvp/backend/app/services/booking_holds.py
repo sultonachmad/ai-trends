@@ -35,7 +35,7 @@ from app.services.bookings import (
 )
 from app.services.calendar_dates import property_today
 from app.services.channel_push import _context as worker_context
-from app.services.payment_links import cancel_pending_payments
+from app.services.payment_links import NEEDS_REFUND_FLAG, cancel_pending_payments
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 from app.tenancy.session import bind_tenant
@@ -44,7 +44,6 @@ log = logging.getLogger(__name__)
 
 BOOKING_PAGE = "booking_page"
 LAPSED_NOTE = "Hold expired: payment not received in time"
-NEEDS_REFUND_FLAG = "needs_refund"
 CONFIRMED_OUTCOME, REFUND_OUTCOME, NOT_A_HOLD = "confirmed", "refund_due", "none"
 PENDING_CONFIRMATION = {"status": "pending", "attempts": 0}
 

@@ -210,10 +210,27 @@ class BookingTerms(BaseModel):
     free_cancellation_days: int | None
 
 
+class RefundDoneRequest(BaseModel):
+    """A refund sent to the guest outside the product."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: Rupiah
+    refunded_on: dt.date
+    note: NotesText | None = None
+
+
+class RefundRecord(BaseModel):
+    amount: Decimal
+    refunded_on: dt.date
+    note: str | None
+
+
 class BookingDetail(BookingRead):
     nightly: list[BookingNight]
     payments: list[BookingPayment]
     terms: BookingTerms | None
+    refund_done: RefundRecord | None = None
 
 
 class BookingPage(BaseModel):

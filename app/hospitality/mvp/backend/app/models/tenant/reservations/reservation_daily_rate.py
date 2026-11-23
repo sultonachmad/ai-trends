@@ -11,7 +11,7 @@ import datetime as dt
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Uuid, text
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index, UniqueConstraint, Uuid, text
 from sqlmodel import Field, SQLModel
 
 from app.crud.base_model import MIGRATION_ONLY, TenantRecord, utc_datetime_field
@@ -45,6 +45,7 @@ class ReservationDailyRate(TenantRecord, table=True):
             name="reservationdailyrate_tenant_id_unit_type_id_fkey",
         ),
         CheckConstraint("(amount >= (0)::numeric)", name="reservationdailyrate_amount_check"),
+        Index("ix_reservationdailyrate_date", "tenant_id", "stay_date"),
         MIGRATION_ONLY,
     )
 

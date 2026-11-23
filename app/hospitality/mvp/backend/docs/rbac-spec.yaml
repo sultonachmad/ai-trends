@@ -98,6 +98,7 @@ permissions:
   "settings:edit":     "Change property settings"
   "booking_page:view": "See the booking page setup"
   "booking_page:edit": "Set up and publish the booking page"
+  "reports:view":      "See revenue and channel reports"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────
@@ -158,69 +159,115 @@ menus:
     order: 1
     active: true
 
-  # Guest conversations (WhatsApp). Permission-gated (inbox:view / inbox:edit).
-  - name: Inbox
-    path: /inbox
+  # Feature pages are children of a business-area group with no path of its own.
+  # A group appears only when the user may see at least one of its children.
+  - name: Guests
     icon: chat
     order: 2
     active: true
-    permission: inbox:view
+    children:
+      # Guest conversations (WhatsApp). inbox:view / inbox:edit.
+      - name: Inbox
+        path: /inbox
+        icon: chat
+        permission: inbox:view
+        order: 1
+        active: true
 
-  # Payment links sent to guests. Permission-gated (links:view / links:edit).
-  - name: Payment links
-    path: /payment-links
+
+  - name: Payments
     icon: money
     order: 3
     active: true
-    permission: links:view
+    children:
+      # Payment links sent to guests. links:view / links:edit.
+      - name: Payment links
+        path: /payment-links
+        icon: money
+        permission: links:view
+        order: 1
+        active: true
 
-  # Transfer screenshots to approve or reject. Permission-gated (proofs:...).
-  - name: Transfer proofs
-    path: /transfer-proofs
-    icon: invoice
+      # Transfer screenshots to approve or reject. proofs:view / proofs:edit.
+      - name: Transfer proofs
+        path: /transfer-proofs
+        icon: invoice
+        permission: proofs:view
+        order: 2
+        active: true
+
+
+  - name: Reservations
+    icon: clipboard
     order: 4
     active: true
-    permission: proofs:view
+    children:
+      # Every booking, whatever its source. bookings:view / bookings:edit.
+      - name: Bookings
+        path: /bookings
+        icon: clipboard
+        permission: bookings:view
+        order: 1
+        active: true
 
-  # Every booking, whatever its source. Permission-gated (bookings:...).
-  - name: Bookings
-    path: /bookings
-    icon: clipboard
+      # Availability, prices, closed dates and minimum stay. calendar:view / calendar:edit.
+      - name: Calendar
+        path: /calendar
+        icon: calendar
+        permission: calendar:view
+        order: 2
+        active: true
+
+
+  - name: Distribution
+    icon: globe
     order: 5
     active: true
-    permission: bookings:view
+    children:
+      # Room types and rate plans. rooms:view / rooms:edit.
+      - name: Rooms & rates
+        path: /rooms
+        icon: key
+        permission: rooms:view
+        order: 1
+        active: true
 
-  # Availability, prices, closed dates and minimum stay. Permission-gated (calendar:...).
-  - name: Calendar
-    path: /calendar
-    icon: calendar
+      # Sales channels and calendar links. channels:view / channels:edit.
+      - name: Channels
+        path: /channels
+        icon: globe
+        permission: channels:view
+        order: 2
+        active: true
+
+
+  - name: Reports
+    icon: chart
     order: 6
     active: true
-    permission: calendar:view
+    children:
+      # Bookings, revenue and commission by source. reports:view.
+      - name: Channel report
+        path: /reports
+        icon: chart
+        permission: reports:view
+        order: 1
+        active: true
 
-  # Room types and rate plans. Permission-gated (rooms:view / rooms:edit).
-  - name: Rooms & rates
-    path: /rooms
-    icon: key
+
+  - name: Property
+    icon: settings
     order: 7
     active: true
-    permission: rooms:view
+    children:
+      # Property settings; the bank account stays owner-only. settings:view / settings:edit.
+      - name: Settings
+        path: /settings
+        icon: settings
+        permission: settings:view
+        order: 1
+        active: true
 
-  # Sales channels. Permission-gated (channels:view / channels:edit).
-  - name: Channels
-    path: /channels
-    icon: globe
-    order: 8
-    active: true
-    permission: channels:view
-
-  # Property settings. Permission-gated (settings:...); the bank account stays owner-only.
-  - name: Settings
-    path: /settings
-    icon: settings
-    order: 9
-    active: true
-    permission: settings:view
 
   # Add an entry for each new page that should appear in the sidebar / nav.
   #

@@ -38,6 +38,11 @@ export function paymentStateKey(state: PaymentState): string {
   return `bookings.payment.${state}`;
 }
 
+/** A cancelled booking is partly paid but owes nothing, so it shows no balance. */
+export function hasBalanceToShow(state: PaymentState, balance: string): boolean {
+  return state === "partly_paid" && Number(balance) > 0;
+}
+
 /** Tailwind classes for a payment state badge (semantic theme colours only). */
 export function paymentBadgeClass(state: PaymentState): string {
   if (state === "paid") return "bg-primary text-primary-foreground";

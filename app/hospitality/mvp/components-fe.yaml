@@ -159,6 +159,12 @@ components:
 - name: guest booking page
   path: frontend/app/booking/[token]/page.tsx
   description: Private page to view, pay for or cancel a booking
+- name: ChannelReportTable
+  path: frontend/components/reports/ChannelReportTable.tsx
+  description: Report by source, table on desktop and cards on phone, with share bars
+- name: RefundDoneForm
+  path: frontend/components/bookings/RefundDoneForm.tsx
+  description: Records a refund sent to the guest from the booking detail
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -245,6 +251,9 @@ pages:
   path: frontend/app/(authenticated)/sample-rag/page.tsx
   layout: AuthenticatedLayout
   description: Sample RAG page — upload documents and ask questions with LLM-powered answers
+- name: ReportsPage
+  path: frontend/app/(authenticated)/reports/page.tsx
+  description: Channel report with period choices, permission reports:view
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -348,5 +357,11 @@ utilities:
 - name: booking page api
   path: frontend/lib/booking-page-api.ts
   description: Staff setup, public search and checkout, guest booking calls; helpers in lib/booking-page-format.ts
+- name: report-format
+  path: frontend/lib/report-format.ts
+  description: Period presets in the property's dates, period checks, percent and bar helpers
+- name: reports-api
+  path: frontend/lib/reports-api.ts
+  description: Calls GET /api/reports/channels
 api_routes:
 - api/auth/[...nextauth]

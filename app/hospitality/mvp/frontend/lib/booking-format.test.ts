@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   channelAttentionKey,
   channelKindKey,
+  hasBalanceToShow,
   isOpen,
   paymentBadgeClass,
   paymentStateKey,
@@ -82,5 +83,13 @@ describe("channel attention labels", () => {
         expect(translate(locale, channelKindKey(kind))).not.toBe(channelKindKey(kind));
       }
     }
+  });
+});
+
+describe("hasBalanceToShow", () => {
+  it("shows a balance only on a partly paid booking that still owes money", () => {
+    expect(hasBalanceToShow("partly_paid", "500000.00")).toBe(true);
+    expect(hasBalanceToShow("partly_paid", "0")).toBe(false);
+    expect(hasBalanceToShow("paid", "0.00")).toBe(false);
   });
 });

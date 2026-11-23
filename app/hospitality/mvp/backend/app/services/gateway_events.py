@@ -25,7 +25,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.tenant import Payment, PaymentEvent, PaymentLink
-from app.services.booking_holds import CONFIRMED_OUTCOME, settle_paid_link
+from app.services.booking_holds import CONFIRMED_OUTCOME, REFUND_OUTCOME, settle_paid_link
 from app.services.payment_links import (
     NEEDS_REFUND_FLAG,
     cancel_pending_payments,
@@ -140,7 +140,7 @@ async def handle_gateway_event(
     capture_payment(payment, now)
     status = effective_status(link, now)
     settled = await settle_paid_link(session, tenant_id, link, payment)
-    if status != "active" and settled != CONFIRMED_OUTCOME:
+    if settled == REFUND_OUTCOME or (status != "active" and settled != CONFIRMED_OUTCOME):
         # Money arrived for a link that can no longer be paid: keep the record, flag it.
         payment.metadata_ = {**(payment.metadata_ or {}), NEEDS_REFUND_FLAG: f"link_{status}"}
         session.add(payment)

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { RefundDoneForm } from "@/components/bookings/RefundDoneForm";
 import { Dialog } from "@/components/Dialog";
 import { inputClass } from "@/components/rooms/RoomTypeDialog";
 import {
@@ -167,6 +168,28 @@ export function BookingDetailDialog({
           {booking.refund_due && (
             <p role="status" className="rounded-lg bg-destructive/10 px-3 py-2 text-destructive">
               {t("bookings.refundDueHint")}
+            </p>
+          )}
+          {booking.refund_due && canEdit && (
+            <RefundDoneForm
+              bookingId={booking.id}
+              today={today}
+              busy={busy}
+              onSubmit={act}
+              onProblem={setError}
+            />
+          )}
+          {booking.refund_done && (
+            <p role="status" className="rounded-lg bg-muted px-3 py-2">
+              {t("bookings.refund.recorded", {
+                amount: formatRupiah(booking.refund_done.amount),
+                date: shortDate(booking.refund_done.refunded_on, locale),
+              })}
+              {booking.refund_done.note && (
+                <span className="block text-xs text-muted-foreground">
+                  {booking.refund_done.note}
+                </span>
+              )}
             </p>
           )}
           {booking.confirmation_status === "failed" && (

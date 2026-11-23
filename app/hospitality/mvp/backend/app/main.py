@@ -392,6 +392,9 @@ def create_app() -> FastAPI:
     from app.routers.channels import channels_router, connections_router
 
     app.include_router(channels_router)
+    from app.routers.reports import reports_router
+
+    app.include_router(reports_router)
     from app.routers.booking_page import (
         booking_page_router,
         guest_booking_router,

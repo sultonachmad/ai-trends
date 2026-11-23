@@ -7,6 +7,7 @@ GET    /api/bookings/{id}
 PATCH  /api/bookings/{id}
 POST   /api/bookings/{id}/cancel
 POST   /api/bookings/{id}/payments             record money received
+POST   /api/bookings/{id}/refund-done          note a refund sent to the guest
 DELETE /api/bookings/{id}/payments/{payment_id}
 """
 
@@ -30,11 +31,13 @@ from app.schemas.bookings import (
     BookingUpdateRequest,
     ChannelAttentionEntry,
     PaymentRecordRequest,
+    RefundDoneRequest,
     SearchText,
 )
 from app.services import booking_holds as holds
 from app.services import booking_payments as payments
 from app.services import booking_reads as reads
+from app.services import booking_refunds as refunds
 from app.services import booking_stays as stays
 from app.services import bookings
 from app.services.workspace import find_property
@@ -255,6 +258,30 @@ async def record_payment(
     booking = await _guarded(
         lambda: payments.record_payment(session, context, prop, booking_id, body)
     )
+    return await reads.read_detail(session, context, prop, booking)
+
+
+@bookings_router.post("/{booking_id}/refund-done", response_model=BookingDetail)
+async def mark_refund_done(
+    booking_id: UUID,
+    body: RefundDoneRequest,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _edit=EDIT,
+) -> BookingDetail:
+    prop = await find_property(session, context)
+    try:
+        booking = await _guarded(
+            lambda: refunds.mark_refund_done(session, context, prop, booking_id, body)
+        )
+    except refunds.NoRefundDueError:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This booking has no refund due.") from None
+    except refunds.RefundDateError:
+        raise HTTPException(UNPROCESSABLE, "The refund date cannot be in the future.") from None
+    except refunds.RefundAmountError:
+        raise HTTPException(
+            UNPROCESSABLE, "Refunds cannot add up to more than the guest paid."
+        ) from None
     return await reads.read_detail(session, context, prop, booking)
 
 

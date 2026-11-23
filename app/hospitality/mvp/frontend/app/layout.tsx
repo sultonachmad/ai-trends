@@ -29,8 +29,9 @@ export default function RootLayout({
         <Providers>
           <Sidebar />
           {/* BDAI-2058: margin applied via CSS body:has(aside) so the login
-              form stays centred when the Sidebar returns null on /login. */}
-          <main className="min-h-screen px-6 py-8 md:px-10">
+              form stays centred when the Sidebar returns null on /login. The phone
+              top padding keeps page titles clear of the fixed menu button. */}
+          <main className="min-h-screen px-6 py-8 max-md:[body:has(aside)_&]:pt-20 md:px-10">
             {children}
           </main>
         </Providers>

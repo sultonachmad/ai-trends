@@ -56,6 +56,8 @@ export interface Booking {
 }
 
 export interface BookingDetail extends Booking {
+  /** The refund staff recorded as sent. */
+  refund_done?: { amount: string; refunded_on: string; note: string | null } | null;
   nightly: { date: string; amount: string }[];
   payments: {
     id: string;
@@ -153,6 +155,10 @@ export const cancelBooking = (id: string, reason?: string) =>
   request<BookingDetail>(`${base}/${id}/cancel`, json("POST", reason ? { reason } : {}));
 export const recordPayment = (id: string, input: PaymentInput) =>
   request<BookingDetail>(`${base}/${id}/payments`, json("POST", input));
+export const markRefundDone = (
+  id: string,
+  input: { amount: number | string; refunded_on: string; note?: string },
+) => request<BookingDetail>(`${base}/${id}/refund-done`, json("POST", input));
 export const removePayment = (id: string, paymentId: string) =>
   request<BookingDetail>(`${base}/${id}/payments/${paymentId}`, { method: "DELETE" });
 

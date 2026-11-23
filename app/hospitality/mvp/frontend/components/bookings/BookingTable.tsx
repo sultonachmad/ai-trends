@@ -2,6 +2,7 @@
 
 import {
   paymentBadgeClass,
+  hasBalanceToShow,
   paymentStateKey,
   stayRange,
   todayNote,
@@ -66,7 +67,7 @@ function Money({ booking }: { booking: Booking }) {
       <span className={`${badge} ml-2 ${paymentBadgeClass(booking.payment_state)}`}>
         {t(paymentStateKey(booking.payment_state))}
       </span>
-      {booking.payment_state === "partly_paid" && (
+      {hasBalanceToShow(booking.payment_state, booking.balance_due) && (
         <span className="block text-xs text-muted-foreground">
           {t("bookings.balance", { amount: formatRupiah(booking.balance_due) })}
         </span>

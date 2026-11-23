@@ -1039,6 +1039,7 @@ CREATE TABLE reservationdailyrate (
   FOREIGN KEY (tenant_id, rate_plan_id) REFERENCES rateplan (tenant_id, id),
   FOREIGN KEY (tenant_id, unit_type_id) REFERENCES unittype (tenant_id, id)
 );
+CREATE INDEX ix_reservationdailyrate_date ON reservationdailyrate (tenant_id, stay_date);
 
 -- Extras booked with the stay (breakfast, parking, cot, transfer …).
 CREATE TABLE reservationproduct (

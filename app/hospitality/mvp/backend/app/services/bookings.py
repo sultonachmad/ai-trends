@@ -114,6 +114,11 @@ async def _unused_number(session: AsyncSession, context: TenantContext, property
     raise RuntimeError("could not find an unused booking number")
 
 
+def balance_to_collect(booking: Reservation) -> Decimal:
+    """What the guest still has to pay: nothing once the booking is cancelled."""
+    return Decimal(0) if booking.status == CANCELLED else booking.balance_due
+
+
 def _cell_amounts(checked: CheckedStay, total: Decimal | None) -> list[Decimal]:
     """One amount per unit per night (unit by unit), summing to the booking total."""
     calendar_prices = [night.amount for night in checked.nights] * checked.stay.units
