@@ -336,7 +336,7 @@ export default function Sidebar() {
   // BDAI-2058: the login page sits outside the app shell — no sidebar at all.
   if (pathname === "/login" && !isAuthenticated) return null;
   // The public pay page is for guests: it stands alone, signed in or not.
-  if (pathname.startsWith("/pay/")) return null;
+  if (["/pay/", "/book/", "/booking/"].some((path) => pathname.startsWith(path))) return null;
 
   return (
     <NavFrame

@@ -17,7 +17,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings as app_settings
 from app.documents.storage import DocumentStorage
-from app.models.tenant import Payment, PaymentGatewayAccount, PaymentLink, Property
+from app.models.tenant import (
+    Payment,
+    PaymentGatewayAccount,
+    PaymentLink,
+    Property,
+)
 from app.payments.gateway import (
     VA_BANKS,
     VIRTUAL_ACCOUNT,

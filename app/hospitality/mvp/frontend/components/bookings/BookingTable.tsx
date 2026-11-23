@@ -29,6 +29,21 @@ function Flags({ booking, today }: { booking: Booking; today: string }) {
           {t(`bookings.today.${note}`)}
         </span>
       )}
+      {booking.status === "tentative" && (
+        <span className={`${badge} bg-accent text-accent-foreground`}>
+          {t("bookings.awaitingPayment")}
+        </span>
+      )}
+      {booking.refund_due && (
+        <span className={`${badge} bg-destructive/15 text-destructive`}>
+          {t("bookings.refundDue")}
+        </span>
+      )}
+      {booking.confirmation_status === "failed" && (
+        <span className={`${badge} bg-destructive/15 text-destructive`}>
+          {t("bookings.confirmationFailed")}
+        </span>
+      )}
       {booking.overbooking_risk && (
         <span className={`${badge} bg-destructive/15 text-destructive`} title={t("bookings.riskHint")}>
           {t("bookings.risk")}

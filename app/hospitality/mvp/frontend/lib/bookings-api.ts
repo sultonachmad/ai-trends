@@ -20,7 +20,7 @@ export const PAYMENT_METHODS: readonly PaymentMethod[] = ["cash", "bank_transfer
 export interface Booking {
   id: string;
   number: string;
-  status: "confirmed" | "cancelled";
+  status: "confirmed" | "cancelled" | "tentative";
   arrival: string;
   departure: string;
   nights: number;
@@ -43,6 +43,12 @@ export interface Booking {
   channel_attention: string | null;
   /** The channel's own booking id. */
   channel_reference: string | null;
+  /** Held for an online payment until then. */
+  hold_expires_at: string | null;
+  /** The guest is owed money; staff refund outside the product. */
+  refund_due: boolean;
+  /** WhatsApp confirmation of a direct booking. */
+  confirmation_status: "pending" | "sending" | "sent" | "failed" | null;
   notes: string | null;
   cancel_note: string | null;
   cancelled_at: string | null;
@@ -58,6 +64,8 @@ export interface BookingDetail extends Booking {
     received_on: string;
     note: string | null;
     recorded_at: string;
+    /** False for online payments, which staff cannot take back here. */
+    removable: boolean;
   }[];
   terms: { non_refundable: boolean; free_cancellation_days: number | null } | null;
 }

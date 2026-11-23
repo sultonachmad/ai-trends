@@ -111,6 +111,7 @@ async def payment_links_used_this_month(
         .where(
             col(PaymentLink.tenant_id) == context.tenant_id,
             col(PaymentLink.created_at) >= since,
+            col(PaymentLink.origin) == "staff",  # direct-booking deposits are never limited
         )
     )
     return int((await session.exec(statement)).one())

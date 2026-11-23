@@ -24,7 +24,7 @@ const SessionContext = createContext<SessionState | undefined>(undefined);
  * session cookie is httpOnly and cannot be read from JavaScript at all.
  */
 /** Paths that guests open without signing in; no session check is made there. */
-const SESSIONLESS_PREFIXES = ["/pay/"];
+const SESSIONLESS_PREFIXES = ["/pay/", "/book/", "/booking/"];
 
 function isSessionlessPath(pathname: string | null): boolean {
   return SESSIONLESS_PREFIXES.some((prefix) => (pathname ?? "").startsWith(prefix));

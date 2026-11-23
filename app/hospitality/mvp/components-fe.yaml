@@ -141,6 +141,24 @@ components:
 - name: CalendarLinkRow
   path: frontend/components/channels/CalendarLinkRow.tsx
   description: One calendar link with status, errors, conflicts and actions
+- name: AvailabilityMonth
+  path: frontend/components/booking-page/AvailabilityMonth.tsx
+  description: Public month calendar with availability and lowest price
+- name: RoomResults
+  path: frontend/components/booking-page/RoomResults.tsx
+  description: Rooms and rates for a stay with total, deposit and terms
+- name: GuestDetailsForm
+  path: frontend/components/booking-page/GuestDetailsForm.tsx
+  description: Guest details, deposit or full, terms acceptance and checkout
+- name: BookingPageSection
+  path: frontend/components/settings/BookingPageSection.tsx
+  description: Owner setup of the public booking page on Settings
+- name: public booking page
+  path: frontend/app/book/[slug]/page.tsx
+  description: Public page where a guest searches and books
+- name: guest booking page
+  path: frontend/app/booking/[token]/page.tsx
+  description: Private page to view, pay for or cancel a booking
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -327,5 +345,8 @@ utilities:
 - name: calendar links api
   path: frontend/lib/calendar-links-api.ts
   description: Calendar link calls; status helpers in lib/calendar-link-format.ts
+- name: booking page api
+  path: frontend/lib/booking-page-api.ts
+  description: Staff setup, public search and checkout, guest booking calls; helpers in lib/booking-page-format.ts
 api_routes:
 - api/auth/[...nextauth]

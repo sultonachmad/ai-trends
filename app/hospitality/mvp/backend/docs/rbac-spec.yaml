@@ -96,6 +96,8 @@ permissions:
   "channels:edit":     "Connect and manage sales channels"
   "settings:view":     "See property settings"
   "settings:edit":     "Change property settings"
+  "booking_page:view": "See the booking page setup"
+  "booking_page:edit": "Set up and publish the booking page"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────

@@ -147,6 +147,20 @@ class Reservation(TenantEntity, table=True):
             unique=True,
             postgresql_where=text("channel_reference IS NOT NULL"),
         ),
+        Index(
+            "ix_reservation_holds",
+            "tenant_id",
+            "property_id",
+            "option_expires_at",
+            postgresql_where=text("status = 'tentative'"),
+        ),
+        Index(
+            "ix_reservation_confirmation",
+            "tenant_id",
+            postgresql_where=text(
+                "(source_detail -> 'confirmation' ->> 'status') IN ('pending', 'sending')"
+            ),
+        ),
         MIGRATION_ONLY,
     )
 

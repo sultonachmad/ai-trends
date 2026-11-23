@@ -1029,6 +1029,30 @@ services:
 - name: ical_format
   file: backend/app/channels/ical_format.py
   description: 'Parses other sites .ics into busy dates (bounded) and writes availability-only .ics'
+- name: booking_holds
+  file: backend/app/services/booking_holds.py
+  description: 'Held direct bookings: settle_paid_link (the one paid step), lapse, cancel, proof extension, background loop'
+- name: direct_checkout
+  file: backend/app/services/direct_checkout.py
+  description: 'Public checkout: limits, price check, idempotency, hold and payment link in one transaction'
+- name: booking_search
+  file: backend/app/services/booking_search.py
+  description: 'Public page, calendar and availability with all-in prices; no unit counts exposed'
+- name: booking_page
+  file: backend/app/services/booking_page.py
+  description: 'Owner setup: page name, publishing, rate plans sold'
+- name: guest_booking
+  file: backend/app/services/guest_booking.py
+  description: 'The guest private link: view and cancel, refund-due flag'
+- name: booking_confirmation
+  file: backend/app/services/booking_confirmation.py
+  description: 'WhatsApp template confirmation with retries; stored in the inbox; never undoes a booking'
+- name: booking_tokens
+  file: backend/app/services/booking_tokens.py
+  description: 'Pay and guest tokens derived from a per-booking seed and the app secret'
+- name: public_booking scope
+  file: backend/app/tenancy/public_booking.py
+  description: 'Tenant scope for public pages through narrow SECURITY DEFINER resolvers'
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1253,3 +1277,6 @@ migrations:
 - name: 0012_calendar_links
   file: backend/migrations/versions/0012_calendar_links.py
   description: icalfeed per room type with paired directions, icalblock, resolve_ical_feed, the simulator test calendar
+- name: 0013_direct_booking
+  file: backend/migrations/versions/0013_direct_booking.py
+  description: bookingpage, guestbookinglink, paymentlink.origin, hold index, public resolvers

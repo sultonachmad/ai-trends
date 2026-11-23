@@ -22,6 +22,7 @@ import {
   type PayInstructions,
   type PublicLink,
 } from "@/lib/checkout-api";
+import { recallBookingPath } from "@/lib/booking-page-format";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 import { timeLeft, timeLeftKey } from "@/lib/payment-link-format";
@@ -48,6 +49,9 @@ export default function PayPage() {
   const [manual, setManual] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [bookingPath, setBookingPath] = useState<string | null>(null);
+
+  useEffect(() => setBookingPath(recallBookingPath(token)), [token]);
 
   // Bumped by every guest action; a poll that started before it is out of date.
   const actionCount = useRef(0);
@@ -203,6 +207,14 @@ export default function PayPage() {
               : t("pay.askNew", { property: link.property_name })}
           </p>
         </div>
+        {bookingPath && (
+          <a
+            href={bookingPath}
+            className="block rounded-md bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            {t("pay.viewBooking")}
+          </a>
+        )}
       </section>,
     );
   }

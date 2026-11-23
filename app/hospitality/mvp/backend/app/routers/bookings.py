@@ -32,6 +32,7 @@ from app.schemas.bookings import (
     PaymentRecordRequest,
     SearchText,
 )
+from app.services import booking_holds as holds
 from app.services import booking_payments as payments
 from app.services import booking_reads as reads
 from app.services import booking_stays as stays
@@ -60,6 +61,10 @@ _MESSAGES: dict[type[Exception], tuple[int, str]] = {
     bookings.BookingCancelledError: (
         status.HTTP_409_CONFLICT,
         "This booking is cancelled and can no longer be changed.",
+    ),
+    bookings.BookingHeldError: (
+        status.HTTP_409_CONFLICT,
+        "This booking is waiting for the guest's payment. It can only be cancelled for now.",
     ),
     stays.DepartureNotAfterArrivalError: (UNPROCESSABLE, "Departure must be after arrival."),
     stays.StayTooLargeError: (
@@ -224,9 +229,15 @@ async def cancel_booking(
     _edit=EDIT,
 ) -> BookingDetail:
     prop = await find_property(session, context)
-    booking = await _guarded(
-        lambda: bookings.cancel_booking(session, context, prop, booking_id, body.reason)
-    )
+    current = await _guarded(lambda: reads.find_booking(session, context, prop.id, booking_id))
+    if current.status == bookings.TENTATIVE:  # its payment link must close with it
+        booking = await _guarded(
+            lambda: holds.cancel_hold(session, context, prop.id, booking_id, body.reason or "")
+        )
+    else:
+        booking = await _guarded(
+            lambda: bookings.cancel_booking(session, context, prop, booking_id, body.reason)
+        )
     return await reads.read_detail(session, context, prop, booking)
 
 

@@ -411,7 +411,7 @@ async def make_booking(
 
 
 async def sold_matches_bookings(session, tenant_id: str) -> bool:
-    """True when units sold per night equal what the confirmed bookings hold."""
+    """True when units sold per night equal what confirmed and held bookings hold."""
     result = await session.execute(
         text(
             """
@@ -420,7 +420,7 @@ async def sold_matches_bookings(session, tenant_id: str) -> bool:
               FROM reservationunit u
               CROSS JOIN LATERAL generate_series(
                 u.arrival_date, u.departure_date - 1, interval '1 day') AS night
-              WHERE u.tenant_id = :t AND u.status = 'confirmed'
+              WHERE u.tenant_id = :t AND u.status IN ('confirmed', 'tentative')
               GROUP BY 1, 2
             ),
             sold AS (

@@ -1,5 +1,15 @@
 """Tenant database — K. Distribution (channel manager)."""
 
+from app.models.tenant.distribution.booking_page import (
+    BookingPage,
+    BookingPageCreate,
+    BookingPageRead,
+    BookingPageUpdate,
+    GuestBookingLink,
+    GuestBookingLinkCreate,
+    GuestBookingLinkRead,
+    GuestBookingLinkUpdate,
+)
 from app.models.tenant.distribution.channel_ari_update import (
     ChannelAriUpdate,
     ChannelAriUpdateCreate,
@@ -56,6 +66,14 @@ from app.models.tenant.distribution.ical_feed import (
 )
 
 __all__ = [
+    "BookingPage",
+    "BookingPageCreate",
+    "BookingPageRead",
+    "BookingPageUpdate",
+    "GuestBookingLink",
+    "GuestBookingLinkCreate",
+    "GuestBookingLinkRead",
+    "GuestBookingLinkUpdate",
     "IcalBlock",
     "IcalBlockCreate",
     "IcalBlockRead",

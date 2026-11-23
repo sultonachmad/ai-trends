@@ -14,6 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.tenant import Document, Payment, PaymentLink, Property, TransferProof
 from app.services import inbox
+from app.services.booking_holds import settle_paid_link
 from app.services.gateway_events import capture_payment
 from app.services.payment_links import cancel_pending_payments, effective_status
 from app.services.transfer_proofs import (
@@ -148,6 +149,8 @@ async def approve(
         session.add(link)
         await session.flush()
         await cancel_pending_payments(session, link)
+        if payment is not None:
+            await settle_paid_link(session, context.tenant_id, link, payment)
     _record_decision(proof, APPROVED, context, now)
     session.add(proof)
     await _schedule_image_deletion(session, proof, settings, now.date())

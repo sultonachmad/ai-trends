@@ -22,6 +22,13 @@ class MessagingProvider(Protocol):
         """Send a plain-text message from `sender` to `recipient`."""
         ...
 
+    async def send_template(
+        self, *, sender: str, recipient: str, template: str, language: str, params: dict[str, str]
+    ) -> SendResult:
+        """Send an approved template: the only way to message a guest outside the
+        24-hour service window, such as the first confirmation of a direct booking."""
+        ...
+
 
 class UnknownProviderError(LookupError):
     """No provider is registered under that name."""

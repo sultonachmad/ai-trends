@@ -32,6 +32,29 @@ _STAFF_SOURCES: dict[str, _Source] = {
 }
 
 
+async def direct_web_source(session: AsyncSession, context: TenantContext) -> Channel:
+    """The tenant's "Booking page" source, created on first use (flushed, not committed)."""
+    existing = (
+        await session.exec(
+            select(Channel).where(
+                col(Channel.tenant_id) == context.tenant_id, col(Channel.code) == "direct_web"
+            )
+        )
+    ).first()
+    if existing is not None:
+        return existing
+    channel = Channel(
+        tenant_id=context.tenant_id,
+        code="direct_web",
+        name="Booking page",
+        kind="direct_web",
+        is_direct=True,
+    )
+    session.add(channel)
+    await session.flush()
+    return channel
+
+
 async def staff_source(session: AsyncSession, context: TenantContext, code: StaffSource) -> Channel:
     """The tenant's row for a direct source, created on first use (flushed, not committed).
 

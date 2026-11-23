@@ -43,6 +43,7 @@ from app.services.bookings import (
     CANCELLED,
     CONFIRMED,
     PRICE_EDITED,
+    TENTATIVE,
     BookingNotFoundError,
     lines_of,
     stay_of,
@@ -148,7 +149,7 @@ async def _oversold_bookings(
     today: dt.date,
 ) -> set[UUID]:
     """Ids of confirmed bookings with a night, today or later, that has more sold than units."""
-    live = [b for b in bookings if b.status == CONFIRMED and b.departure_date > today]
+    live = [b for b in bookings if b.status != CANCELLED and b.departure_date > today]
     if not live:
         return set()
     room_ids = list({stays[b.id].room_type_id for b in live})
@@ -167,6 +168,10 @@ async def _oversold_bookings(
         ):
             at_risk.add(booking.id)
     return at_risk
+
+
+def _status_for_people(status: str) -> str:
+    return status if status in (CANCELLED, TENTATIVE) else CONFIRMED
 
 
 async def read_many(
@@ -198,7 +203,7 @@ async def read_many(
             BookingRead(
                 id=booking.id,
                 number=booking.confirmation_no,
-                status=CANCELLED if booking.status == CANCELLED else CONFIRMED,
+                status=_status_for_people(booking.status),
                 arrival=stay.arrival,
                 departure=stay.departure,
                 nights=len(stay.nights),
@@ -223,6 +228,9 @@ async def read_many(
                 overbooking_risk=booking.id in at_risk,
                 channel_attention=_channel_attention(booking),
                 channel_reference=booking.channel_reference,
+                hold_expires_at=booking.option_expires_at if booking.status == TENTATIVE else None,
+                refund_due=bool(booking.source_detail.get("refund_due")),
+                confirmation_status=(booking.source_detail.get("confirmation") or {}).get("status"),
                 notes=booking.internal_notes,
                 cancel_note=booking.cancel_note,
                 cancelled_at=booking.cancelled_at,
@@ -283,6 +291,7 @@ async def read_detail(
             received_on=(payment.captured_at or payment.created_at).astimezone(zone).date(),
             note=(payment.metadata_ or {}).get("note"),
             recorded_at=payment.created_at,
+            removable=payment.payment_link_id is None,
         )
         for payment in await captured_payments(session, context, booking.id)
     ]

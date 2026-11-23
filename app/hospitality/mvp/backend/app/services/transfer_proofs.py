@@ -319,7 +319,8 @@ async def submit_for_link(
     if await _awaiting_count(session, link) >= settings.proof_max_awaiting_per_link:
         await session.rollback()
         raise TooManyProofsError
-    return await _store_proof(
+    link_id, tenant_id = link.id, link.tenant_id
+    proof = await _store_proof(
         session,
         storage,
         _target_for_link(link),
@@ -329,6 +330,10 @@ async def submit_for_link(
         uploaded_by=uploaded_by,
         consent_at=dt.datetime.now(dt.UTC) if by_guest else None,
     )
+    from app.services.booking_holds import extend_for_proof
+
+    await extend_for_proof(session, link_id, tenant_id)
+    return proof
 
 
 async def submit_by_staff(

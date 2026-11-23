@@ -165,6 +165,21 @@ class PropertySettings(BaseModel):
     calendar_stale_hours: int = Field(
         default=24, ge=1, le=24 * 30, description="A calendar failing this long = at risk."
     )
+    direct_hold_minutes: int = Field(
+        default=60, ge=10, le=24 * 60, description="How long an unpaid direct booking is held."
+    )
+    direct_proof_hold_hours: int = Field(
+        default=24, ge=1, le=72, description="Hold after a transfer screenshot is uploaded."
+    )
+    direct_max_holds_per_phone: int = Field(
+        default=2, ge=1, le=20, description="Unpaid holds one WhatsApp number may have."
+    )
+    direct_max_holds_per_visitor: int = Field(
+        default=3, ge=1, le=50, description="Unpaid holds one visitor address may have."
+    )
+    direct_max_holds_per_property: int = Field(
+        default=5, ge=1, le=200, description="Unpaid holds a property may have at once."
+    )
     direct_deposit_percent: int = Field(
         default=50, ge=10, le=100, description="Share of a direct booking paid when booking."
     )

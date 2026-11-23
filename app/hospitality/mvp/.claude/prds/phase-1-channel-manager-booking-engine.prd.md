@@ -91,7 +91,7 @@ All targets are provisional and are configurable values where the product acts o
 | 4 | Updates out | A change in the calendar reaches every connected channel within 30 seconds; staff can see the history, refresh on demand and are warned when a channel falls behind | complete | `.claude/plans/phase-1-m4-updates-out.plan.md` |
 | 5 | Bookings in | Channel bookings, changes and cancellations appear in the bookings list on their own, never twice; possible double bookings and unmatched rooms are flagged for staff | complete | `.claude/plans/phase-1-m5-bookings-in.plan.md` |
 | 6 | Calendar links | Dates blocked on Airbnb or a similar site block the property's calendar and the other way round | complete | `.claude/plans/phase-1-m6-calendar-links.plan.md` |
-| 7 | Direct booking page | A guest can check dates, see the price and terms, book and pay a deposit; the booking is confirmed in WhatsApp and appears in the bookings list and the inbox | pending | — |
+| 7 | Direct booking page | A guest can check dates, see the price and terms, book and pay a deposit; the booking is confirmed in WhatsApp and appears in the bookings list and the inbox | complete | `.claude/plans/phase-1-m7-direct-booking-page.plan.md` |
 | 8 | Channel report | An operator can see bookings, revenue, commission and net revenue by source for a period | pending | — |
 
 ## Decisions (answered by product owner, 2026-11-20)

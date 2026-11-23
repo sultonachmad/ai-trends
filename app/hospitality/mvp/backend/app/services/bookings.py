@@ -44,6 +44,7 @@ log = logging.getLogger(__name__)
 
 CONFIRMED = "confirmed"
 CANCELLED = "cancelled"
+TENTATIVE = "tentative"  # held for a guest who has not paid yet
 NUMBER_ATTEMPTS = 5
 PRICE_EDITED = "price_edited"
 
@@ -54,6 +55,10 @@ class BookingNotFoundError(Exception):
 
 class BookingCancelledError(Exception):
     """The booking is cancelled and can no longer be changed."""
+
+
+class BookingHeldError(Exception):
+    """The booking is held for an online payment; it can only be cancelled until then."""
 
 
 class BookingConversationNotFoundError(Exception):
@@ -79,6 +84,9 @@ class BookingOrder:
     notes: str | None = None
     allow_overbooking: bool = False
     booked_by: str | None = None
+    hold_until: dt.datetime | None = None  # set = a held (tentative) booking
+    source_detail: dict[str, object] | None = None
+    language: str | None = None
 
 
 async def lock_property(session: AsyncSession, context: TenantContext, property_id: UUID) -> None:
@@ -136,7 +144,7 @@ async def _write_lines(
                 "property_id": prop.id,
                 "unit_type_id": stay.room_type_id,
                 "rate_plan_id": stay.rate_plan_id,
-                "status": CONFIRMED,
+                "status": booking.status,
                 "arrival_date": stay.arrival,
                 "departure_date": stay.departure,
                 "start_at": start_at,
@@ -209,6 +217,18 @@ async def book(
     session: AsyncSession, context: TenantContext, prop: Property, order: BookingOrder
 ) -> Reservation:
     """Create a confirmed booking and take its units off sale. Commits."""
+    booking = await book_in_transaction(session, context, prop, order)
+    number, units = booking.confirmation_no, order.stay.units
+    await session.commit()
+    await session.refresh(booking)  # amounts and times as the database stores them
+    log.info("Booking created booking=%s number=%s units=%s", booking.id, number, units)
+    return booking
+
+
+async def book_in_transaction(
+    session: AsyncSession, context: TenantContext, prop: Property, order: BookingOrder
+) -> Reservation:
+    """Create the booking and take its units, leaving the commit to the caller."""
     settings = resolve_property_settings(prop.settings)
     property_id, property_name = prop.id, prop.name
     await lock_property(session, context, property_id)
@@ -223,10 +243,15 @@ async def book(
         tenant_id=context.tenant_id,
         property_id=property_id,
         confirmation_no=number,
-        status=CONFIRMED,
+        status=TENTATIVE if order.hold_until else CONFIRMED,
+        option_expires_at=order.hold_until,
+        language=order.language,
         booker_guest_id=guest_id,
         channel_id=source_id,
-        source_detail={PRICE_EDITED: order.total_amount is not None},
+        source_detail={
+            PRICE_EDITED: order.total_amount is not None,
+            **(order.source_detail or {}),
+        },
         arrival_date=order.stay.arrival,
         departure_date=order.stay.departure,
         adults=order.stay.adults,
@@ -243,9 +268,6 @@ async def book(
     await session.flush()
     await _write_lines(session, context, prop, booking, checked, cells)
     await _queue_channel_update(session, context, prop.id, [checked.stay])
-    await session.commit()
-    await session.refresh(booking)  # amounts and times as the database stores them
-    log.info("Booking created booking=%s number=%s units=%s", booking.id, number, order.stay.units)
     return booking
 
 
@@ -337,6 +359,8 @@ async def get_for_update(
                 col(Reservation.id) == booking_id,
             )
             .with_for_update()
+            # the row as it is now, even if this session read it before the lock
+            .execution_options(populate_existing=True)
         )
     ).first()
     if booking is None:
@@ -511,6 +535,9 @@ async def update_booking(
     booking = await get_for_update(session, context, prop.id, booking_id)
     if booking.status == CANCELLED:
         raise BookingCancelledError
+    if booking.status == TENTATIVE:
+        await session.rollback()
+        raise BookingHeldError
     old = stay_of(booking, await lines_of(session, context, [booking.id]))
     new = await _change_stay_and_price(session, context, prop, booking, old, request)
     await _change_guest(session, context, booking, request)

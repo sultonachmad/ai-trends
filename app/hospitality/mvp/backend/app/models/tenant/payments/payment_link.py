@@ -81,6 +81,7 @@ class PaymentLink(TenantEntity, table=True):
             "((deposit_of_total IS NULL) OR (deposit_of_total >= amount))",
             name="paymentlink_deposit_of_total_check",
         ),
+        CheckConstraint("origin IN ('staff', 'booking_page')", name="paymentlink_origin_check"),
         CheckConstraint(
             "status IN ('active', 'paid', 'expired', 'cancelled')", name="paymentlink_status_check"
         ),
@@ -99,6 +100,12 @@ class PaymentLink(TenantEntity, table=True):
 
     property_id: UUID = Field(sa_type=Uuid)
     reservation_id: UUID | None = Field(default=None, sa_type=Uuid)
+    origin: str = Field(
+        default="staff",
+        sa_type=Text,
+        sa_column_kwargs={"server_default": text("'staff'")},
+        description="'booking_page' deposits do not count toward the monthly limit",
+    )
     folio_id: UUID | None = Field(default=None, sa_type=Uuid)
     conversation_id: UUID | None = Field(
         default=None, sa_type=Uuid, description="Chat thread the link was sent in, if any"

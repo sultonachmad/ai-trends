@@ -9,6 +9,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { BookingPageSection } from "@/components/settings/BookingPageSection";
 import { BookingTermsSection } from "@/components/settings/BookingTermsSection";
 import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
@@ -162,6 +163,7 @@ export default function SettingsPage() {
         </form>
       </section>
       <BookingTermsSection canEdit={canEditSettings} />
+      <BookingPageSection />
     </div>
   );
 }

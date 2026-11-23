@@ -17,7 +17,7 @@ from app.models.tenant import Payment, Property, Reservation
 from app.schemas.bookings import PaymentRecordRequest
 from app.services import calendar_dates as dates_of
 from app.services.booking_reads import CAPTURED, captured_payments
-from app.services.bookings import get_for_update, lock_property
+from app.services.bookings import TENTATIVE, BookingHeldError, get_for_update, lock_property
 from app.tenancy.context import TenantContext
 from app.tenancy.timezones import property_zone
 
@@ -69,6 +69,9 @@ async def record_payment(
     ).astimezone(dt.UTC)
     await lock_property(session, context, prop.id)
     booking = await get_for_update(session, context, prop.id, booking_id)
+    if booking.status == TENTATIVE:
+        await session.rollback()
+        raise BookingHeldError
     if len(await captured_payments(session, context, booking.id)) >= MAX_PAYMENTS_PER_BOOKING:
         raise TooManyPaymentsError
     session.add(

@@ -127,10 +127,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 settings.CALENDAR_SYNC_TICK_SECONDS,
             )
         )
+    # Direct bookings: release unpaid holds and send WhatsApp confirmations.
+    from app.services.booking_holds import run_hold_loop
+
+    app.state.hold_loop_task = None
+    if _engine.dialect.name == "postgresql":
+        app.state.hold_loop_stop = asyncio.Event()
+        app.state.hold_loop_task = asyncio.create_task(
+            run_hold_loop(_rbac_session_factory, app.state.hold_loop_stop, 15)
+        )
     # PREFAB:startup-tasks
     yield
 
     # Stop the background loops before the app goes away.
+    if app.state.hold_loop_task is not None:
+        app.state.hold_loop_stop.set()
+        await app.state.hold_loop_task
     if app.state.calendar_sync_task is not None:
         app.state.calendar_sync_stop.set()
         await app.state.calendar_sync_task
@@ -380,6 +392,15 @@ def create_app() -> FastAPI:
     from app.routers.channels import channels_router, connections_router
 
     app.include_router(channels_router)
+    from app.routers.booking_page import (
+        booking_page_router,
+        guest_booking_router,
+        public_book_router,
+    )
+
+    app.include_router(booking_page_router)
+    app.include_router(public_book_router)
+    app.include_router(guest_booking_router)
     from app.routers.calendar_links import calendar_links_router, ical_router
 
     app.include_router(calendar_links_router)

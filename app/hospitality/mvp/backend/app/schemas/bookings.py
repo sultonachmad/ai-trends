@@ -35,7 +35,7 @@ ReasonText = Annotated[
 SearchText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 
 BookingTab = Literal["upcoming", "staying", "past", "cancelled"]
-BookingStatus = Literal["confirmed", "cancelled"]
+BookingStatus = Literal["confirmed", "cancelled", "tentative"]
 PaymentState = Literal["unpaid", "partly_paid", "paid", "overpaid"]
 PaymentMethodIn = Literal["cash", "bank_transfer", "other"]
 UNITS_CEILING = 100
@@ -181,6 +181,9 @@ class BookingRead(BaseModel):
     overbooking_risk: bool  # a night of this stay has more sold than there are units
     channel_attention: str | None = None  # overbooking_risk / unmapped_product / price_mismatch
     channel_reference: str | None = None  # the channel's own booking id
+    hold_expires_at: dt.datetime | None = None  # awaiting an online payment until then
+    refund_due: bool = False  # the guest is owed money; staff refund outside the product
+    confirmation_status: str | None = None  # WhatsApp confirmation of a direct booking
     notes: str | None
     cancel_note: str | None
     cancelled_at: dt.datetime | None
@@ -199,6 +202,7 @@ class BookingPayment(BaseModel):
     received_on: dt.date
     note: str | None
     recorded_at: dt.datetime
+    removable: bool = True  # False for payments made online through a link
 
 
 class BookingTerms(BaseModel):

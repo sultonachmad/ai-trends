@@ -32,7 +32,7 @@ ALL = TENANT + CONTROL
 
 def test_entity_counts_match_design() -> None:
     assert len(CONTROL) == 15
-    assert len(TENANT) == 130
+    assert len(TENANT) == 132
 
 
 @pytest.mark.parametrize("model", ALL, ids=lambda m: m.__name__)

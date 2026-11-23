@@ -12,6 +12,7 @@ def _settings(**overrides) -> Settings:
         "PAYMENT_SIMULATOR_ENABLED": False,
         "CHANNEL_SIMULATOR_ENABLED": False,
         "SESSION_COOKIE_SECURE": False,
+        "SECRET_KEY": "a-real-secret-for-tests",
     }
     return Settings(**{**values, **overrides})
 
@@ -41,3 +42,10 @@ def test_a_simulator_with_secure_cookies_refuses_to_start(switch, name) -> None:
         assert_safe_configuration(_settings(SESSION_COOKIE_SECURE=True, **{switch: True}))
 
     assert name in str(error.value)
+
+
+def test_the_default_secret_refuses_to_start_with_secure_cookies() -> None:
+    with pytest.raises(UnsafeConfigurationError):
+        assert_safe_configuration(
+            _settings(SESSION_COOKIE_SECURE=True, SECRET_KEY="change-me-in-production")
+        )

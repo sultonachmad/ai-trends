@@ -154,6 +154,26 @@ export function BookingDetailDialog({
               )}
             </p>
           )}
+          {booking.status === "tentative" && booking.hold_expires_at && (
+            <p role="status" className="rounded-lg bg-muted px-3 py-2">
+              {t("bookings.heldUntil", {
+                time: new Date(booking.hold_expires_at).toLocaleString(
+                  locale === "id" ? "id-ID" : "en-GB",
+                  { dateStyle: "medium", timeStyle: "short" },
+                ),
+              })}
+            </p>
+          )}
+          {booking.refund_due && (
+            <p role="status" className="rounded-lg bg-destructive/10 px-3 py-2 text-destructive">
+              {t("bookings.refundDueHint")}
+            </p>
+          )}
+          {booking.confirmation_status === "failed" && (
+            <p role="status" className="rounded-lg bg-destructive/10 px-3 py-2 text-destructive">
+              {t("bookings.confirmationFailedHint")}
+            </p>
+          )}
           {booking.overbooking_risk && (
             <p role="status" className="rounded-lg bg-destructive/10 px-3 py-2 text-destructive">
               <span className="font-semibold">{t("bookings.risk")}.</span> {t("bookings.riskHint")}
@@ -252,7 +272,7 @@ export function BookingDetailDialog({
                       aria-label={t("bookings.pay.removeLabel", {
                         amount: formatRupiah(entry.amount),
                       })}
-                      hidden={!canEdit}
+                      hidden={!canEdit || !entry.removable}
                       onClick={() => void act(() => removePayment(booking.id, entry.id))}
                       className="text-xs font-medium text-destructive hover:underline disabled:opacity-50"
                     >
@@ -262,7 +282,7 @@ export function BookingDetailDialog({
                 ))}
               </ul>
             )}
-            {canEdit && (
+            {canEdit && booking.status !== "tentative" && (
             <form onSubmit={onPay} noValidate className="space-y-2 rounded-lg border border-border p-3">
               <p className="font-medium">{t("bookings.pay.title")}</p>
               <div className="grid grid-cols-2 gap-2">
@@ -367,14 +387,16 @@ export function BookingDetailDialog({
         </p>
       )}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        {booking && canEdit && isOpen(booking) && !cancelling && (
+        {booking && canEdit && (isOpen(booking) || booking.status === "tentative") && !cancelling && (
           <>
             <button type="button" disabled={busy} onClick={() => setCancelling(true)} className={secondary}>
               {t("bookings.detail.cancel")}
             </button>
-            <button type="button" disabled={busy} onClick={() => onEdit(booking)} className={secondary}>
-              {t("bookings.detail.edit")}
-            </button>
+            {isOpen(booking) && (
+              <button type="button" disabled={busy} onClick={() => onEdit(booking)} className={secondary}>
+                {t("bookings.detail.edit")}
+              </button>
+            )}
           </>
         )}
         <button
