@@ -1014,6 +1014,21 @@ services:
   file: backend/app/services/channel_booking_pull.py
   description: The booking poller (per live connection, cursor on last_booking_pull_at with a one-second
     overlap; the handler's idempotency makes replays safe)
+- name: calendar_links
+  file: backend/app/services/calendar_links.py
+  description: 'Calendar links per room type and site: create, change, replace token, remove, list status and
+    conflicts, build the private .ics'
+- name: calendar_link_sync
+  file: backend/app/services/calendar_link_sync.py
+  description: 'Reads imported calendars with no lock held and applies the difference to inventoryday.blocked;
+    a failed read changes nothing; background loop run_calendar_sync'
+- name: ical_fetch
+  file: backend/app/channels/ical_fetch.py
+  description: 'Fetches a pasted calendar URL safely: public HTTPS only, checked address pinned, redirects
+    re-checked, time and size capped'
+- name: ical_format
+  file: backend/app/channels/ical_format.py
+  description: 'Parses other sites .ics into busy dates (bounded) and writes availability-only .ics'
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1235,3 +1250,6 @@ migrations:
   file: backend/migrations/versions/0010_channel_ari_queue.py
   description: channelariupdate (the pending-ARI queue) with tenant isolation; channelconnection.next_push_at and
     failing_since; the simulator listing's ari store and fail_next knob
+- name: 0012_calendar_links
+  file: backend/migrations/versions/0012_calendar_links.py
+  description: icalfeed per room type with paired directions, icalblock, resolve_ical_feed, the simulator test calendar

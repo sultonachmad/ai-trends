@@ -460,7 +460,9 @@ async def test_a_price_only_modify_on_a_full_night_is_not_flagged(
     """The units the reservation itself holds are not a shortage (no false overbooking)."""
     ctx = await _live(pg_client, units=1)
     tenant_id = ctx["workspace"]["tenant"]["id"]
-    made = await _agency_book(pg_client, ctx, arrival=_day(ctx, 2), departure=_day(ctx, 4), amount=1000000)
+    made = await _agency_book(
+        pg_client, ctx, arrival=_day(ctx, 2), departure=_day(ctx, 4), amount=1000000
+    )
     await pull_now(pg_session_factory, tenant_id)
     [first] = (await pg_client.get(BOOKINGS, params={"tab": "upcoming"})).json()["items"]
     assert first["channel_attention"] is None  # the booking took the only unit, cleanly
@@ -518,13 +520,13 @@ async def test_an_unprocessable_booking_is_stamped_failed_and_shown(
     ctx = await _live(pg_client)
     tenant_id = ctx["workspace"]["tenant"]["id"]
     # place a stay outside the calendar horizon directly on the agency store
-    from app.channels import simulator
-    from app.channels.provider import ChannelCall
     from sqlmodel import col, select
+
+    from app.channels import simulator
     from app.models.tenant import ChannelConnection
+    from app.services.channel_bookings import handle_booking_event
     from app.services.channel_push import _context
     from app.tenancy.session import bind_tenant
-    from app.services.channel_bookings import handle_booking_event
 
     event = simulator.make_booking_event(
         external_room_id="R1",

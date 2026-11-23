@@ -10,6 +10,7 @@ def _settings(**overrides) -> Settings:
     values = {
         "MESSAGING_SIMULATOR_ENABLED": False,
         "PAYMENT_SIMULATOR_ENABLED": False,
+        "CHANNEL_SIMULATOR_ENABLED": False,
         "SESSION_COOKIE_SECURE": False,
     }
     return Settings(**{**values, **overrides})
@@ -32,6 +33,7 @@ def test_safe_combinations_start(overrides) -> None:
     [
         ("MESSAGING_SIMULATOR_ENABLED", "PREFAB_MESSAGING_SIMULATOR_ENABLED"),
         ("PAYMENT_SIMULATOR_ENABLED", "PREFAB_PAYMENT_SIMULATOR_ENABLED"),
+        ("CHANNEL_SIMULATOR_ENABLED", "PREFAB_CHANNEL_SIMULATOR_ENABLED"),
     ],
 )
 def test_a_simulator_with_secure_cookies_refuses_to_start(switch, name) -> None:

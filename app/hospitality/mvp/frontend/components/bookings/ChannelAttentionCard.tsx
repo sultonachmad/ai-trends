@@ -8,6 +8,8 @@ import {
   fetchChannelAttention,
   type ChannelAttentionEntry,
 } from "@/lib/bookings-api";
+import { linksInConflict } from "@/lib/calendar-link-format";
+import { fetchCalendarLinks, type CalendarLink } from "@/lib/calendar-links-api";
 import { formatListTime } from "@/lib/inbox-format";
 import { useLocale } from "@/lib/locale-store";
 
@@ -15,6 +17,7 @@ import { useLocale } from "@/lib/locale-store";
 export function ChannelAttentionCard() {
   const { t, locale } = useLocale();
   const [entries, setEntries] = useState<ChannelAttentionEntry[] | null>(null);
+  const [conflicts, setConflicts] = useState<CalendarLink[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,12 +28,20 @@ export function ChannelAttentionCard() {
       .catch(() => {
         if (!cancelled) setEntries([]);
       });
+    // Needs channels:view; without it this part of the card simply stays empty.
+    fetchCalendarLinks()
+      .then((links) => {
+        if (!cancelled) setConflicts(linksInConflict(links));
+      })
+      .catch(() => {
+        if (!cancelled) setConflicts([]);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (entries === null || entries.length === 0) return null;
+  if (entries === null || entries.length + conflicts.length === 0) return null;
   return (
     <section
       aria-labelledby="channel-attention-heading"
@@ -59,6 +70,25 @@ export function ChannelAttentionCard() {
             >
               {t("bookings.channel.viewConnection")}
               <span className="sr-only">: {entry.external_booking_id}</span>
+            </Link>
+          </li>
+        ))}
+        {conflicts.map((link) => (
+          <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+            <div className="min-w-0">
+              <p className="font-medium">
+                {link.label} · {link.room_type_name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("calendarLinks.conflict", { dates: link.conflict_dates.join(", ") })}
+              </p>
+            </div>
+            <Link
+              href="/channels"
+              className="rounded-md border border-border px-3 py-1 text-sm hover:bg-accent"
+            >
+              {t("bookings.channel.viewConnection")}
+              <span className="sr-only">: {link.label}</span>
             </Link>
           </li>
         ))}

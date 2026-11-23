@@ -159,6 +159,12 @@ class PropertySettings(BaseModel):
     channel_push_interval_seconds: int = Field(
         default=5, ge=2, le=300, description="How often the channel sender looks for due work."
     )
+    calendar_sync_minutes: int = Field(
+        default=30, ge=15, le=360, description="How often imported calendars are read."
+    )
+    calendar_stale_hours: int = Field(
+        default=24, ge=1, le=24 * 30, description="A calendar failing this long = at risk."
+    )
     direct_deposit_percent: int = Field(
         default=50, ge=10, le=100, description="Share of a direct booking paid when booking."
     )

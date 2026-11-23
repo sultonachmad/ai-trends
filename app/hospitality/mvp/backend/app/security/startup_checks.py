@@ -18,6 +18,7 @@ def assert_safe_configuration(settings: Settings) -> None:
         for name, on in (
             ("PREFAB_MESSAGING_SIMULATOR_ENABLED", settings.MESSAGING_SIMULATOR_ENABLED),
             ("PREFAB_PAYMENT_SIMULATOR_ENABLED", settings.PAYMENT_SIMULATOR_ENABLED),
+            ("PREFAB_CHANNEL_SIMULATOR_ENABLED", settings.CHANNEL_SIMULATOR_ENABLED),
         )
         if on
     ]

@@ -42,6 +42,12 @@ from app.models.tenant.distribution.channel_simulator_listing import (
     ChannelSimulatorListingRead,
     ChannelSimulatorListingUpdate,
 )
+from app.models.tenant.distribution.ical_block import (
+    IcalBlock,
+    IcalBlockCreate,
+    IcalBlockRead,
+    IcalBlockUpdate,
+)
 from app.models.tenant.distribution.ical_feed import (
     IcalFeed,
     IcalFeedCreate,
@@ -50,6 +56,10 @@ from app.models.tenant.distribution.ical_feed import (
 )
 
 __all__ = [
+    "IcalBlock",
+    "IcalBlockCreate",
+    "IcalBlockRead",
+    "IcalBlockUpdate",
     "ChannelAriUpdate",
     "ChannelAriUpdateCreate",
     "ChannelAriUpdateRead",

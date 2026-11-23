@@ -1791,6 +1791,23 @@ CREATE TABLE channelariupdate (
 );
 CREATE INDEX ix_channelariupdate_due ON channelariupdate (tenant_id, channel_connection_id, stay_date);
 
+-- Calendar links (migration 0012): icalfeed gains property_id, unit_type_id, link_id,
+-- label, last_attempt_at, failing_since; unit_id becomes optional. One row per
+-- (imported calendar, busy date) accounts for one unit in inventoryday.blocked.
+CREATE TABLE icalblock (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     uuid NOT NULL,
+  feed_id       uuid NOT NULL,
+  unit_type_id  uuid NOT NULL,
+  stay_date     date NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, feed_id, stay_date),
+  FOREIGN KEY (tenant_id, feed_id) REFERENCES icalfeed (tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, unit_type_id) REFERENCES unittype (tenant_id, id) ON DELETE CASCADE
+);
+CREATE INDEX ix_icalblock_room_date ON icalblock (tenant_id, unit_type_id, stay_date);
+
 -- Retry scheduling on the connection: a failed push is not retried before next_push_at
 -- (backoff); failing_since is set after repeated failures and cleared by a success.
 -- (columns added by migration 0010)

@@ -18,7 +18,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.channels.provider import AriDay
 from app.models.tenant import ChannelConnection, ChannelMapping, Property
 from app.services.calendar import StayNight, stay_nights
-from app.services.inventory import sold_by_night, units_in_use
+from app.services.inventory import taken_by_night, units_in_use
 from app.tenancy.business_settings import PropertySettings
 from app.tenancy.context import TenantContext
 
@@ -70,7 +70,7 @@ async def build_days(
         return {}
     room_ids = list({mapping.unit_type_id for mapping in mappings})
     ordered = sorted(dates)
-    sold = await sold_by_night(session, context, room_ids, ordered[0], ordered[-1])
+    sold = await taken_by_night(session, context, room_ids, ordered[0], ordered[-1])
     in_use = await units_in_use(session, context, room_ids)
 
     # one stay_nights query per distinct (room type, rate plan) pair

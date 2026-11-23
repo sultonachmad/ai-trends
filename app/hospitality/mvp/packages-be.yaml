@@ -21,3 +21,4 @@ packages:
 - boto3
 - qdrant-client
 - pypdf
+- icalendar

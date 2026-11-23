@@ -90,7 +90,7 @@ All targets are provisional and are configurable values where the product acts o
 | 3 | Channel connections | An operator can connect the simulated agency, match rooms and rates, pause and resume it, and is stopped at the plan's channel limit | complete | `.claude/plans/phase-1-m3-channel-connections.plan.md` |
 | 4 | Updates out | A change in the calendar reaches every connected channel within 30 seconds; staff can see the history, refresh on demand and are warned when a channel falls behind | complete | `.claude/plans/phase-1-m4-updates-out.plan.md` |
 | 5 | Bookings in | Channel bookings, changes and cancellations appear in the bookings list on their own, never twice; possible double bookings and unmatched rooms are flagged for staff | complete | `.claude/plans/phase-1-m5-bookings-in.plan.md` |
-| 6 | Calendar links | Dates blocked on Airbnb or a similar site block the property's calendar and the other way round | pending | — |
+| 6 | Calendar links | Dates blocked on Airbnb or a similar site block the property's calendar and the other way round | complete | `.claude/plans/phase-1-m6-calendar-links.plan.md` |
 | 7 | Direct booking page | A guest can check dates, see the price and terms, book and pay a deposit; the booking is confirmed in WhatsApp and appears in the bookings list and the inbox | pending | — |
 | 8 | Channel report | An operator can see bookings, revenue, commission and net revenue by source for a period | pending | — |
 

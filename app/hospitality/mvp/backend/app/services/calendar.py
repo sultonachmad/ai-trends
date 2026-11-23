@@ -41,7 +41,7 @@ from app.schemas.calendar import (
     SetPrice,
 )
 from app.services import calendar_dates as dates_of
-from app.services.inventory import sold_by_night, units_in_use
+from app.services.inventory import taken_by_night, units_in_use
 from app.services.rate_plans import ACTIVE, check_rate, find_base_prices, find_rate_plans
 from app.services.room_types import find_room_types
 from app.tenancy.business_settings import resolve_property_settings
@@ -165,7 +165,7 @@ async def read_calendar(
     base = {(link.rate_plan_id, link.unit_type_id): link.base_amount for link in links}
     overrides = await _price_overrides(session, context, plan_ids, start, end)
     rules = await _rules(session, context, prop.id, room_ids, start, end)
-    sold = await sold_by_night(session, context, room_ids, start, end)
+    sold = await taken_by_night(session, context, room_ids, start, end)
     days = dates_of.expand_dates(start, end, None)
     room_types = [
         _room_calendar(room, units.get(room.id, 0), plans, base, overrides, rules, sold, days)
@@ -238,6 +238,19 @@ class StayNight:
         return self.units - self.sold
 
 
+async def closed_nights(
+    session: AsyncSession,
+    context: TenantContext,
+    property_id: UUID,
+    room_type_id: UUID,
+    start: dt.date,
+    end: dt.date,
+) -> set[dt.date]:
+    """Nights from `start` to `end` inclusive that are closed for sale."""
+    rules = await _rules(session, context, property_id, [room_type_id], start, end)
+    return {night for (_room, night), (closed, _min) in rules.items() if closed}
+
+
 async def stay_nights(
     session: AsyncSession,
     context: TenantContext,
@@ -257,7 +270,7 @@ async def stay_nights(
     base = next(link.base_amount for link in links if link.unit_type_id == room_type_id)
     overrides = await _price_overrides(session, context, [rate_plan_id], first, last)
     rules = await _rules(session, context, property_id, [room_type_id], first, last)
-    sold = await sold_by_night(session, context, [room_type_id], first, last)
+    sold = await taken_by_night(session, context, [room_type_id], first, last)
     result = []
     for night in nights:
         closed, min_stay = rules.get((room_type_id, night), (False, None))

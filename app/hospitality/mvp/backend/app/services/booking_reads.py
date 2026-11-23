@@ -47,7 +47,7 @@ from app.services.bookings import (
     lines_of,
     stay_of,
 )
-from app.services.inventory import sold_by_night, units_in_use
+from app.services.inventory import taken_by_night, units_in_use
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 from app.tenancy.timezones import property_zone
@@ -154,7 +154,7 @@ async def _oversold_bookings(
     room_ids = list({stays[b.id].room_type_id for b in live})
     first = max(min(b.arrival_date for b in live), today)
     last = max(b.departure_date for b in live)
-    sold = await sold_by_night(session, context, room_ids, first, last)
+    sold = await taken_by_night(session, context, room_ids, first, last)
     units = await units_in_use(session, context, room_ids)
     at_risk = set()
     for booking in live:

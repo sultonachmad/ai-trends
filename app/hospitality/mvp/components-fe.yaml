@@ -132,6 +132,15 @@ components:
   path: frontend/components/bookings/ChannelAttentionCard.tsx
   description: Channel bookings flagged for a person (unmapped, overbooked night, price differs) with the
     reason and a link to the connection
+- name: CalendarLinksSection
+  path: frontend/components/channels/CalendarLinksSection.tsx
+  description: Calendar links on the Channels page; add, one-time link, sync, stop reading, replace, remove
+- name: CalendarLinkDialog
+  path: frontend/components/channels/CalendarLinkDialog.tsx
+  description: Add or change a calendar link
+- name: CalendarLinkRow
+  path: frontend/components/channels/CalendarLinkRow.tsx
+  description: One calendar link with status, errors, conflicts and actions
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -315,5 +324,8 @@ utilities:
 - name: channel bookings api
   path: frontend/lib/bookings-api.ts
   description: fetchChannelAttention, ChannelAttentionEntry, channel_attention/channel_reference on Booking
+- name: calendar links api
+  path: frontend/lib/calendar-links-api.ts
+  description: Calendar link calls; status helpers in lib/calendar-link-format.ts
 api_routes:
 - api/auth/[...nextauth]

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CalendarLinksSection } from "@/components/channels/CalendarLinksSection";
 import { ChannelCatalog, ConnectionList } from "@/components/channels/ChannelLists";
 import { ChannelQuotaNotice } from "@/components/channels/ChannelQuotaNotice";
 import { ConnectDialog } from "@/components/channels/ConnectDialog";
@@ -97,6 +98,8 @@ export default function ChannelsPage() {
           )}
         </div>
       </section>
+
+      <CalendarLinksSection />
 
       <section aria-labelledby="catalog-heading" className="space-y-3">
         <h2 id="catalog-heading" className="text-lg font-semibold">

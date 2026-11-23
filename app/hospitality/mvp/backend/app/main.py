@@ -114,10 +114,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         )
     else:
         app.state.booking_poller_task = None
+    # Calendars of linked sites (Airbnb and the like): read on a timer.
+    from app.services.calendar_link_sync import run_calendar_sync
+
+    app.state.calendar_sync_task = None
+    if _engine.dialect.name == "postgresql":
+        app.state.calendar_sync_stop = asyncio.Event()
+        app.state.calendar_sync_task = asyncio.create_task(
+            run_calendar_sync(
+                _rbac_session_factory,
+                app.state.calendar_sync_stop,
+                settings.CALENDAR_SYNC_TICK_SECONDS,
+            )
+        )
     # PREFAB:startup-tasks
     yield
 
     # Stop the background loops before the app goes away.
+    if app.state.calendar_sync_task is not None:
+        app.state.calendar_sync_stop.set()
+        await app.state.calendar_sync_task
     if app.state.channel_pusher_task is not None:
         app.state.channel_pusher_stop.set()
         await app.state.channel_pusher_task
@@ -364,6 +380,10 @@ def create_app() -> FastAPI:
     from app.routers.channels import channels_router, connections_router
 
     app.include_router(channels_router)
+    from app.routers.calendar_links import calendar_links_router, ical_router
+
+    app.include_router(calendar_links_router)
+    app.include_router(ical_router)
     app.include_router(connections_router)
     app.include_router(channel_simulator_router)
 

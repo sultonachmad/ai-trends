@@ -399,9 +399,9 @@ async def _has_shortage(
     session: AsyncSession, context: TenantContext, stay: Stay, own_units: int
 ) -> bool:
     """True when one of the stay's nights has fewer units left than it needs."""
-    from app.services.inventory import sold_by_night, units_in_use
+    from app.services.inventory import taken_by_night, units_in_use
 
-    sold = await sold_by_night(
+    sold = await taken_by_night(
         session, context, [stay.room_type_id], stay.nights[0], stay.nights[-1]
     )
     in_use = await units_in_use(session, context, [stay.room_type_id])

@@ -4,8 +4,9 @@ A booking takes units for each of its nights and gives them back when it is canc
 or moved. Callers run these inside the transaction that saves the booking, after
 locking the property row, so the count and the booking can never disagree.
 
-`inventoryday` has a row only for nights that have ever had something sold. Availability
-is always "units in use minus units sold"; a negative result means the night is oversold.
+`inventoryday` has a row only for nights that have ever had something sold or blocked.
+Availability is always "units in use minus units taken", where taken = sold + blocked
+(blocked = dates an imported calendar marks busy); a negative result means oversold.
 """
 
 import datetime as dt
@@ -50,7 +51,7 @@ async def take_units(
     count: int,
     units_in_use: int,
 ) -> dict[dt.date, int]:
-    """Sell `count` units on each night. Returns units sold per night after the change."""
+    """Sell `count` units on each night. Returns units taken per night after the change."""
     if not nights or count <= 0:
         return {}
     rows = [
@@ -72,9 +73,9 @@ async def take_units(
             "physical": statement.excluded.physical,
             "version": InventoryDay.version + 1,
         },
-    ).returning(col(InventoryDay.stay_date), col(InventoryDay.sold))
+    ).returning(col(InventoryDay.stay_date), InventoryDay.sold + InventoryDay.blocked)
     result = await session.exec(statement)
-    return {night: int(sold) for night, sold in result.all()}
+    return {night: int(taken) for night, taken in result.all()}
 
 
 async def release_units(
@@ -98,28 +99,84 @@ async def release_units(
     )
 
 
-async def sold_by_night(
+async def block_units(
+    session: AsyncSession,
+    context: TenantContext,
+    property_id: UUID,
+    room_type_id: UUID,
+    nights: list[dt.date],
+    units_in_use: int,
+) -> None:
+    """Take one unit off sale on each night (an imported calendar says it is busy)."""
+    if not nights:
+        return
+    rows = [
+        {
+            "tenant_id": context.tenant_id,
+            "property_id": property_id,
+            "unit_type_id": room_type_id,
+            "stay_date": night,
+            "physical": units_in_use,
+            "blocked": 1,
+        }
+        for night in sorted(nights)  # same order as take_units: no deadlocks
+    ]
+    statement = pg_insert(InventoryDay).values(rows)
+    await session.exec(
+        statement.on_conflict_do_update(
+            index_elements=_NIGHT_KEY,
+            set_={
+                "blocked": InventoryDay.blocked + 1,
+                "physical": statement.excluded.physical,
+                "version": InventoryDay.version + 1,
+            },
+        )
+    )
+
+
+async def unblock_units(
+    session: AsyncSession,
+    context: TenantContext,
+    room_type_id: UUID,
+    nights: list[dt.date],
+) -> None:
+    """Put one unit back on sale on each night (never below zero)."""
+    if not nights:
+        return
+    await session.exec(
+        update(InventoryDay)
+        .where(
+            col(InventoryDay.tenant_id) == context.tenant_id,
+            col(InventoryDay.unit_type_id) == room_type_id,
+            col(InventoryDay.stay_date).in_(nights),
+        )
+        .values(
+            blocked=func.greatest(InventoryDay.blocked - 1, 0), version=InventoryDay.version + 1
+        )
+    )
+
+
+async def taken_by_night(
     session: AsyncSession,
     context: TenantContext,
     room_type_ids: list[UUID],
     start: dt.date,
     end: dt.date,
 ) -> dict[tuple[UUID, dt.date], int]:
-    """Units sold for the nights from `start` to `end` inclusive that have any."""
+    """Units sold or blocked for the nights from `start` to `end` inclusive that have any."""
     if not room_type_ids:
         return {}
+    taken = InventoryDay.sold + InventoryDay.blocked
     rows = await session.exec(
-        select(
-            col(InventoryDay.unit_type_id), col(InventoryDay.stay_date), col(InventoryDay.sold)
-        ).where(
+        select(col(InventoryDay.unit_type_id), col(InventoryDay.stay_date), taken).where(
             col(InventoryDay.tenant_id) == context.tenant_id,
             col(InventoryDay.unit_type_id).in_(room_type_ids),
             col(InventoryDay.stay_date) >= start,
             col(InventoryDay.stay_date) <= end,
-            col(InventoryDay.sold) > 0,
+            taken > 0,
         )
     )
-    return {(room_type_id, night): int(sold) for room_type_id, night, sold in rows.all()}
+    return {(room_type_id, night): int(count) for room_type_id, night, count in rows.all()}
 
 
 async def sync_units_in_use(
@@ -138,6 +195,6 @@ async def sync_units_in_use(
             col(InventoryDay.stay_date) >= from_date,
         )
         .values(physical=units_in_use)
-        .returning(col(InventoryDay.stay_date), col(InventoryDay.sold))
+        .returning(col(InventoryDay.stay_date), InventoryDay.sold + InventoryDay.blocked)
     )
-    return sorted(night for night, sold in result.all() if sold > units_in_use)
+    return sorted(night for night, taken in result.all() if taken > units_in_use)

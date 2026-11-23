@@ -395,7 +395,7 @@ async def _replace_lines(
     before = {
         night: count
         for (_room, night), count in (
-            await inventory.sold_by_night(
+            await inventory.taken_by_night(
                 session, context, [new.room_type_id], new.arrival, new.departure
             )
         ).items()

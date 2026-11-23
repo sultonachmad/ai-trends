@@ -16,6 +16,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import settings
 from app.rbac.dependencies import require_permission
+from app.schemas.calendar_links import SimulatedCalendarRead, SimulatedCalendarRequest
 from app.schemas.channels import ChannelRoomRead
 from app.services import channel_test_listings as listings
 from app.services.workspace import find_property
@@ -195,3 +196,27 @@ async def change_agency_booking(
         "version": event.version,
         "kind": kind,
     }
+
+
+@channel_simulator_router.put("/listings/{hotel_id}/calendar", response_model=SimulatedCalendarRead)
+async def set_test_calendar(
+    hotel_id: str,
+    body: SimulatedCalendarRequest,
+    context: TenantContext = Depends(get_tenant_context),
+    session: AsyncSession = Depends(get_tenant_session),
+    _edit: dict = EDIT,
+) -> SimulatedCalendarRead:
+    """What this test site's calendar shows, and the link to paste (development only)."""
+    from app.channels.simulator import find_listing
+    from app.services.calendar_link_sync import simulated_url
+
+    listing = await find_listing(session, context.tenant_id, hotel_id)
+    if listing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Listing not found")
+    listing.calendar = {
+        "busy": sorted(day.isoformat() for day in body.busy),
+        "broken": body.broken,
+    }
+    session.add(listing)
+    await session.commit()
+    return SimulatedCalendarRead(url=simulated_url(hotel_id))

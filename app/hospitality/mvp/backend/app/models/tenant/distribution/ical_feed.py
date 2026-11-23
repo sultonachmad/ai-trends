@@ -11,7 +11,15 @@ import datetime as dt
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Text, UniqueConstraint, Uuid, text
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKeyConstraint,
+    Index,
+    Text,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
 from sqlmodel import Field, SQLModel
 
 from app.crud.base_model import MIGRATION_ONLY, TenantEntity, utc_datetime_field
@@ -39,6 +47,25 @@ class IcalFeed(TenantEntity, table=True):
             name="icalfeed_tenant_id_unit_id_fkey",
             ondelete="CASCADE",
         ),
+        ForeignKeyConstraint(
+            ["tenant_id", "property_id"],
+            ["property.tenant_id", "property.id"],
+            name="icalfeed_tenant_id_property_id_fkey",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "unit_type_id"],
+            ["unittype.tenant_id", "unittype.id"],
+            name="icalfeed_tenant_id_unit_type_id_fkey",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("tenant_id", "link_id", "direction", name="icalfeed_link_direction_key"),
+        Index(
+            "ux_icalfeed_export_token",
+            "export_token_hash",
+            unique=True,
+            postgresql_where=text("export_token_hash IS NOT NULL"),
+        ),
         CheckConstraint("direction IN ('import', 'export')", name="icalfeed_direction_check"),
         CheckConstraint(
             "((direction = 'import'::text) = (url IS NOT NULL))", name="icalfeed_check"
@@ -47,7 +74,11 @@ class IcalFeed(TenantEntity, table=True):
     )
 
     channel_connection_id: UUID | None = Field(default=None, sa_type=Uuid)
-    unit_id: UUID = Field(sa_type=Uuid)
+    property_id: UUID = Field(sa_type=Uuid)
+    unit_type_id: UUID = Field(sa_type=Uuid, description="the room type this calendar covers")
+    unit_id: UUID | None = Field(default=None, sa_type=Uuid)
+    link_id: UUID = Field(sa_type=Uuid, description="pairs a site's import and export rows")
+    label: str = Field(default="", sa_type=Text, sa_column_kwargs={"server_default": text("''")})
     direction: str = Field(sa_type=Text)
     url: str | None = Field(default=None, sa_type=Text, description="import source")
     export_token_hash: str | None = Field(
@@ -55,6 +86,8 @@ class IcalFeed(TenantEntity, table=True):
     )
     last_synced_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
     last_error: str | None = Field(default=None, sa_type=Text)
+    last_attempt_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
+    failing_since: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
     is_active: bool = Field(default=True, sa_column_kwargs={"server_default": text("true")})
 
 
@@ -62,7 +95,11 @@ class IcalFeedCreate(SQLModel):
     """Fields accepted when creating a IcalFeed."""
 
     channel_connection_id: UUID | None = None
-    unit_id: UUID
+    property_id: UUID
+    unit_type_id: UUID
+    unit_id: UUID | None = None
+    link_id: UUID
+    label: str = ""
     direction: IcalFeedDirection
     url: str | None = None
     last_synced_at: dt.datetime | None = None
@@ -88,7 +125,11 @@ class IcalFeedRead(SQLModel):
     id: UUID
     tenant_id: UUID
     channel_connection_id: UUID | None
-    unit_id: UUID
+    property_id: UUID
+    unit_type_id: UUID
+    unit_id: UUID | None
+    link_id: UUID
+    label: str
     direction: str
     url: str | None
     last_synced_at: dt.datetime | None

@@ -55,6 +55,13 @@ class ChannelSimulatorListing(TenantRecord, table=True):
     )
     # Fail the next N pushes, so retries and drift can be exercised (dev/test only).
     fail_next: int = Field(default=0, sa_column_kwargs={"server_default": text("0")})
+    # A test calendar for calendar links: {"busy": ["2026-12-01"], "broken": false}.
+    calendar: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": text("'{}'::jsonb")},
+        description="what the simulated site's .ics shows (development and test only)",
+    )
     # The agency's booking history: one entry per new/modify/cancel event.
     bookings: list[Any] = Field(
         default_factory=list,
