@@ -697,6 +697,12 @@ async def cancel_booking(
     booking.updated_by = str(context.user_id)
     session.add(booking)
     await _queue_channel_update(session, context, prop.id, [stay])
+    # Imported here: guest IDs build on this module's booking helpers.
+    from app.services import calendar_dates
+    from app.services.id_retention import stay_ended
+
+    today = calendar_dates.property_today(prop.timezone)
+    await stay_ended(session, context, booking, lines, today, prop.settings)
     await session.commit()
     await session.refresh(booking)  # amounts as the database stores them
     log.info("Booking cancelled booking=%s", booking.id)

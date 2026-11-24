@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BillDialog } from "@/components/bills/BillDialog";
+import { GuestIdDialog } from "@/components/guest-ids/GuestIdDialog";
 import { AssignRoomDialog } from "@/components/front-desk/AssignRoomDialog";
 import { DeskActionDialog } from "@/components/front-desk/DeskActionDialog";
 import {
@@ -30,20 +31,22 @@ import { fetchOnboardingStatus } from "@/lib/workspace-api";
 
 const FORBIDDEN = 403;
 const TAB_ACTIONS: Record<Exclude<DeskTab, "rooms">, readonly DeskActionKind[]> = {
-  arrivals: ["checkin", "bill", "noshow"],
-  in_house: ["checkout", "bill", "stay", "undo"],
+  arrivals: ["checkin", "guests", "bill", "noshow"],
+  in_house: ["checkout", "guests", "bill", "stay", "undo"],
   departures: ["checkout", "bill", "stay"],
 };
 const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 
-type ConfirmAction = { kind: Exclude<DeskActionKind, "stay" | "bill">; entry: DeskEntry };
+type ConfirmAction = { kind: Exclude<DeskActionKind, "stay" | "bill" | "guests">; entry: DeskEntry };
 
 export default function FrontDeskPage() {
   const router = useRouter();
   const { t, locale } = useLocale();
   const canEdit = useCan("frontdesk:edit");
   const canSeeBills = useCan("bills:view");
+  const canSeeIds = useCan("guestid:view");
   const [billId, setBillId] = useState<string | null>(null);
+  const [guestsId, setGuestsId] = useState<string | null>(null);
   const [desk, setDesk] = useState<DeskToday | null>(null);
   const [tab, setTab] = useState<DeskTab>("arrivals");
   const [noAccess, setNoAccess] = useState(false);
@@ -92,6 +95,7 @@ export default function FrontDeskPage() {
   const onAction = (kind: DeskActionKind, entry: DeskEntry) => {
     if (kind === "stay") setChanging(entry);
     else if (kind === "bill") setBillId(entry.id);
+    else if (kind === "guests") setGuestsId(entry.id);
     else setAction({ kind, entry });
   };
   const card = (entry: DeskEntry, actions: readonly DeskActionKind[]) => (
@@ -158,7 +162,10 @@ export default function FrontDeskPage() {
             card(
               entry,
               TAB_ACTIONS[tab].filter(
-                (kind) => (kind !== "undo" || entry.can_undo) && (kind !== "bill" || canSeeBills),
+                (kind) =>
+                  (kind !== "undo" || entry.can_undo) &&
+                  (kind !== "bill" || canSeeBills) &&
+                  (kind !== "guests" || canSeeIds),
               ),
             ),
           )}
@@ -192,6 +199,19 @@ export default function FrontDeskPage() {
                   }
                 : undefined
             }
+            onOpenGuests={
+              canSeeIds
+                ? (id) => {
+                    setAction(null);
+                    setGuestsId(id);
+                  }
+                : undefined
+            }
+          />
+          <GuestIdDialog
+            bookingId={guestsId}
+            onClose={() => setGuestsId(null)}
+            onChanged={() => void load()}
           />
           <BillDialog
             bookingId={billId}

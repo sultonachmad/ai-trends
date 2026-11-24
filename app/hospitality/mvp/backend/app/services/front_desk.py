@@ -29,6 +29,9 @@ from app.services.bookings import (
     stay_of,
 )
 from app.services.front_desk_reads import is_on_day
+from app.services.guest_id_errors import IdMissingError
+from app.services.guest_id_reads import main_guest_ready
+from app.services.id_retention import stay_ended
 from app.services.receipts import issue_receipt
 from app.services.room_assignment import _locked_units, room_name
 from app.services.stay_changes import shorten_stay
@@ -135,12 +138,29 @@ async def check_in(
         raise errors.RoomsMissingError
     units = await _locked_units(session, context, [line.unit_id for line in lines])
     _check_rooms(lines, units, request.accept_not_ready)
+    payload = await _id_check(session, context, booking, lines, today, request.no_id_reason)
     now = dt.datetime.now(dt.UTC)
     for line in lines:
         line.checked_in_at, line.checked_in_by = now, str(context.user_id)
         set_unit_status(session, context, units[line.unit_id], fo=OCCUPIED)
     _set_status(booking, lines, IN_HOUSE)
-    return await _finish(session, context, booking, lines, "booking.checked_in")
+    return await _finish(session, context, booking, lines, "booking.checked_in", payload)
+
+
+async def _id_check(
+    session: AsyncSession,
+    context: TenantContext,
+    booking: Reservation,
+    lines: list[ReservationUnit],
+    today: dt.date,
+    no_id_reason: str | None,
+) -> dict:
+    """Nothing when the main guest's ID is confirmed; the override's reason otherwise."""
+    if await main_guest_ready(session, context, booking, lines, today):
+        return {}
+    if no_id_reason is None:
+        raise IdMissingError
+    return {"without_id_reason": no_id_reason}
 
 
 async def _leave_early(
@@ -231,6 +251,7 @@ async def check_out(
         line.checked_out_at, line.checked_out_by = now, str(context.user_id)
         set_unit_status(session, context, units[line.unit_id], fo=VACANT, hk=DIRTY)
     _set_status(booking, lines, CHECKED_OUT)
+    await stay_ended(session, context, booking, lines, today, prop.settings)
     unpaid = booking.source_detail.get(LEFT_UNPAID)
     if unpaid:
         payload = {**payload, "left_unpaid": unpaid["amount"], "reason": unpaid["reason"]}
@@ -249,6 +270,7 @@ async def mark_no_show(
     await inventory.release_units(session, context, stay.room_type_id, stay.nights, stay.units)
     await _queue_channel_update(session, context, prop.id, [stay])
     _set_status(booking, lines, NO_SHOW)
+    await stay_ended(session, context, booking, lines, today, prop.settings)
     booking.source_detail = {
         **booking.source_detail,
         NO_SHOW_AT: dt.datetime.now(dt.UTC).isoformat(),

@@ -1,5 +1,7 @@
 """Development-only switches cannot be on in a production-like deployment."""
 
+import base64
+
 import pytest
 
 from app.config import Settings
@@ -13,6 +15,8 @@ def _settings(**overrides) -> Settings:
         "CHANNEL_SIMULATOR_ENABLED": False,
         "SESSION_COOKIE_SECURE": False,
         "SECRET_KEY": "a-real-secret-for-tests",
+        "IDENTITY_KEY": base64.b64encode(bytes(range(32))).decode(),
+        "ID_READER_SIMULATOR_ENABLED": False,
     }
     return Settings(**{**values, **overrides})
 
@@ -35,6 +39,7 @@ def test_safe_combinations_start(overrides) -> None:
         ("MESSAGING_SIMULATOR_ENABLED", "PREFAB_MESSAGING_SIMULATOR_ENABLED"),
         ("PAYMENT_SIMULATOR_ENABLED", "PREFAB_PAYMENT_SIMULATOR_ENABLED"),
         ("CHANNEL_SIMULATOR_ENABLED", "PREFAB_CHANNEL_SIMULATOR_ENABLED"),
+        ("ID_READER_SIMULATOR_ENABLED", "PREFAB_ID_READER_SIMULATOR_ENABLED"),
     ],
 )
 def test_a_simulator_with_secure_cookies_refuses_to_start(switch, name) -> None:
@@ -49,3 +54,17 @@ def test_the_default_secret_refuses_to_start_with_secure_cookies() -> None:
         assert_safe_configuration(
             _settings(SESSION_COOKIE_SECURE=True, SECRET_KEY="change-me-in-production")
         )
+
+
+def test_production_refuses_to_start_without_an_identity_key() -> None:
+    with pytest.raises(UnsafeConfigurationError) as error:
+        assert_safe_configuration(_settings(SESSION_COOKIE_SECURE=True, IDENTITY_KEY=""))
+
+    assert "PREFAB_IDENTITY_KEY" in str(error.value)
+
+
+def test_a_malformed_identity_key_refuses_to_start_anywhere() -> None:
+    with pytest.raises(UnsafeConfigurationError) as error:
+        assert_safe_configuration(_settings(IDENTITY_KEY="too-short"))
+
+    assert "PREFAB_IDENTITY_KEY" in str(error.value)

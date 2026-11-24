@@ -6,7 +6,7 @@ import { owesMoney } from "@/lib/front-desk-format";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 
-export type DeskActionKind = "checkin" | "checkout" | "noshow" | "undo" | "stay" | "bill";
+export type DeskActionKind = "checkin" | "checkout" | "noshow" | "undo" | "stay" | "bill" | "guests";
 
 interface DeskEntryCardProps {
   entry: DeskEntry;
@@ -89,7 +89,7 @@ export function DeskEntryCard({ entry, actions, canEdit, onAction, onRoom }: Des
       </div>
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {actions.filter((kind) => canEdit || kind === "bill").map((kind) => (
+          {actions.filter((kind) => canEdit || kind === "bill" || kind === "guests").map((kind) => (
             <button
               key={kind}
               type="button"

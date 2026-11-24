@@ -799,6 +799,9 @@ CREATE TABLE guestdocument (
   FOREIGN KEY (tenant_id, scan_document_id) REFERENCES document (tenant_id, id) ON DELETE SET NULL (scan_document_id)
 );
 CREATE INDEX ix_guestdocument_hash ON guestdocument (tenant_id, doc_type, doc_number_hash);
+CREATE UNIQUE INDEX ux_guestdocument_guest_type ON guestdocument (tenant_id, guest_id, doc_type);
+CREATE INDEX ix_guestdocument_scan ON guestdocument (tenant_id, scan_document_id) WHERE scan_document_id IS NOT NULL;
+CREATE INDEX ix_guestdocument_number_due ON guestdocument (tenant_id, retention_until) WHERE doc_number_encrypted IS NOT NULL;
 
 CREATE TABLE guestpreference (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1021,6 +1024,7 @@ CREATE TABLE reservationguest (
   FOREIGN KEY (tenant_id, registration_card_id) REFERENCES document (tenant_id, id) ON DELETE SET NULL (registration_card_id)
 );
 CREATE UNIQUE INDEX ux_reservationguest_primary ON reservationguest (tenant_id, reservation_unit_id) WHERE is_primary;
+CREATE INDEX ix_reservationguest_guest ON reservationguest (tenant_id, guest_id);
 
 -- Price per stay date, frozen at booking (BR-04). Night audit posts from here.
 CREATE TABLE reservationdailyrate (
@@ -3032,6 +3036,7 @@ CREATE INDEX ix_transferproof_link ON transferproof (tenant_id, payment_link_id)
 -- The stored file is deleted after its retention period; the row is kept.
 ALTER TABLE document ADD COLUMN purged_at timestamptz;
 CREATE INDEX ix_document_sha256 ON document (tenant_id, sha256) WHERE sha256 IS NOT NULL;
+CREATE INDEX ix_document_identity_due ON document (tenant_id, retention_until) WHERE kind = 'identity_scan' AND purged_at IS NULL;
 
 -- Payment links know which chat they were sent in and which guest they are for, and
 -- can be a down payment (DP) of a larger total. Added after conversation/guest exist.

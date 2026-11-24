@@ -38,6 +38,7 @@ from app.services.front_desk_errors import (
     PricePermissionError,
     UnpaidPermissionError,
 )
+from app.services.guest_id_errors import NoIdPermissionError
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
@@ -135,8 +136,16 @@ async def check_in(
     body: CheckInRequest,
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
-    _edit=EDIT,
+    rbac_session: AsyncSession = Depends(get_session, use_cache=False),
+    user: dict = EDIT,
 ) -> FrontDeskEntry:
+    if body.no_id_reason is not None and not await _user_has_permission(
+        int(user["user_id"]), BOOKING_EDIT, rbac_session
+    ):
+        exc = NoIdPermissionError()
+        raise HTTPException(
+            status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}
+        )
     prop = await find_property(session, context)
     return await _answer(
         session, context, prop, lambda: desk.check_in(session, context, prop, booking_id, body)
@@ -160,9 +169,7 @@ async def check_out(
         )
         if wanted
     ]
-    if needs and not await _user_has_permission(
-        int(user["user_id"]), BOOKING_EDIT, rbac_session
-    ):
+    if needs and not await _user_has_permission(int(user["user_id"]), BOOKING_EDIT, rbac_session):
         exc = needs[0]()
         raise HTTPException(
             status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}

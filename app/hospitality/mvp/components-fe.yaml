@@ -204,6 +204,15 @@ components:
 - name: PrintableBill
   path: frontend/components/bills/PrintableBill.tsx
   description: Printable bill or receipt layout
+- name: GuestIdDialog
+  path: frontend/components/guest-ids/GuestIdDialog.tsx
+  description: Guests on a booking with masked IDs, capture, removal and the ID history
+- name: GuestIdCard
+  path: frontend/components/guest-ids/GuestIdCard.tsx
+  description: One guest's masked ID with logged "show number" and "show photo" (hidden after a minute)
+- name: IdCaptureForm
+  path: frontend/components/guest-ids/IdCaptureForm.tsx
+  description: Camera or file photo, reader suggestion (SIMULATED label), every field, "checked" tick
 - name: TaxSection
   path: frontend/components/settings/TaxSection.tsx
   description: Region, PBJT, service charge, price mode and taxed extras with owner confirmation
@@ -432,5 +441,11 @@ utilities:
 - name: taxes-api
   path: frontend/lib/taxes-api.ts
   description: Calls /api/settings/taxes
+- name: guest-ids-api
+  path: frontend/lib/guest-ids-api.ts
+  description: Calls the /api/bookings/{id}/guests routes
+- name: id-format
+  path: frontend/lib/id-format.ts
+  description: Guest ID form checks, reader suggestions and refusal messages
 api_routes:
 - api/auth/[...nextauth]

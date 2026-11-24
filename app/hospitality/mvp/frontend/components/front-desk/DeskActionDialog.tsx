@@ -20,11 +20,12 @@ import {
   refusedRooms,
 } from "@/lib/front-desk-format";
 import { billErrorKey } from "@/lib/bill-format";
+import { guestIdErrorKey } from "@/lib/id-format";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 import { useCan } from "@/lib/rbac-store";
 
-type ConfirmKind = Exclude<DeskActionKind, "stay" | "bill">;
+type ConfirmKind = Exclude<DeskActionKind, "stay" | "bill" | "guests">;
 
 interface DeskActionDialogProps {
   action: { kind: ConfirmKind; entry: DeskEntry } | null;
@@ -33,6 +34,8 @@ interface DeskActionDialogProps {
   onDone: () => void;
   /** Open the bill to take payment; absent without bills:view. */
   onOpenBill?: (bookingId: string) => void;
+  /** Open the guests and their IDs; absent without guestid:view. */
+  onOpenGuests?: (bookingId: string) => void;
 }
 
 const secondary =
@@ -44,13 +47,22 @@ const REASON_MAX = 300;
 const EARLY_CHOICES: readonly EarlyChoice[] = ["keep_price", "nights_stayed"];
 
 /** Confirms a check-in, check-out, no-show or undo, with what staff need to know first. */
-export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }: DeskActionDialogProps) {
+export function DeskActionDialog({
+  action,
+  today,
+  onClose,
+  onDone,
+  onOpenBill,
+  onOpenGuests,
+}: DeskActionDialogProps) {
   const { t } = useLocale();
   const canReducePrice = useCan("bookings:edit");
   const [early, setEarly] = useState<EarlyChoice>("keep_price");
   const [reason, setReason] = useState("");
   const [unpaidReason, setUnpaidReason] = useState("");
   const [notReady, setNotReady] = useState<string[] | null>(null);
+  const [idMissing, setIdMissing] = useState(false);
+  const [noIdReason, setNoIdReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +71,8 @@ export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }:
     setReason("");
     setUnpaidReason("");
     setNotReady(null);
+    setIdMissing(false);
+    setNoIdReason("");
     setError(null);
   }, [action]);
 
@@ -68,7 +82,9 @@ export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }:
   const owes = owesMoney(entry);
 
   const send = () => {
-    if (kind === "checkin") return checkIn(entry.id, notReady !== null);
+    if (kind === "checkin") {
+      return checkIn(entry.id, notReady !== null, idMissing ? noIdReason.trim() || null : null);
+    }
     if (kind === "checkout") {
       return checkOut(entry.id, isEarly ? early : null, owes ? unpaidReason.trim() || null : null);
     }
@@ -79,6 +95,10 @@ export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }:
   const submit = async () => {
     if (kind === "checkout" && owes && unpaidReason.trim().length < REASON_MIN) {
       setError(t(canReducePrice ? "bills.needUnpaidReason" : "bills.payFirst"));
+      return;
+    }
+    if (kind === "checkin" && idMissing && noIdReason.trim().length < REASON_MIN) {
+      setError(t("frontdesk.idMissing"));
       return;
     }
     if (kind === "undo" && reason.trim().length < REASON_MIN) {
@@ -93,8 +113,10 @@ export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }:
     } catch (cause) {
       if (isRefusedAs(cause, "room_not_ready")) {
         setNotReady(refusedRooms(cause));
+      } else if (isRefusedAs(cause, "id_missing")) {
+        setIdMissing(true);
       } else {
-        const key = billErrorKey(cause);
+        const key = billErrorKey(cause) ?? guestIdErrorKey(cause);
         const rooms = refusedRooms(cause).join(", ");
         const text = key ? t(key) : cause instanceof Error ? cause.message : String(cause);
         setError(rooms ? `${text} (${rooms})` : text);
@@ -133,6 +155,32 @@ export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }:
                   maxLength={REASON_MAX}
                   value={unpaidReason}
                   onChange={(event) => setUnpaidReason(event.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            )}
+          </div>
+        )}
+        {idMissing && (
+          <div className="space-y-2 rounded-lg bg-destructive/10 px-3 py-2">
+            <p role="alert" className="font-medium text-destructive">
+              {t("frontdesk.idMissing")}
+            </p>
+            {onOpenGuests && (
+              <button type="button" onClick={() => onOpenGuests(entry.id)} className={secondary}>
+                {t("frontdesk.action.guests")}
+              </button>
+            )}
+            {canReducePrice && (
+              <div>
+                <label htmlFor="desk-no-id-reason" className="mb-1 block">
+                  {t("frontdesk.noIdReason")}
+                </label>
+                <input
+                  id="desk-no-id-reason"
+                  maxLength={REASON_MAX}
+                  value={noIdReason}
+                  onChange={(event) => setNoIdReason(event.target.value)}
                   className={inputClass}
                 />
               </div>
@@ -189,8 +237,19 @@ export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }:
         <button type="button" disabled={busy} onClick={onClose} className={secondary}>
           {t("frontdesk.back")}
         </button>
-        <button type="button" disabled={busy} onClick={() => void submit()} className={primary}>
-          {t(notReady ? "frontdesk.confirm.checkin.anyway" : `frontdesk.confirm.${kind}.submit`)}
+        <button
+          type="button"
+          disabled={busy || (idMissing && !canReducePrice)}
+          onClick={() => void submit()}
+          className={primary}
+        >
+          {t(
+            idMissing
+              ? "frontdesk.confirm.checkin.withoutId"
+              : notReady
+                ? "frontdesk.confirm.checkin.anyway"
+                : `frontdesk.confirm.${kind}.submit`,
+          )}
         </button>
       </div>
     </Dialog>

@@ -81,6 +81,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.services.proof_retention import run_startup_purge
 
     await run_startup_purge(_engine)
+    # Warn now, not at the first guest ID, when the identity key is not set.
+    from app.security.identity_crypto import get_identity_cipher
+
+    get_identity_cipher()
 
     # Keep connected channels up to date: every few seconds, push what changed.
     # A single process owns pushing (documented assumption until we run more than one).
@@ -136,10 +140,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.hold_loop_task = asyncio.create_task(
             run_hold_loop(_rbac_session_factory, app.state.hold_loop_stop, 15)
         )
+    # Guest ID photos after the stay and ID numbers after retention: now, then hourly.
+    from app.services.id_retention import run_id_purge_loop
+
+    app.state.id_purge_task = None
+    if _engine.dialect.name == "postgresql":
+        app.state.id_purge_stop = asyncio.Event()
+        app.state.id_purge_task = asyncio.create_task(
+            run_id_purge_loop(_rbac_session_factory, app.state.id_purge_stop)
+        )
     # PREFAB:startup-tasks
     yield
 
     # Stop the background loops before the app goes away.
+    if app.state.id_purge_task is not None:
+        app.state.id_purge_stop.set()
+        await app.state.id_purge_task
     if app.state.hold_loop_task is not None:
         app.state.hold_loop_stop.set()
         await app.state.hold_loop_task
@@ -394,9 +410,11 @@ def create_app() -> FastAPI:
     app.include_router(channels_router)
     from app.routers.bills import bills_router
     from app.routers.front_desk import front_desk_router
+    from app.routers.guest_ids import guest_ids_router
     from app.routers.reports import reports_router
 
     app.include_router(bills_router)
+    app.include_router(guest_ids_router)
     app.include_router(front_desk_router)
     app.include_router(reports_router)
     from app.routers.booking_page import (

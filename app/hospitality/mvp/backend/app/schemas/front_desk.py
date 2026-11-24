@@ -90,6 +90,8 @@ class CheckInRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     accept_not_ready: bool = False
+    # Check in although the main guest's ID is not confirmed. Needs `bookings:edit`.
+    no_id_reason: UndoReason | None = None
 
 
 class CheckOutRequest(BaseModel):

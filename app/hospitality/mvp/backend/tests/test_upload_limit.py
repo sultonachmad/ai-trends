@@ -12,11 +12,12 @@ from app.security.upload_limit import (
 
 PUBLIC_UPLOAD = "/api/pay/not-a-real-token/proofs"
 STAFF_UPLOAD = "/api/transfer-proofs"
+ID_SCAN = "/api/bookings/5b0c7a0e-0000-0000-0000-000000000000/guests/scan"
 
 
 @pytest.mark.parametrize(
     "path",
-    [PUBLIC_UPLOAD, PUBLIC_UPLOAD + "/", STAFF_UPLOAD, STAFF_UPLOAD + "/"],
+    [PUBLIC_UPLOAD, PUBLIC_UPLOAD + "/", STAFF_UPLOAD, STAFF_UPLOAD + "/", ID_SCAN],
 )
 def test_upload_paths_are_limited(path: str) -> None:
     assert is_upload_path(path)
@@ -30,6 +31,7 @@ def test_upload_paths_are_limited(path: str) -> None:
         "/api/pay/a/b/proofs",
         "/api/transfer-proofs/5b0c7a0e-0000-0000-0000-000000000000/approve",
         "/api/payment-links",
+        "/api/bookings/a/b/guests/scan",
     ],
 )
 def test_other_paths_are_not_limited(path: str) -> None:

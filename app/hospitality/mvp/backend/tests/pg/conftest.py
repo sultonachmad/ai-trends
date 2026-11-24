@@ -470,3 +470,24 @@ async def push_now(pg_session_factory, tenant_id: str) -> int:
     async with pg_session_factory() as session:
         await bind_tenant(session, tenant_id)
         return await process_tenant(session, tenant_id)
+
+
+KTP_FIELDS = {
+    "doc_type": "ktp",
+    "number": "3171230501900001",
+    "full_name": "Budi Santoso",
+    "birth_date": "1990-01-05",
+    "gender": "male",
+    "checked": True,
+}
+
+
+async def confirm_main_guest_id(client: httpx.AsyncClient, booking_id: str, **overrides) -> dict:
+    """Staff type and confirm the main guest's KTP (no photo), so check-in may go ahead."""
+    url = f"/api/bookings/{booking_id}/guests"
+    guests = await client.get(url)
+    assert guests.status_code == 200, guests.text
+    main = guests.json()["guests"][0]["guest_id"]
+    response = await client.post(url, json={**KTP_FIELDS, "guest_id": main, **overrides})
+    assert response.status_code == 200, response.text
+    return response.json()

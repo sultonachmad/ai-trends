@@ -80,10 +80,13 @@ export const assignRoom = (lineId: string, unitId: string | null, acceptNotReady
   );
 export const lockRoom = (lineId: string, locked: boolean) =>
   request<DeskEntry>(`${base}/lines/${lineId}/lock`, json("PUT", { locked }));
-export const checkIn = (bookingId: string, acceptNotReady = false) =>
+export const checkIn = (bookingId: string, acceptNotReady = false, noIdReason: string | null = null) =>
   request<DeskEntry>(
     `${base}/bookings/${bookingId}/check-in`,
-    json("POST", { accept_not_ready: acceptNotReady }),
+    json("POST", {
+      accept_not_ready: acceptNotReady,
+      ...(noIdReason ? { no_id_reason: noIdReason } : {}),
+    }),
   );
 export const checkOut = (
   bookingId: string,

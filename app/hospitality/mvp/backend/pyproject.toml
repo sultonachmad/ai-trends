@@ -35,6 +35,9 @@ dependencies = [
     # rag-base prefab: PDF text extraction for /api/rag/upload
     "pypdf==6.19.0",
     "icalendar==7.3.2",
+    # Guest ID numbers and photos: AES-GCM and HKDF (app/security/identity_crypto.py).
+    # Same version as the constraint below; it was already installed for python-jose.
+    "cryptography==50.0.2",
 ]
 
 [dependency-groups]

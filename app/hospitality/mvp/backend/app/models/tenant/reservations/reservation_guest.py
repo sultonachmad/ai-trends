@@ -73,6 +73,7 @@ class ReservationGuest(TenantEntity, table=True):
             "registration_status IN ('pending', 'pre_checked_in', 'registered')",
             name="reservationguest_registration_status_check",
         ),
+        Index("ix_reservationguest_guest", "tenant_id", "guest_id"),
         Index(
             "ux_reservationguest_primary",
             "tenant_id",

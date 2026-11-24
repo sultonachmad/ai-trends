@@ -64,6 +64,19 @@ class GuestDocument(TenantEntity, table=True):
             name="guestdocument_doc_type_check",
         ),
         Index("ix_guestdocument_hash", "tenant_id", "doc_type", "doc_number_hash"),
+        Index("ux_guestdocument_guest_type", "tenant_id", "guest_id", "doc_type", unique=True),
+        Index(
+            "ix_guestdocument_scan",
+            "tenant_id",
+            "scan_document_id",
+            postgresql_where=text("scan_document_id IS NOT NULL"),
+        ),
+        Index(
+            "ix_guestdocument_number_due",
+            "tenant_id",
+            "retention_until",
+            postgresql_where=text("doc_number_encrypted IS NOT NULL"),
+        ),
         MIGRATION_ONLY,
     )
 

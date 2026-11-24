@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     # Offers a simulated online travel agency to connect to (Channels page).
     # Development only: it stands in for agencies that need partner certification.
     CHANNEL_SIMULATOR_ENABLED: bool = False
+    # Fills guest ID fields with clearly labelled sample data instead of reading the image.
+    # Development only: staff must never confirm simulated fields for a real guest.
+    ID_READER_SIMULATOR_ENABLED: bool = False
+    # Random 32-byte key, base64, that encrypts guest ID numbers and images. Required when
+    # PREFAB_SESSION_COOKIE_SECURE is true; keep a backup, losing it loses the numbers.
+    # Empty in development = a key derived from PREFAB_SECRET_KEY, with a warning.
+    IDENTITY_KEY: str = ""
     # Where guests open pay links (https://app.example.com). Empty = first CORS origin.
     FRONTEND_URL: str = ""
     # How often the channel pusher looks for due work (seconds).

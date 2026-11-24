@@ -10,6 +10,7 @@ import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } fr
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { BillDialog } from "@/components/bills/BillDialog";
+import { GuestIdDialog } from "@/components/guest-ids/GuestIdDialog";
 import { BookingDetailDialog } from "@/components/bookings/BookingDetailDialog";
 import { ChannelAttentionCard } from "@/components/bookings/ChannelAttentionCard";
 import { BookingDialog, type BookingPrefill } from "@/components/bookings/BookingDialog";
@@ -45,6 +46,8 @@ function BookingsScreen() {
   const canEdit = useCan("bookings:edit");
   const canSeeBills = useCan("bills:view");
   const [billId, setBillId] = useState<string | null>(null);
+  const canSeeIds = useCan("guestid:view");
+  const [guestsId, setGuestsId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [plans, setPlans] = useState<RatePlan[]>([]);
@@ -270,6 +273,15 @@ function BookingsScreen() {
           setOpenId(null);
           setBillId(id);
         } : undefined}
+        onOpenGuests={canSeeIds ? (id) => {
+          setOpenId(null);
+          setGuestsId(id);
+        } : undefined}
+      />
+      <GuestIdDialog
+        bookingId={guestsId}
+        onClose={() => setGuestsId(null)}
+        onChanged={() => void load(null)}
       />
       <BillDialog
         bookingId={billId}

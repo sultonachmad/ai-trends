@@ -103,6 +103,8 @@ permissions:
   "frontdesk:edit":    "Assign rooms and check guests in and out"
   "bills:view":        "See guest bills and receipts"
   "bills:edit":        "Add charges and payments to guest bills (discounts also need bookings:edit)"
+  "guestid:view":      "See who is staying and their masked ID details"
+  "guestid:edit":      "Capture and confirm guest IDs, and show full numbers and images (logged)"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────

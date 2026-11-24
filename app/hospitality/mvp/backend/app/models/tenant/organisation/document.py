@@ -72,6 +72,12 @@ class Document(TenantEntity, table=True):
         ),
         CheckConstraint("(size_bytes >= 0)", name="document_size_bytes_check"),
         Index(
+            "ix_document_identity_due",
+            "tenant_id",
+            "retention_until",
+            postgresql_where=text("kind = 'identity_scan' AND purged_at IS NULL"),
+        ),
+        Index(
             "ix_document_sha256",
             "tenant_id",
             "sha256",

@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.services.calendar_dates import property_today
 from tests.pg.conftest import (
     add_staff_member,
+    confirm_main_guest_id,
     make_booking,
     make_rate_plan,
     make_room_type,
@@ -50,6 +51,7 @@ async def _rooms_given(session, client, ctx, booking: dict, first: int = 0) -> N
         unit = ctx["room"]["units"][first + index]["id"]
         answer = await client.put(f"{DESK}/lines/{row[0]}/room", json={"unit_id": unit})
         assert answer.status_code == 200, answer.text
+    await confirm_main_guest_id(client, booking["id"])  # check-in needs it
 
 
 async def _checked_in(session, client, ctx, start=0, end=3, **overrides) -> dict:

@@ -7,7 +7,13 @@ import pytest
 from sqlalchemy import text
 
 from app.services.calendar_dates import property_today
-from tests.pg.conftest import make_booking, make_rate_plan, make_room_type, start_workspace
+from tests.pg.conftest import (
+    confirm_main_guest_id,
+    make_booking,
+    make_rate_plan,
+    make_room_type,
+    start_workspace,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -145,6 +151,7 @@ async def test_moving_an_in_house_guest_updates_both_rooms(pg_client, pg_session
     booking = await _book(pg_client, ctx, 0, 2)
     [line] = await _lines(pg_session, booking["id"])
     await _assign(pg_client, line, _unit(ctx, 0))
+    await confirm_main_guest_id(pg_client, booking["id"])
     assert (
         await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-in", json={})
     ).status_code == 200
@@ -170,6 +177,7 @@ async def test_an_in_house_guest_must_keep_a_room(pg_client, pg_session) -> None
     booking = await _book(pg_client, ctx, 0, 2)
     [line] = await _lines(pg_session, booking["id"])
     await _assign(pg_client, line, _unit(ctx))
+    await confirm_main_guest_id(pg_client, booking["id"])
     await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-in", json={})
 
     response = await _assign(pg_client, line, None)

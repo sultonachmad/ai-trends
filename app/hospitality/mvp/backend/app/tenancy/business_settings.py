@@ -89,6 +89,18 @@ class PropertySettings(BaseModel):
     proof_max_awaiting_per_link: int = Field(
         default=3, ge=1, le=10, description="Proofs one link may have waiting for review."
     )
+    id_image_retention_days: int = Field(
+        default=7, ge=1, le=30, description="Days a guest ID image is kept after the stay."
+    )
+    id_number_retention_days: int = Field(
+        default=730,
+        ge=30,
+        le=3650,
+        description="Days guest ID numbers are kept after the stay (pending legal review).",
+    )
+    id_max_upload_mb: int = Field(
+        default=5, ge=1, le=MAX_PROOF_UPLOAD_MB, description="Largest guest ID image, in MB."
+    )
     bank_name: BankText | None = Field(
         default=None, description="Bank guests transfer to (manual transfer)."
     )

@@ -878,6 +878,10 @@ api_routers:
 - name: bills
   file: backend/app/routers/bills.py
   description: /api/bills routes, permissions bills:view and bills:edit (price changes need bookings:edit)
+- name: guest_ids
+  file: backend/app/routers/guest_ids.py
+  description: /api/bookings/{id}/guests routes (scan, confirm, remove, logged reveal and image,
+    history; every answer no-store), permissions guestid:view and guestid:edit
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -1116,6 +1120,26 @@ services:
 - name: bill_taxes
   file: backend/app/services/bill_taxes.py
   description: Service charge and PBJT on a booking's nights and bill lines by date and price mode
+- name: id_validation
+  file: backend/app/services/id_validation.py
+  description: Pure KTP/NIK and passport checks (structure, birth date and gender in the NIK, expiry, visa)
+- name: id_reader
+  file: backend/app/services/id_reader.py
+  description: Reader interface; simulated reader (PREFAB_ID_READER_SIMULATOR_ENABLED) and manual entry
+- name: guest_ids
+  file: backend/app/services/guest_ids.py
+  description: Encrypted ID photo upload (own photos only, capped), confirm checked fields as one document
+    per guest and type, guests on a booking; never merges profiles by number
+- name: guest_id_reads
+  file: backend/app/services/guest_id_reads.py
+  description: Guests and masked IDs, check-in readiness, logged number and image views, ID history
+- name: guest_id_errors
+  file: backend/app/services/guest_id_errors.py
+  description: Stable refusal codes for guest ID actions
+- name: id_retention
+  file: backend/app/services/id_retention.py
+  description: Deletes ID photos after the stay (not while the guest stays elsewhere) and clears numbers
+    after retention, in batches; hourly loop from start-up
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1153,6 +1177,13 @@ patterns:
   description: 'FastAPI dependency for token-addressed public routes: resolves the token to its tenant
     (resolve_payment_link) and scopes the session'
 utilities_backend:
+- name: identity_crypto
+  file: backend/app/security/identity_crypto.py
+  description: AES-GCM for ID numbers and photos bound to tenant and row, keyed hash; key from
+    PREFAB_IDENTITY_KEY (development fallback with a warning, required in production)
+- name: purge_ids job
+  file: backend/app/jobs/purge_ids.py
+  description: 'python -m app.jobs.purge_ids: delete ID photos and numbers past their dates'
 - name: BaseEntity
   file: backend/app/crud/base_model.py
   description: Auto-increment id + TimestampMixin (created_at, updated_at, created_by, updated_by)
@@ -1285,6 +1316,9 @@ schemas:
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
   description: OnboardingRequest, OnboardingStatus, WorkspaceRead
+- name: guest id schemas
+  file: backend/app/schemas/guest_ids.py
+  description: BookingGuests, GuestOnBooking, IdDocumentRead (masked), ConfirmIdRequest, ScanResult, IdView
 - name: inbox schemas
   file: backend/app/schemas/inbox.py
   description: ReplyRequest, SimulatedInboundRequest, ConversationRead/Page, MessageRead, InboxSummary
@@ -1352,3 +1386,6 @@ migrations:
 - name: 0016_bill_guards
   file: backend/migrations/versions/0016_bill_guards.py
   description: One guest bill per booking, one void per line, frozen receipt lines and paid amount
+- name: 0017_guest_id_indexes
+  file: backend/migrations/versions/0017_guest_id_indexes.py
+  description: One guest document per guest and type; indexes for scans, retention and guests by profile

@@ -12,6 +12,7 @@ packages:
 - bcrypt
 - pyyaml
 - python-jose
+- cryptography
 - httpx
 - python-multipart
 - aiofiles
