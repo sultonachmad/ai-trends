@@ -95,6 +95,7 @@ class CheckOutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     early: EarlyChoice | None = None
+    leave_unpaid_reason: UndoReason | None = None  # needs bookings:edit
 
 
 class UndoRequest(BaseModel):

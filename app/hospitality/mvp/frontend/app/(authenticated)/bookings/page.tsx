@@ -9,6 +9,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { BillDialog } from "@/components/bills/BillDialog";
 import { BookingDetailDialog } from "@/components/bookings/BookingDetailDialog";
 import { ChannelAttentionCard } from "@/components/bookings/ChannelAttentionCard";
 import { BookingDialog, type BookingPrefill } from "@/components/bookings/BookingDialog";
@@ -42,6 +43,8 @@ function BookingsScreen() {
   const fromConversation = useSearchParams().get("from");
   const { t } = useLocale();
   const canEdit = useCan("bookings:edit");
+  const canSeeBills = useCan("bills:view");
+  const [billId, setBillId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [plans, setPlans] = useState<RatePlan[]>([]);
@@ -263,6 +266,16 @@ function BookingsScreen() {
         onClose={() => setOpenId(null)}
         onChanged={() => void load(null)}
         onEdit={(booking) => setEditing(booking)}
+        onOpenBill={canSeeBills ? (id) => {
+          setOpenId(null);
+          setBillId(id);
+        } : undefined}
+      />
+      <BillDialog
+        bookingId={billId}
+        today={today}
+        onClose={() => setBillId(null)}
+        onChanged={() => void load(null)}
       />
       <BookingDialog
         open={editing !== undefined}

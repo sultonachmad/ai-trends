@@ -84,10 +84,17 @@ export const checkIn = (bookingId: string, acceptNotReady = false) =>
     `${base}/bookings/${bookingId}/check-in`,
     json("POST", { accept_not_ready: acceptNotReady }),
   );
-export const checkOut = (bookingId: string, early: EarlyChoice | null) =>
+export const checkOut = (
+  bookingId: string,
+  early: EarlyChoice | null,
+  leaveUnpaidReason: string | null = null,
+) =>
   request<DeskEntry>(
     `${base}/bookings/${bookingId}/check-out`,
-    json("POST", early ? { early } : {}),
+    json("POST", {
+      ...(early ? { early } : {}),
+      ...(leaveUnpaidReason ? { leave_unpaid_reason: leaveUnpaidReason } : {}),
+    }),
   );
 export const markNoShow = (bookingId: string) =>
   request<DeskEntry>(`${base}/bookings/${bookingId}/no-show`, { method: "POST" });

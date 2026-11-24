@@ -17,3 +17,4 @@ NOT_ACTIVE = (CANCELLED, *FINISHED)  # no longer a live stay
 # Keys in a booking's `source_detail`.
 LEFT_EARLY = "left_early"  # the stay was shortened at check-out
 NO_SHOW_AT = "no_show_at"  # when staff marked the no-show
+LEFT_UNPAID = "left_unpaid"  # checked out with money still owed, and why

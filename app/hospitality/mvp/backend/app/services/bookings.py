@@ -648,9 +648,10 @@ async def update_booking(
         booking.internal_notes = request.notes or None
     booking.arrival_date, booking.departure_date = new.arrival, new.departure
     booking.adults, booking.children = new.adults, new.children
-    booking.balance_due = booking.total_amount - booking.paid_amount
     booking.updated_by = str(context.user_id)
-    session.add(booking)
+    from app.services.bill_balance import refresh_balance
+
+    await refresh_balance(session, context.tenant_id, booking)
     await _queue_channel_update(session, context, prop.id, [old, new])
     try:
         await session.commit()

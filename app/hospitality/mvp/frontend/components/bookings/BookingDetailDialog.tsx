@@ -36,6 +36,8 @@ interface BookingDetailDialogProps {
   /** Something about the booking changed: the list behind should refresh. */
   onChanged: () => void;
   onEdit: (booking: BookingDetail) => void;
+  /** Open the booking's bill; absent when the viewer cannot see bills. */
+  onOpenBill?: (bookingId: string) => void;
 }
 
 const STAGED: readonly string[] = ["in_house", "checked_out", "no_show"];
@@ -50,6 +52,7 @@ export function BookingDetailDialog({
   onClose,
   onChanged,
   onEdit,
+  onOpenBill,
 }: BookingDetailDialogProps) {
   const { t, locale } = useLocale();
   const [booking, setBooking] = useState<BookingDetail | null>(null);
@@ -419,6 +422,11 @@ export function BookingDetailDialog({
         </p>
       )}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
+        {booking && onOpenBill && (
+          <button type="button" disabled={busy} onClick={() => onOpenBill(booking.id)} className={secondary}>
+            {t("bills.open")}
+          </button>
+        )}
         {booking && canEdit && (isOpen(booking) || booking.status === "tentative") && !cancelling && (
           <>
             <button type="button" disabled={busy} onClick={() => setCancelling(true)} className={secondary}>

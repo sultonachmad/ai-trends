@@ -33,6 +33,7 @@ from app.models.tenant import (
 )
 from app.services import bookings as booking_service
 from app.services import tenant_audit
+from app.services.bill_balance import refresh_balance
 from app.services.booking_guests import find_or_create_guest
 from app.services.bookings import Stay, cancel_booking, update_booking
 from app.services.channel_truth import mappings_of
@@ -448,7 +449,7 @@ async def _set_channel_fields(
         reservation.commission_amount = (
             Decimal(str(event.total_amount)) * commission / Decimal("100")
         ).quantize(Decimal("1"))
-    session.add(reservation)
+    await refresh_balance(session, reservation.tenant_id, reservation)
     await session.commit()
 
 

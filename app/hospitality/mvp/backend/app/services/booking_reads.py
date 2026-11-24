@@ -67,11 +67,12 @@ class InvalidCursorError(Exception):
     """The paging cursor is not one this list handed out."""
 
 
-def payment_state(total: Decimal, paid: Decimal) -> PaymentState:
-    if paid > total:
+def payment_state(balance: Decimal, paid: Decimal) -> PaymentState:
+    """From what is still owed: nothing left is paid (also when the channel was paid)."""
+    if balance < ZERO:
         return "overpaid"
-    if paid == total:
-        return "paid" if total > ZERO or paid > ZERO else "unpaid"
+    if balance == ZERO:
+        return "paid"
     return "partly_paid" if paid > ZERO else "unpaid"
 
 
@@ -235,7 +236,7 @@ async def read_many(
                 total_amount=booking.total_amount,
                 paid_amount=booking.paid_amount,
                 balance_due=balance_to_collect(booking),
-                payment_state=payment_state(booking.total_amount, booking.paid_amount),
+                payment_state=payment_state(booking.balance_due, booking.paid_amount),
                 price_edited=bool(booking.source_detail.get(PRICE_EDITED)),
                 overbooking_risk=booking.id in at_risk,
                 channel_attention=_channel_attention(booking),
@@ -295,12 +296,12 @@ def _refund_record(booking: Reservation) -> RefundRecord | None:
     return RefundRecord.model_validate(record) if record else None
 
 
-async def read_detail(
-    session: AsyncSession, context: TenantContext, prop: Property, booking: Reservation
-) -> BookingDetail:
-    [summary] = await read_many(session, context, prop, [booking])
+async def payment_entries(
+    session: AsyncSession, context: TenantContext, prop: Property, booking_id: UUID
+) -> list[BookingPayment]:
+    """Money received for the booking, as staff see it."""
     zone = property_zone(prop.timezone)
-    payments = [
+    return [
         BookingPayment(
             id=payment.id,
             amount=payment.captured_amount,
@@ -310,8 +311,15 @@ async def read_detail(
             recorded_at=payment.created_at,
             removable=payment.payment_link_id is None,
         )
-        for payment in await captured_payments(session, context, booking.id)
+        for payment in await captured_payments(session, context, booking_id)
     ]
+
+
+async def read_detail(
+    session: AsyncSession, context: TenantContext, prop: Property, booking: Reservation
+) -> BookingDetail:
+    [summary] = await read_many(session, context, prop, [booking])
+    payments = await payment_entries(session, context, prop, booking.id)
     snapshot = booking.cancellation_policy_snapshot or {}
     terms = (
         BookingTerms(

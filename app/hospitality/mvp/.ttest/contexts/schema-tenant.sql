@@ -1133,6 +1133,7 @@ CREATE TABLE folio (
 );
 CREATE INDEX ix_folio_reservation ON folio (tenant_id, reservation_id) WHERE reservation_id IS NOT NULL;
 CREATE INDEX ix_folio_account_open ON folio (tenant_id, account_id) WHERE account_id IS NOT NULL AND status = 'open';
+CREATE UNIQUE INDEX ux_folio_guest_reservation ON folio (tenant_id, reservation_id, window_no) WHERE kind = 'guest' AND reservation_id IS NOT NULL;
 
 ALTER TABLE groupblock ADD COLUMN master_folio_id uuid,
   ADD FOREIGN KEY (tenant_id, master_folio_id) REFERENCES folio (tenant_id, id) ON DELETE SET NULL (master_folio_id);
@@ -1504,6 +1505,7 @@ CREATE TABLE foliotransaction (
 );
 CREATE INDEX ix_foliotransaction_folio ON foliotransaction (tenant_id, folio_id, posted_at);
 CREATE INDEX ix_foliotransaction_bizdate ON foliotransaction (tenant_id, property_id, business_date);
+CREATE UNIQUE INDEX ux_foliotransaction_reverses ON foliotransaction (tenant_id, reverses_transaction_id) WHERE reverses_transaction_id IS NOT NULL;
 -- One room charge per daily rate (night audit idempotency).
 CREATE UNIQUE INDEX ux_foliotransaction_dailyrate ON foliotransaction (tenant_id, reservation_daily_rate_id)
   WHERE reservation_daily_rate_id IS NOT NULL AND kind = 'charge';
@@ -3238,6 +3240,8 @@ BEGIN
   RETURN NEW;
 END $$;
 CREATE TRIGGER trg_invoice_protect BEFORE UPDATE OR DELETE ON invoice FOR EACH ROW EXECUTE FUNCTION protect_issued_invoice();
+-- 0016: issued receipts keep their paid amount, and issued invoice lines never change.
+-- See migrations/versions/0016_bill_guards.py for protect_issued_receipt() and protect_issued_invoice_line().
 
 -- Closed business days cannot be reopened silently.
 CREATE OR REPLACE FUNCTION protect_closed_businessday() RETURNS trigger

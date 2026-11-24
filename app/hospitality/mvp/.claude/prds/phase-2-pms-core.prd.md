@@ -74,7 +74,7 @@ Targets are proposed and should be reviewed after the first pilot month.
 | # | Milestone | Outcome | Status | Plan |
 |---|---|---|---|---|
 | 1 | Rooms and front desk | Staff assign real rooms and check guests in and out from today's arrivals and departures | complete | `.claude/plans/phase-2-m1-rooms-front-desk.plan.md` |
-| 2 | Guest bill | Staff see every charge and payment on one bill, settle it at check-out and give a receipt | pending | — |
+| 2 | Guest bill | Staff see every charge and payment on one bill, settle it at check-out and give a receipt | complete | `.claude/plans/phase-2-m2-guest-bill.plan.md` |
 | 3 | Tax pack | Bills show correct PBJT and service charge for the property's region, in nett or ++ pricing | pending | — |
 | 4 | Guest ID | Staff capture and confirm KTP or passport details at check-in, with restricted access | pending | — |
 | 5 | APOA reporting | Staff submit foreign guests from prepared data and can see what is reported or overdue | pending | — |

@@ -37,7 +37,7 @@ SearchText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=
 BookingTab = Literal["upcoming", "staying", "past", "cancelled"]
 BookingStatus = Literal["confirmed", "cancelled", "tentative", "in_house", "checked_out", "no_show"]
 PaymentState = Literal["unpaid", "partly_paid", "paid", "overpaid"]
-PaymentMethodIn = Literal["cash", "bank_transfer", "other"]
+PaymentMethodIn = Literal["cash", "bank_transfer", "card", "qris", "other"]
 UNITS_CEILING = 100
 GUESTS_CEILING = 500
 

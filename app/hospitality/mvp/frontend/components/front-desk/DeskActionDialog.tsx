@@ -20,17 +20,20 @@ import {
   owesMoney,
   refusedRooms,
 } from "@/lib/front-desk-format";
+import { billErrorKey } from "@/lib/bill-format";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 import { useCan } from "@/lib/rbac-store";
 
-type ConfirmKind = Exclude<DeskActionKind, "stay">;
+type ConfirmKind = Exclude<DeskActionKind, "stay" | "bill">;
 
 interface DeskActionDialogProps {
   action: { kind: ConfirmKind; entry: DeskEntry } | null;
   today: string;
   onClose: () => void;
   onDone: () => void;
+  /** Open the bill to take payment; absent without bills:view. */
+  onOpenBill?: (bookingId: string) => void;
 }
 
 const secondary =
@@ -42,11 +45,12 @@ const REASON_MAX = 300;
 const EARLY_CHOICES: readonly EarlyChoice[] = ["keep_price", "nights_stayed"];
 
 /** Confirms a check-in, check-out, no-show or undo, with what staff need to know first. */
-export function DeskActionDialog({ action, today, onClose, onDone }: DeskActionDialogProps) {
+export function DeskActionDialog({ action, today, onClose, onDone, onOpenBill }: DeskActionDialogProps) {
   const { t } = useLocale();
   const canReducePrice = useCan("bookings:edit");
   const [early, setEarly] = useState<EarlyChoice>("keep_price");
   const [reason, setReason] = useState("");
+  const [unpaidReason, setUnpaidReason] = useState("");
   const [notReady, setNotReady] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +58,7 @@ export function DeskActionDialog({ action, today, onClose, onDone }: DeskActionD
   useEffect(() => {
     setEarly("keep_price");
     setReason("");
+    setUnpaidReason("");
     setNotReady(null);
     setError(null);
   }, [action]);
@@ -61,15 +66,22 @@ export function DeskActionDialog({ action, today, onClose, onDone }: DeskActionD
   if (!action) return <Dialog open={false} onClose={onClose}>{null}</Dialog>;
   const { kind, entry } = action;
   const isEarly = kind === "checkout" && leavesEarly(entry, today);
+  const owes = owesMoney(entry);
 
   const send = () => {
     if (kind === "checkin") return checkIn(entry.id, notReady !== null);
-    if (kind === "checkout") return checkOut(entry.id, isEarly ? early : null);
+    if (kind === "checkout") {
+      return checkOut(entry.id, isEarly ? early : null, owes ? unpaidReason.trim() || null : null);
+    }
     if (kind === "noshow") return markNoShow(entry.id);
     return undoDeskAction(entry.id, reason.trim());
   };
 
   const submit = async () => {
+    if (kind === "checkout" && owes && unpaidReason.trim().length < REASON_MIN) {
+      setError(t(canReducePrice ? "bills.needUnpaidReason" : "bills.payFirst"));
+      return;
+    }
     if (kind === "undo" && reason.trim().length < REASON_MIN) {
       setError(t("frontdesk.undo.needReason"));
       return;
@@ -83,7 +95,7 @@ export function DeskActionDialog({ action, today, onClose, onDone }: DeskActionD
       if (isRefusedAs(cause, "room_not_ready")) {
         setNotReady(refusedRooms(cause));
       } else {
-        const key = deskErrorKey(cause);
+        const key = billErrorKey(cause);
         const rooms = refusedRooms(cause).join(", ");
         const text = key ? t(key) : cause instanceof Error ? cause.message : String(cause);
         setError(rooms ? `${text} (${rooms})` : text);
@@ -97,10 +109,36 @@ export function DeskActionDialog({ action, today, onClose, onDone }: DeskActionD
     <Dialog open onClose={() => !busy && onClose()} title={t(`frontdesk.confirm.${kind}.title`)}>
       <div className="space-y-3 text-sm">
         <p>{t(`frontdesk.confirm.${kind}.body`, { guest: entry.guest_name })}</p>
-        {(kind === "checkin" || kind === "checkout") && owesMoney(entry) && (
+        {kind === "checkin" && owes && (
           <p role="status" className="rounded-lg bg-accent px-3 py-2 text-accent-foreground">
             {t("frontdesk.balanceWarning", { amount: formatRupiah(entry.balance_due) })}
           </p>
+        )}
+        {kind === "checkout" && owes && (
+          <div className="space-y-2 rounded-lg bg-destructive/10 px-3 py-2">
+            <p role="status" className="font-medium text-destructive">
+              {t("bills.checkoutBlocked", { amount: formatRupiah(entry.balance_due) })}
+            </p>
+            {onOpenBill && (
+              <button type="button" onClick={() => onOpenBill(entry.id)} className={secondary}>
+                {t("bills.takePayment")}
+              </button>
+            )}
+            {canReducePrice && (
+              <div>
+                <label htmlFor="desk-unpaid-reason" className="mb-1 block">
+                  {t("bills.leaveUnpaid")}
+                </label>
+                <input
+                  id="desk-unpaid-reason"
+                  maxLength={REASON_MAX}
+                  value={unpaidReason}
+                  onChange={(event) => setUnpaidReason(event.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            )}
+          </div>
         )}
         {notReady && (
           <p role="alert" className="rounded-lg bg-destructive/15 px-3 py-2 text-destructive">

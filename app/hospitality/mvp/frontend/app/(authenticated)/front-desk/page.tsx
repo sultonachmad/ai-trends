@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { BillDialog } from "@/components/bills/BillDialog";
 import { AssignRoomDialog } from "@/components/front-desk/AssignRoomDialog";
 import { DeskActionDialog } from "@/components/front-desk/DeskActionDialog";
 import {
@@ -29,18 +30,20 @@ import { fetchOnboardingStatus } from "@/lib/workspace-api";
 
 const FORBIDDEN = 403;
 const TAB_ACTIONS: Record<Exclude<DeskTab, "rooms">, readonly DeskActionKind[]> = {
-  arrivals: ["checkin", "noshow"],
-  in_house: ["checkout", "stay", "undo"],
-  departures: ["checkout", "stay"],
+  arrivals: ["checkin", "bill", "noshow"],
+  in_house: ["checkout", "bill", "stay", "undo"],
+  departures: ["checkout", "bill", "stay"],
 };
 const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 
-type ConfirmAction = { kind: Exclude<DeskActionKind, "stay">; entry: DeskEntry };
+type ConfirmAction = { kind: Exclude<DeskActionKind, "stay" | "bill">; entry: DeskEntry };
 
 export default function FrontDeskPage() {
   const router = useRouter();
   const { t, locale } = useLocale();
   const canEdit = useCan("frontdesk:edit");
+  const canSeeBills = useCan("bills:view");
+  const [billId, setBillId] = useState<string | null>(null);
   const [desk, setDesk] = useState<DeskToday | null>(null);
   const [tab, setTab] = useState<DeskTab>("arrivals");
   const [noAccess, setNoAccess] = useState(false);
@@ -88,6 +91,7 @@ export default function FrontDeskPage() {
   };
   const onAction = (kind: DeskActionKind, entry: DeskEntry) => {
     if (kind === "stay") setChanging(entry);
+    else if (kind === "bill") setBillId(entry.id);
     else setAction({ kind, entry });
   };
   const card = (entry: DeskEntry, actions: readonly DeskActionKind[]) => (
@@ -153,7 +157,9 @@ export default function FrontDeskPage() {
           {list.map((entry) =>
             card(
               entry,
-              TAB_ACTIONS[tab].filter((kind) => kind !== "undo" || entry.can_undo),
+              TAB_ACTIONS[tab].filter(
+                (kind) => (kind !== "undo" || entry.can_undo) && (kind !== "bill" || canSeeBills),
+              ),
             ),
           )}
         </ul>
@@ -163,7 +169,7 @@ export default function FrontDeskPage() {
           <h2 id="desk-done" className="text-sm font-semibold">
             {t("frontdesk.doneToday")}
           </h2>
-          <ul className="space-y-3">{desk.done_today.map((entry) => card(entry, ["undo"]))}</ul>
+          <ul className="space-y-3">{desk.done_today.map((entry) => card(entry, canSeeBills ? ["bill", "undo"] : ["undo"]))}</ul>
         </section>
       )}
       <AssignRoomDialog
@@ -178,6 +184,20 @@ export default function FrontDeskPage() {
             today={desk.date}
             onClose={() => setAction(null)}
             onDone={finished}
+            onOpenBill={
+              canSeeBills
+                ? (id) => {
+                    setAction(null);
+                    setBillId(id);
+                  }
+                : undefined
+            }
+          />
+          <BillDialog
+            bookingId={billId}
+            today={desk.date}
+            onClose={() => setBillId(null)}
+            onChanged={() => void load()}
           />
           <StayChangeDialog
             entry={changing}

@@ -195,6 +195,15 @@ components:
 - name: StayChangeDialog
   path: frontend/components/front-desk/StayChangeDialog.tsx
   description: Changes departure, guests and notes after check-in
+- name: BillDialog
+  path: frontend/components/bills/BillDialog.tsx
+  description: A booking's bill with nights, extras, payments, balance, voids and receipts
+- name: BillForms
+  path: frontend/components/bills/BillForms.tsx
+  description: Extra, payment, discount and correction forms on the bill
+- name: PrintableBill
+  path: frontend/components/bills/PrintableBill.tsx
+  description: Printable bill or receipt layout
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -287,6 +296,12 @@ pages:
 - name: FrontDeskPage
   path: frontend/app/(authenticated)/front-desk/page.tsx
   description: Arrivals, in-house, departures and rooms, permission frontdesk:view
+- name: ReceiptPage
+  path: frontend/app/(authenticated)/receipts/[id]/page.tsx
+  description: A receipt exactly as issued, ready to print
+- name: BillPrintPage
+  path: frontend/app/(authenticated)/bills/[id]/page.tsx
+  description: The unnumbered bill so far, printable before check-out
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -402,5 +417,11 @@ utilities:
 - name: front-desk-api
   path: frontend/lib/front-desk-api.ts
   description: Calls the /api/front-desk routes
+- name: bill-format
+  path: frontend/lib/bill-format.ts
+  description: Bill form checks, balance state and labels
+- name: bills-api
+  path: frontend/lib/bills-api.ts
+  description: Calls the /api/bills routes
 api_routes:
 - api/auth/[...nextauth]

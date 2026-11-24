@@ -101,6 +101,12 @@ class PricePermissionError(FrontDeskError):
     status_code = 403
 
 
+class UnpaidPermissionError(FrontDeskError):
+    code = "unpaid_permission"
+    message = "Only staff who can edit bookings may let a guest leave without paying."
+    status_code = 403
+
+
 class NotAssignableError(FrontDeskError):
     code = "not_assignable"
     message = "Rooms can be assigned only to confirmed or checked-in bookings."

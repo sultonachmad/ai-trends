@@ -130,6 +130,13 @@ class FolioTransaction(TenantRecord, table=True):
         Index("ix_foliotransaction_folio", "tenant_id", "folio_id", "posted_at"),
         Index("ix_foliotransaction_bizdate", "tenant_id", "property_id", "business_date"),
         Index(
+            "ux_foliotransaction_reverses",
+            "tenant_id",
+            "reverses_transaction_id",
+            unique=True,
+            postgresql_where=text("reverses_transaction_id IS NOT NULL"),
+        ),
+        Index(
             "ux_foliotransaction_dailyrate",
             "tenant_id",
             "reservation_daily_rate_id",

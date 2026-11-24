@@ -16,6 +16,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.tenant import Payment, Property, Reservation
 from app.schemas.bookings import PaymentRecordRequest
 from app.services import calendar_dates as dates_of
+from app.services.bill_balance import refresh_balance
 from app.services.booking_reads import CAPTURED, captured_payments
 from app.services.bookings import TENTATIVE, BookingHeldError, get_for_update, lock_property
 from app.tenancy.context import TenantContext
@@ -49,8 +50,7 @@ async def _recompute(session: AsyncSession, context: TenantContext, booking: Res
         Decimal("0"),
     )
     booking.paid_amount = paid
-    booking.balance_due = booking.total_amount - paid
-    session.add(booking)
+    await refresh_balance(session, context.tenant_id, booking)
 
 
 async def record_payment(

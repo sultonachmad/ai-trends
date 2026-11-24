@@ -9,13 +9,16 @@ import logging
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.tenant import Property, Reservation, ReservationUnit, Unit
+from app.models.tenant import Invoice, Property, Reservation, ReservationUnit, Unit
 from app.schemas.front_desk import CheckInRequest, CheckOutRequest, UndoRequest
 from app.services import calendar_dates as dates_of
 from app.services import front_desk_errors as errors
 from app.services import inventory, tenant_audit
+from app.services.bill_balance import refresh_balance
+from app.services.bill_errors import BalanceOwedError
 from app.services.bookings import (
     BookingNotFoundError,
     _queue_channel_update,
@@ -26,6 +29,7 @@ from app.services.bookings import (
     stay_of,
 )
 from app.services.front_desk_reads import is_on_day
+from app.services.receipts import issue_receipt
 from app.services.room_assignment import _locked_units, room_name
 from app.services.stay_changes import shorten_stay
 from app.services.stay_status import (
@@ -33,6 +37,7 @@ from app.services.stay_status import (
     CONFIRMED,
     IN_HOUSE,
     LEFT_EARLY,
+    LEFT_UNPAID,
     NO_SHOW,
     NO_SHOW_AT,
 )
@@ -49,6 +54,7 @@ from app.tenancy.context import TenantContext
 log = logging.getLogger(__name__)
 
 ENTITY = "reservation"
+REFUND_AT_CHECKOUT = "refund_at_checkout"  # the refund flag came from this check-out
 
 
 async def _locked(
@@ -163,9 +169,6 @@ async def _leave_early(
         keep_price=request.early == "keep_price",
     )
     booking.departure_date = last_day
-    booking.balance_due = booking.total_amount - booking.paid_amount
-    if booking.paid_amount > booking.total_amount:
-        booking.source_detail = {**booking.source_detail, "refund_due": True}
     await _queue_channel_update(session, context, prop.id, [old, new])
     return {
         "early": request.early,
@@ -173,6 +176,33 @@ async def _leave_early(
         "total_after": str(booking.total_amount),
         "nights_removed": old.night_count - new.night_count,
     }
+
+
+async def _settle(
+    session: AsyncSession,
+    context: TenantContext,
+    booking: Reservation,
+    request: CheckOutRequest,
+) -> None:
+    """Block a departure with money owed, unless allowed; flag money owed back."""
+    await refresh_balance(session, context.tenant_id, booking)
+    if booking.balance_due > 0:
+        if not request.leave_unpaid_reason:
+            raise BalanceOwedError
+        booking.source_detail = {
+            **booking.source_detail,
+            LEFT_UNPAID: {
+                "reason": request.leave_unpaid_reason,
+                "amount": str(booking.balance_due),
+                "by": str(context.user_id),
+            },
+        }
+    elif booking.balance_due < 0 and not booking.source_detail.get("refund_due"):
+        booking.source_detail = {
+            **booking.source_detail,
+            "refund_due": True,
+            REFUND_AT_CHECKOUT: True,
+        }
 
 
 async def check_out(
@@ -193,12 +223,17 @@ async def check_out(
     payload: dict = {}
     if leaving_early:
         payload = await _leave_early(session, context, prop, booking, lines, today, request)
+    await _settle(session, context, booking, request)
+    await issue_receipt(session, context, prop, booking)
     units = await _locked_units(session, context, [line.unit_id for line in lines])
     now = dt.datetime.now(dt.UTC)
     for line in lines:
         line.checked_out_at, line.checked_out_by = now, str(context.user_id)
         set_unit_status(session, context, units[line.unit_id], fo=VACANT, hk=DIRTY)
     _set_status(booking, lines, CHECKED_OUT)
+    unpaid = booking.source_detail.get(LEFT_UNPAID)
+    if unpaid:
+        payload = {**payload, "left_unpaid": unpaid["amount"], "reason": unpaid["reason"]}
     return await _finish(session, context, booking, lines, "booking.checked_out", payload)
 
 
@@ -259,6 +294,10 @@ async def _undo_check_out(
     for line in lines:
         line.checked_out_at, line.checked_out_by = None, None
         set_unit_status(session, context, units[line.unit_id], fo=OCCUPIED)
+    detail = {k: v for k, v in booking.source_detail.items() if k != LEFT_UNPAID}
+    if detail.pop(REFUND_AT_CHECKOUT, False):
+        detail["refund_due"] = False  # check-out raised it; the next check-out decides again
+    booking.source_detail = detail
     _set_status(booking, lines, IN_HOUSE)
 
 
@@ -295,6 +334,24 @@ async def _undo_no_show(
     _set_status(booking, lines, CONFIRMED)
 
 
+async def _receipt_numbers(
+    session: AsyncSession, context: TenantContext, booking_id: UUID
+) -> list[str]:
+    from app.services.bills import booking_folios
+
+    folio_ids = [folio.id for folio in await booking_folios(session, context, booking_id)]
+    if not folio_ids:
+        return []
+    rows = await session.exec(
+        select(col(Invoice.number)).where(
+            col(Invoice.tenant_id) == context.tenant_id,
+            col(Invoice.folio_id).in_(folio_ids),
+            col(Invoice.kind) == "receipt",
+        )
+    )
+    return [number for number in rows.all() if number]
+
+
 async def undo(
     session: AsyncSession,
     context: TenantContext,
@@ -315,4 +372,6 @@ async def undo(
     else:
         raise errors.UndoNotAllowedError
     payload = {"undone": was, "reason": request.reason}
+    if was == CHECKED_OUT:
+        payload["receipts_before"] = await _receipt_numbers(session, context, booking.id)
     return await _finish(session, context, booking, lines, "booking.front_desk_undo", payload)

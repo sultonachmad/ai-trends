@@ -20,6 +20,7 @@ pytestmark = pytest.mark.integration
 
 DESK = "/api/front-desk"
 BOOKINGS = "/api/bookings"
+LEAVE = {"leave_unpaid_reason": "Bayar nanti"}  # these tests are not about money
 
 
 async def _setup(client, units: int = 3) -> dict:
@@ -226,7 +227,7 @@ async def test_check_out_on_the_day_leaves_the_room_dirty(pg_client, pg_session)
     booking = await _checked_in(pg_session, pg_client, ctx, 0, 2)
     await _backdate(pg_session, booking["id"], 2)
 
-    response = await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json={})
+    response = await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json=LEAVE)
 
     assert response.status_code == 200, response.text
     detail = (await pg_client.get(f"{BOOKINGS}/{booking['id']}")).json()
@@ -252,7 +253,7 @@ async def test_leaving_early_frees_the_nights(pg_client, pg_session, early, tota
     booking = await _checked_in(pg_session, pg_client, ctx, -1, 2)  # came yesterday
 
     response = await pg_client.post(
-        f"{DESK}/bookings/{booking['id']}/check-out", json={"early": early}
+        f"{DESK}/bookings/{booking['id']}/check-out", json={**LEAVE, "early": early}
     )
 
     assert response.status_code == 200, response.text
@@ -271,7 +272,7 @@ async def test_leaving_on_arrival_day_keeps_one_night(pg_client, pg_session) -> 
     booking = await _checked_in(pg_session, pg_client, ctx, 0, 3)
 
     response = await pg_client.post(
-        f"{DESK}/bookings/{booking['id']}/check-out", json={"early": "nights_stayed"}
+        f"{DESK}/bookings/{booking['id']}/check-out", json={**LEAVE, "early": "nights_stayed"}
     )
 
     assert response.status_code == 200, response.text
@@ -380,7 +381,7 @@ async def test_undo_check_out_restores_the_guest(pg_client, pg_session) -> None:
     ctx = await _setup(pg_client)
     booking = await _checked_in(pg_session, pg_client, ctx, 0, 1)
     await _backdate(pg_session, booking["id"], 1)
-    await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json={})
+    await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json=LEAVE)
 
     response = await pg_client.post(
         f"{DESK}/bookings/{booking['id']}/undo", json={"reason": "Belum pergi"}
@@ -393,7 +394,9 @@ async def test_undo_check_out_restores_the_guest(pg_client, pg_session) -> None:
 async def test_undo_check_out_is_refused_after_leaving_early(pg_client, pg_session) -> None:
     ctx = await _setup(pg_client)
     booking = await _checked_in(pg_session, pg_client, ctx, 0, 3)
-    await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json={"early": "keep_price"})
+    await pg_client.post(
+        f"{DESK}/bookings/{booking['id']}/check-out", json={**LEAVE, "early": "keep_price"}
+    )
 
     response = await pg_client.post(
         f"{DESK}/bookings/{booking['id']}/undo", json={"reason": "Salah"}
@@ -488,7 +491,7 @@ async def test_todays_finished_stays_stay_reachable_for_undo(pg_client, pg_sessi
     left = await _checked_in(pg_session, pg_client, ctx, 0, 1)
     await _backdate(pg_session, left["id"], 1)
     missed = await _book(pg_client, ctx, 0, 2)
-    await pg_client.post(f"{DESK}/bookings/{left['id']}/check-out", json={})
+    await pg_client.post(f"{DESK}/bookings/{left['id']}/check-out", json=LEAVE)
     await pg_client.post(f"{DESK}/bookings/{missed['id']}/no-show")
 
     done = {entry["id"] for entry in (await _today(pg_client))["done_today"]}
@@ -499,7 +502,9 @@ async def test_todays_finished_stays_stay_reachable_for_undo(pg_client, pg_sessi
 async def test_a_shortened_stay_is_not_offered_for_undo(pg_client, pg_session) -> None:
     ctx = await _setup(pg_client)
     booking = await _checked_in(pg_session, pg_client, ctx, 0, 3)
-    await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json={"early": "keep_price"})
+    await pg_client.post(
+        f"{DESK}/bookings/{booking['id']}/check-out", json={**LEAVE, "early": "keep_price"}
+    )
 
     assert (await _today(pg_client))["done_today"] == []
 
@@ -532,6 +537,10 @@ async def test_charging_fewer_nights_needs_booking_edit(
     url = f"{DESK}/bookings/{booking['id']}/check-out"
 
     refused = await other_client.post(url, json={"early": "nights_stayed"})
+    await pg_client.post(
+        f"{BOOKINGS}/{booking['id']}/payments",
+        json={"amount": "1500000", "method": "cash", "received_on": _on(ctx, 0)},
+    )
     allowed = await other_client.post(url, json={"early": "keep_price"})
 
     assert (refused.status_code, _code(refused)) == (403, "price_permission")
@@ -588,7 +597,7 @@ async def test_undo_check_out_is_refused_after_shortening_while_in_house(
     ctx = await _setup(pg_client)
     booking = await _checked_in(pg_session, pg_client, ctx, -1, 3)
     await pg_client.patch(f"{BOOKINGS}/{booking['id']}", json={"departure": _on(ctx, 0)})
-    await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json={})
+    await pg_client.post(f"{DESK}/bookings/{booking['id']}/check-out", json=LEAVE)
 
     response = await pg_client.post(
         f"{DESK}/bookings/{booking['id']}/undo", json={"reason": "Salah"}

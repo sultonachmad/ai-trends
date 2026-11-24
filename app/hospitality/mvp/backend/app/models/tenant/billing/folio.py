@@ -99,6 +99,14 @@ class Folio(TenantEntity, table=True):
             "account_id",
             postgresql_where=text("(account_id IS NOT NULL) AND (status = 'open'::text)"),
         ),
+        Index(
+            "ux_folio_guest_reservation",
+            "tenant_id",
+            "reservation_id",
+            "window_no",
+            unique=True,
+            postgresql_where=text("kind = 'guest' AND reservation_id IS NOT NULL"),
+        ),
         MIGRATION_ONLY,
     )
 

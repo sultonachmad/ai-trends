@@ -101,6 +101,8 @@ permissions:
   "reports:view":      "See revenue and channel reports"
   "frontdesk:view":    "See arrivals, in-house guests, departures and rooms"
   "frontdesk:edit":    "Assign rooms and check guests in and out"
+  "bills:view":        "See guest bills and receipts"
+  "bills:edit":        "Add charges and payments to guest bills (discounts also need bookings:edit)"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────

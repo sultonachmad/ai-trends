@@ -14,8 +14,14 @@ export const STAFF_SOURCES: readonly BookingSourceCode[] = [
   "other",
 ];
 export type PaymentState = "unpaid" | "partly_paid" | "paid" | "overpaid";
-export type PaymentMethod = "cash" | "bank_transfer" | "other";
-export const PAYMENT_METHODS: readonly PaymentMethod[] = ["cash", "bank_transfer", "other"];
+export type PaymentMethod = "cash" | "bank_transfer" | "card" | "qris" | "other";
+export const PAYMENT_METHODS: readonly PaymentMethod[] = [
+  "cash",
+  "bank_transfer",
+  "card",
+  "qris",
+  "other",
+];
 
 export interface Booking {
   id: string;

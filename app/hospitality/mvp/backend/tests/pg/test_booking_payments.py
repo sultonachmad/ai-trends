@@ -127,7 +127,7 @@ async def test_the_list_shows_the_payment_state(pg_client) -> None:
         {"amount": 0},
         {"amount": -5},
         {"amount": "1000.5"},
-        {"method": "qris"},
+        {"method": "ewallet"},
         {"method": "bitcoin"},
         {"received_on": "TOMORROW"},
         {"received_on": "TOO_OLD"},

@@ -392,9 +392,11 @@ def create_app() -> FastAPI:
     from app.routers.channels import channels_router, connections_router
 
     app.include_router(channels_router)
+    from app.routers.bills import bills_router
     from app.routers.front_desk import front_desk_router
     from app.routers.reports import reports_router
 
+    app.include_router(bills_router)
     app.include_router(front_desk_router)
     app.include_router(reports_router)
     from app.routers.booking_page import (

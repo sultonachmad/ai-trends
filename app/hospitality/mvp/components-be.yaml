@@ -875,6 +875,9 @@ api_routers:
 - name: front_desk
   file: backend/app/routers/front_desk.py
   description: /api/front-desk routes, permissions frontdesk:view and frontdesk:edit
+- name: bills
+  file: backend/app/routers/bills.py
+  description: /api/bills routes, permissions bills:view and bills:edit (price changes need bookings:edit)
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -1086,6 +1089,21 @@ services:
 - name: front_desk_errors
   file: backend/app/services/front_desk_errors.py
   description: Front desk refusals with stable codes the page translates
+- name: bill_balance
+  file: backend/app/services/bill_balance.py
+  description: The one rule for what a guest owes (room unless the channel was paid, plus bill lines, less payments)
+- name: bills
+  file: backend/app/services/bills.py
+  description: Bill categories, guest bill, charges, discounts, same-day voids and corrections
+- name: bill_reads
+  file: backend/app/services/bill_reads.py
+  description: Reads a guest bill with nights, lines, payments and receipts
+- name: bill_errors
+  file: backend/app/services/bill_errors.py
+  description: Bill refusals with stable codes
+- name: receipts
+  file: backend/app/services/receipts.py
+  description: Numbered, frozen receipts issued at check-out
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1319,3 +1337,6 @@ migrations:
 - name: 0015_checkout_index
   file: backend/migrations/versions/0015_checkout_index.py
   description: Partial index on reservationunit check-out time for the front desk
+- name: 0016_bill_guards
+  file: backend/migrations/versions/0016_bill_guards.py
+  description: One guest bill per booking, one void per line, frozen receipt lines and paid amount
