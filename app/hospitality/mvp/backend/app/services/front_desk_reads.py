@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.tenant import Channel, Guest, Property, Reservation, ReservationUnit, Unit, UnitType
 from app.schemas.front_desk import FrontDeskEntry, FrontDeskRoom, FrontDeskToday, RoomToday
 from app.services import calendar_dates as dates_of
+from app.services.bill_taxes import with_tax
 from app.services.booking_reads import _by_id
 from app.services.bookings import balance_to_collect, lines_of
 from app.services.room_assignment import room_name
@@ -88,6 +89,7 @@ async def read_entries(
                 children=booking.children,
                 source=sources[booking.channel_id].name,
                 total_amount=booking.total_amount,
+                total_with_tax=with_tax(booking),
                 balance_due=balance_to_collect(booking),
                 overdue=_is_overdue(booking, today),
                 can_undo=booking.status == IN_HOUSE

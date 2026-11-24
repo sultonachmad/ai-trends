@@ -39,6 +39,7 @@ from app.schemas.bookings import (
     RefundRecord,
 )
 from app.services import calendar_dates as dates_of
+from app.services.bill_taxes import with_tax
 from app.services.booking_pricing import suggested_total
 from app.services.booking_stays import Stay, check_stay
 from app.services.bookings import (
@@ -234,6 +235,7 @@ async def read_many(
                     code=source.code, name=source.name, is_direct=source.is_direct
                 ),
                 total_amount=booking.total_amount,
+                total_with_tax=with_tax(booking),
                 paid_amount=booking.paid_amount,
                 balance_due=balance_to_collect(booking),
                 payment_state=payment_state(booking.balance_due, booking.paid_amount),

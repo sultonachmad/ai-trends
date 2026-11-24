@@ -24,6 +24,7 @@ from app.services import calendar_dates as dates_of
 from app.services import tenant_audit
 from app.services.bill_balance import CHANNEL_COLLECTS, room_owed
 from app.services.bill_reads import bill_entries
+from app.services.bill_taxes import bill_tax
 from app.services.bills import guest_folio
 from app.services.bookings import lines_of
 from app.services.front_desk_errors import NotFoundError
@@ -100,7 +101,15 @@ async def issue_receipt(
     guest = await session.get(Guest, booking.booker_guest_id) if booking.booker_guest_id else None
     extras = [line for line in await bill_entries(session, context, [folio.id]) if not line.voided]
     room_line = await _room_line(session, context, booking)
-    total = room_line.amount + sum((line.amount for line in extras), Decimal(0))
+    taxes = await bill_tax(session, context.tenant_id, booking)
+    room_tax = sum(
+        (i.parts.service + i.parts.pbjt for i in taxes.items if i.key.startswith("room:")),
+        Decimal(0),
+    )
+    room_line.tax_amount = room_tax
+    line_tax = {i.key: i.parts.service + i.parts.pbjt for i in taxes.items}
+    subtotal = room_line.amount + sum((line.amount for line in extras), Decimal(0))
+    total = subtotal + taxes.added
     receipt = Invoice(
         tenant_id=context.tenant_id,
         legal_entity_id=prop.legal_entity_id,
@@ -120,9 +129,13 @@ async def issue_receipt(
             "departure": booking.departure_date.isoformat(),
             "property_name": prop.name,
             "paid_to_channel": booking.payment_collect_model == CHANNEL_COLLECTS,
+            "price_mode": taxes.mode,
+            "service": str(taxes.service),
+            "pbjt": str(taxes.pbjt),
         },
         currency=booking.currency,
-        subtotal=total,
+        subtotal=subtotal,
+        tax_total=taxes.service + taxes.pbjt,  # inside the prices when nett, on top when ++
         total=total,
         paid_amount=booking.paid_amount,
         created_by=str(context.user_id),
@@ -140,6 +153,7 @@ async def issue_receipt(
             quantity=line.quantity,
             unit_price=line.unit_price if line.unit_price is not None else line.amount,
             amount=line.amount,
+            tax_amount=line_tax.get(str(line.id), Decimal(0)),
         )
         for index, line in enumerate(extras, start=2)
     ]
@@ -151,7 +165,11 @@ async def issue_receipt(
         property_id=prop.id,
         entity_table="invoice",
         entity_id=receipt.id,
-        payload={"number": receipt.number, "total": str(total)},
+        payload={
+            "number": receipt.number,
+            "total": str(total),
+            "tax": str(taxes.service + taxes.pbjt),
+        },
     )
     log.info("Receipt issued booking=%s number=%s", booking.id, receipt.number)
     return receipt
@@ -207,6 +225,10 @@ async def read_receipt(
             )
             for line in lines
         ],
+        taxes_included=snapshot.get("price_mode", "nett") == "nett",
+        subtotal=receipt.subtotal,
+        service=Decimal(str(snapshot.get("service", "0"))),
+        pbjt=Decimal(str(snapshot.get("pbjt", "0"))),
         total=receipt.total,
         paid=receipt.paid_amount,
         balance=receipt.total - receipt.paid_amount,

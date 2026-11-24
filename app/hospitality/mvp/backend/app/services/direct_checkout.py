@@ -30,6 +30,7 @@ from app.models.tenant import (
 from app.payments.tokens import fingerprint
 from app.schemas.booking_page import CheckoutRequest, CheckoutResult
 from app.services import booking_tokens as tokens
+from app.services.bill_taxes import with_tax
 from app.services.booking_guests import find_or_create_guest
 from app.services.booking_holds import BOOKING_PAGE
 from app.services.booking_search import deposit_of, stay_problem
@@ -38,6 +39,7 @@ from app.services.booking_stays import Stay, check_stay
 from app.services.bookings import TENTATIVE, BookingOrder, book_in_transaction, lock_property
 from app.services.calendar_dates import property_today
 from app.services.payment_links import SUPPORTED_METHODS, money, pay_url
+from app.services.tax_rules import priced, rate_book
 from app.tenancy.business_settings import PropertySettings, resolve_property_settings
 from app.tenancy.context import TenantContext
 
@@ -115,7 +117,7 @@ async def _result_for(
         pay_url=pay_url(tokens.derive(seed, tokens.PAY)),
         booking_path=tokens.guest_path(seed),
         amount_due=money(link.amount),
-        total=money(booking.total_amount),
+        total=money(with_tax(booking)),
         hold_expires_at=link.expires_at,
     )
 
@@ -240,7 +242,12 @@ async def _create(
     problem, required = stay_problem(checked)
     if problem:
         raise CheckoutError(problem, 409, min_stay=required)
-    total = sum((night.amount for night in checked.nights), Decimal("0"))
+    book = await rate_book(session, context.tenant_id, property_id)
+    total, _tax = priced(
+        book,
+        prop.price_display_mode,
+        [(night.date, night.amount) for night in checked.nights],
+    )
     if total != request.expected_total:
         raise CheckoutError("price_changed", 409, total=str(money(total)))
     due = _amount_due(request, total, settings)

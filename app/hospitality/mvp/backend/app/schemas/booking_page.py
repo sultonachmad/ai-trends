@@ -75,7 +75,8 @@ class PublicCalendar(BaseModel):
 class PublicRateOption(BaseModel):
     rate_plan_id: UUID
     name: str
-    total: Decimal
+    total: Decimal  # what the guest pays, service charge and PBJT included
+    tax: Decimal = Decimal("0")  # the service charge and PBJT inside the total
     deposit: Decimal
     non_refundable: bool
     free_cancellation_days: int | None

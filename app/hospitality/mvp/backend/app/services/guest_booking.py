@@ -14,6 +14,7 @@ from app.models.tenant import Property, RatePlan, Reservation, UnitType
 from app.schemas.booking_page import GuestBookingView, GuestCancelRequest
 from app.services import booking_holds as holds
 from app.services import booking_tokens as tokens
+from app.services.bill_taxes import with_tax
 from app.services.bookings import (
     CANCELLED,
     TENTATIVE,
@@ -117,7 +118,7 @@ async def read_view(scope: GuestBookingScope) -> GuestBookingView:
         children=booking.children,
         guest_name=str(detail.get("booker_name") or (guest.full_name if guest else "")),
         phone_hint=_hint(guest.whatsapp_phone if guest else None),
-        total=money(booking.total_amount),
+        total=money(with_tax(booking)),
         paid=money(booking.paid_amount),
         balance=money(balance_to_collect(booking)),
         non_refundable=bool(terms.get("non_refundable")),

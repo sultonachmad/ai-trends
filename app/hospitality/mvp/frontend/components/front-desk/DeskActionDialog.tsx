@@ -14,7 +14,6 @@ import {
   type EarlyChoice,
 } from "@/lib/front-desk-api";
 import {
-  deskErrorKey,
   isRefusedAs,
   leavesEarly,
   owesMoney,

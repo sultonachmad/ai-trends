@@ -204,6 +204,9 @@ components:
 - name: PrintableBill
   path: frontend/components/bills/PrintableBill.tsx
   description: Printable bill or receipt layout
+- name: TaxSection
+  path: frontend/components/settings/TaxSection.tsx
+  description: Region, PBJT, service charge, price mode and taxed extras with owner confirmation
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -423,5 +426,11 @@ utilities:
 - name: bills-api
   path: frontend/lib/bills-api.ts
   description: Calls the /api/bills routes
+- name: tax-format
+  path: frontend/lib/tax-format.ts
+  description: Tax form checks and the price example
+- name: taxes-api
+  path: frontend/lib/taxes-api.ts
+  description: Calls /api/settings/taxes
 api_routes:
 - api/auth/[...nextauth]

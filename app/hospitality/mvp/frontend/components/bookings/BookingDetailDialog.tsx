@@ -267,7 +267,7 @@ export function BookingDetailDialog({
             <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-3 text-center">
               {(
                 [
-                  ["bookings.detail.total", booking.total_amount],
+                  ["bookings.detail.total", booking.total_with_tax],
                   ["bookings.detail.paid", booking.paid_amount],
                   ["bookings.detail.balance", booking.balance_due],
                 ] as const

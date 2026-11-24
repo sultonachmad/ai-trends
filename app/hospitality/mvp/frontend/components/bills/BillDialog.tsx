@@ -204,6 +204,18 @@ export function BillDialog({ bookingId, today, onClose, onChanged }: BillDialogP
               <dt>{t("bills.totalExtras")}</dt>
               <dd className="tabular-nums">{formatRupiah(bill.extras_total)}</dd>
             </div>
+            {bill.taxes.confirmed && !bill.taxes.included && (
+              <>
+                <div className={row}>
+                  <dt>{t("bills.service")}</dt>
+                  <dd className="tabular-nums">{formatRupiah(bill.taxes.service)}</dd>
+                </div>
+                <div className={row}>
+                  <dt>{t("bills.pbjt")}</dt>
+                  <dd className="tabular-nums">{formatRupiah(bill.taxes.pbjt)}</dd>
+                </div>
+              </>
+            )}
             <div className={row}>
               <dt>{t("bills.totalPaid")}</dt>
               <dd className="tabular-nums">{formatRupiah(bill.paid)}</dd>
@@ -213,6 +225,14 @@ export function BillDialog({ bookingId, today, onClose, onChanged }: BillDialogP
               <dd className="tabular-nums">{formatRupiah(String(Math.abs(Number(bill.balance))))}</dd>
             </div>
           </dl>
+          {bill.taxes.confirmed && bill.taxes.included && (
+            <p className="text-xs text-muted-foreground">
+              {t("bills.taxIncluded", {
+                service: formatRupiah(bill.taxes.service),
+                pbjt: formatRupiah(bill.taxes.pbjt),
+              })}
+            </p>
+          )}
           {voiding && (
             <div className="space-y-2 rounded-lg border border-destructive/40 p-3">
               <label htmlFor="bill-void-reason" className="block font-medium">

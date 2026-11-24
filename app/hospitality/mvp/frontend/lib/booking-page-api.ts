@@ -42,6 +42,8 @@ export interface RateOption {
   rate_plan_id: string;
   name: string;
   total: string;
+  /** Service charge and PBJT inside the total. */
+  tax: string;
   deposit: string;
   non_refundable: boolean;
   free_cancellation_days: number | null;

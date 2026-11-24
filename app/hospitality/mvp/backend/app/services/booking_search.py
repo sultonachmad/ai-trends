@@ -26,6 +26,8 @@ from app.services import rate_policies as policies
 from app.services.booking_stays import CheckedStay, OverCapacityError, Stay, check_dates, check_stay
 from app.services.calendar import read_calendar
 from app.services.rate_plans import find_base_prices
+from app.services.tax_rules import RateBook, rate_book
+from app.services.tax_rules import priced as taxed_price
 from app.tenancy.business_settings import PropertySettings, resolve_property_settings
 from app.tenancy.context import TenantContext
 
@@ -129,6 +131,8 @@ async def read_public_calendar(
     pairs = await sellable_pairs(session, context, prop)
     sold = {(pair.room.id, pair.plan.id) for pair in pairs}
     calendar = await read_calendar(session, context, prop, start, end)
+    book = await rate_book(session, context.tenant_id, prop.id)
+    mode = prop.price_display_mode
     best: dict[dt.date, tuple[Decimal, int | None]] = {}
     for room in calendar.room_types:
         for day in room.days:
@@ -137,7 +141,7 @@ async def read_public_calendar(
             prices = [p.amount for p in day.prices if (room.id, p.rate_plan_id) in sold]
             if not prices:
                 continue
-            low = min(prices)
+            low = taxed_price(book, mode, [(day.date, min(prices))])[0]  # what the guest pays
             current = best.get(day.date)
             if current is None or low < current[0]:
                 best[day.date] = (low, day.min_stay)
@@ -160,16 +164,21 @@ async def _option(
     context: TenantContext,
     checked: CheckedStay,
     settings: PropertySettings,
+    prop_mode: str,
+    book: RateBook,
 ) -> PublicRateOption:
+    """What the guest pays for this plan, service charge and PBJT included."""
     policy_id = checked.plan.cancellation_policy_id
     terms = policies.terms_of(
         (await policies.policies_by_id(session, context, {policy_id}))[policy_id]
     )
-    total = sum((night.amount for night in checked.nights), Decimal("0"))
+    nights = [(night.date, night.amount) for night in checked.nights]
+    total, tax = taxed_price(book, prop_mode, nights)
     return PublicRateOption(
         rate_plan_id=checked.plan.id,
         name=checked.plan.name,
         total=total,
+        tax=tax,
         deposit=deposit_of(total, settings.direct_deposit_percent),
         non_refundable=terms.non_refundable,
         free_cancellation_days=terms.free_days,
@@ -192,6 +201,7 @@ async def search(
     settings = resolve_property_settings(prop.settings)
     today = dates_of.property_today(prop.timezone)
     pairs = (await sellable_pairs(session, context, prop))[:MAX_SEARCH_PAIRS]
+    book = await rate_book(session, context.tenant_id, prop.id)
     rooms: dict[object, PublicRoomResult] = {}
     reasons: dict[str, int | None] = {}
     for pair in pairs:
@@ -217,7 +227,9 @@ async def search(
                 options=[],
             ),
         )
-        result.options.append(await _option(session, context, checked, settings))
+        result.options.append(
+            await _option(session, context, checked, settings, prop.price_display_mode, book)
+        )
     reason = None
     if not rooms:
         reason = next((r for r in _REASON_ORDER if r in reasons), "sold_out")

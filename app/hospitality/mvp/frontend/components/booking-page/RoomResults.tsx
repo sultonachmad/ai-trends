@@ -78,6 +78,11 @@ export function RoomResults({
                       <p className="text-type-caption-sm text-stay-muted">
                         {t("book.totalFor", { nights: result.nights })}
                       </p>
+                      {Number(option.tax) > 0 && (
+                        <p className="text-type-caption-sm text-stay-muted">
+                          {t("book.includesTax", { amount: formatRupiah(option.tax) })}
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"

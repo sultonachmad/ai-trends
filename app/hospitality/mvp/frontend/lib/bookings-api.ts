@@ -40,6 +40,8 @@ export interface Booking {
   guest: { id: string | null; name: string; phone: string | null };
   source: { code: string; name: string; is_direct: boolean };
   total_amount: string;
+  /** What the guest pays for the room, service and PBJT included. */
+  total_with_tax: string;
   paid_amount: string;
   balance_due: string;
   payment_state: PaymentState;

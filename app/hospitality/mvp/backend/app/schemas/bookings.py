@@ -175,6 +175,7 @@ class BookingRead(BaseModel):
     guest: BookingGuest
     source: BookingSource
     total_amount: Decimal
+    total_with_tax: Decimal  # what the guest pays for the room, service and PBJT included
     paid_amount: Decimal
     balance_due: Decimal
     payment_state: PaymentState

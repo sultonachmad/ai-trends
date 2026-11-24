@@ -15,13 +15,15 @@ from app.models.tenant import (
     TransactionCode,
     UnitType,
 )
-from app.schemas.bills import BillLine, BillRead, ReceiptSummary
+from app.schemas.bills import BillLine, BillRead, BillTaxes, ReceiptSummary
 from app.services import calendar_dates as dates_of
 from app.services.bill_balance import CHANNEL_COLLECTS, ZERO
+from app.services.bill_taxes import bill_tax
 from app.services.booking_reads import _by_id, _nightly, payment_entries
 from app.services.bookings import balance_to_collect, lines_of
 from app.services.front_desk_errors import NotFoundError
 from app.services.stay_status import CONFIRMED, IN_HOUSE, LEFT_UNPAID
+from app.services.tax_engine import NETT
 from app.tenancy.context import TenantContext
 
 VOID = "void"
@@ -115,6 +117,7 @@ async def read_bill(
         else []
     )
     payments = await payment_entries(session, context, prop, booking.id)
+    taxes = await bill_tax(session, context.tenant_id, booking)
     return BillRead(
         booking_id=booking.id,
         number=booking.confirmation_no,
@@ -133,6 +136,12 @@ async def read_bill(
         room_total=booking.total_amount,
         lines=lines,
         extras_total=sum((line.amount for line in lines if not line.voided), ZERO),
+        taxes=BillTaxes(
+            confirmed=taxes.is_set,
+            included=taxes.mode == NETT,
+            service=taxes.service,
+            pbjt=taxes.pbjt,
+        ),
         payments=payments,
         paid=booking.paid_amount,
         balance=balance_to_collect(booking),

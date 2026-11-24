@@ -25,6 +25,8 @@ interface PrintableBillProps {
   departure: string;
   paidToChannel: boolean;
   lines: PrintableLine[];
+  /** Service charge and PBJT; `included` when they are inside the prices (nett). */
+  taxes: { included: boolean; service: string; pbjt: string } | null;
   total: string;
   paid: string;
   balance: string;
@@ -76,6 +78,18 @@ export function PrintableBill(props: PrintableBillProps) {
           ))}
         </tbody>
         <tfoot className="border-t-2 border-border font-medium">
+          {props.taxes && !props.taxes.included && (
+            <>
+              <tr>
+                <td className={cell}>{t("bills.service")}</td>
+                <td className={`${cell} text-right tabular-nums`}>{formatRupiah(props.taxes.service)}</td>
+              </tr>
+              <tr>
+                <td className={cell}>{t("bills.pbjt")}</td>
+                <td className={`${cell} text-right tabular-nums`}>{formatRupiah(props.taxes.pbjt)}</td>
+              </tr>
+            </>
+          )}
           <tr>
             <td className={cell}>{t("bills.total")}</td>
             <td className={`${cell} text-right tabular-nums`}>{formatRupiah(props.total)}</td>
@@ -92,6 +106,14 @@ export function PrintableBill(props: PrintableBillProps) {
           </tr>
         </tfoot>
       </table>
+      {props.taxes?.included && (
+        <p className="text-xs">
+          {t("bills.taxIncluded", {
+            service: formatRupiah(props.taxes.service),
+            pbjt: formatRupiah(props.taxes.pbjt),
+          })}
+        </p>
+      )}
       {!props.number && <p className="text-xs">{t("bills.notReceipt")}</p>}
     </div>
   );

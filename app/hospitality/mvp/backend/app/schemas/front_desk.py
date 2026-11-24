@@ -37,6 +37,7 @@ class FrontDeskEntry(BaseModel):
     children: int
     source: str
     total_amount: Decimal
+    total_with_tax: Decimal
     balance_due: Decimal
     overdue: bool  # the arrival or departure should already have happened
     can_undo: bool = False  # today's check-in can still be taken back

@@ -49,6 +49,11 @@ export default function ReceiptPage() {
         amount: line.amount,
         isRoom: line.is_room,
       }))}
+      taxes={
+        Number(receipt.service) || Number(receipt.pbjt)
+          ? { included: receipt.taxes_included, service: receipt.service, pbjt: receipt.pbjt }
+          : null
+      }
       total={receipt.total}
       paid={receipt.paid}
       balance={receipt.balance}

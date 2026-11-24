@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { BookingPageSection } from "@/components/settings/BookingPageSection";
 import { BookingTermsSection } from "@/components/settings/BookingTermsSection";
+import { TaxSection } from "@/components/settings/TaxSection";
 import { useCan } from "@/lib/rbac-store";
 import { useLocale } from "@/lib/locale-store";
 import { bankFormProblem, type BankForm } from "@/lib/proof-format";
@@ -162,6 +163,7 @@ export default function SettingsPage() {
           )}
         </form>
       </section>
+      <TaxSection canEdit={canEditSettings} />
       <BookingTermsSection canEdit={canEditSettings} />
       <BookingPageSection />
     </div>

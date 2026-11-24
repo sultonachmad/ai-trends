@@ -1104,6 +1104,18 @@ services:
 - name: receipts
   file: backend/app/services/receipts.py
   description: Numbered, frozen receipts issued at check-out
+- name: tax_engine
+  file: backend/app/services/tax_engine.py
+  description: Splits a price into base, service charge and PBJT for nett and ++ pricing
+- name: tax_regions
+  file: backend/app/services/tax_regions.py
+  description: Starter regions with suggested (unverified) PBJT rates and legal caps
+- name: tax_rules
+  file: backend/app/services/tax_rules.py
+  description: Owner-only tax settings stored as dated rules; rate book per property
+- name: bill_taxes
+  file: backend/app/services/bill_taxes.py
+  description: Service charge and PBJT on a booking's nights and bill lines by date and price mode
 middleware:
 - session
 - name: OriginCheckMiddleware

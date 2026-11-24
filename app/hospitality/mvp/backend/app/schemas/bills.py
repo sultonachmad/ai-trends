@@ -89,6 +89,13 @@ class BillLine(BaseModel):
     can_void: bool
 
 
+class BillTaxes(BaseModel):
+    confirmed: bool  # the owner has set and confirmed tax rates
+    included: bool  # nett: inside the prices; ++: added on top
+    service: Decimal
+    pbjt: Decimal
+
+
 class ReceiptSummary(BaseModel):
     id: UUID
     number: str
@@ -112,6 +119,7 @@ class BillRead(BaseModel):
     room_total: Decimal
     lines: list[BillLine]
     extras_total: Decimal
+    taxes: BillTaxes
     payments: list[BookingPayment]
     paid: Decimal
     balance: Decimal
@@ -140,6 +148,10 @@ class ReceiptRead(BaseModel):
     departure: dt.date
     paid_to_channel: bool
     lines: list[ReceiptLine]
+    taxes_included: bool  # nett: service and PBJT are inside the line amounts
+    subtotal: Decimal
+    service: Decimal
+    pbjt: Decimal
     total: Decimal
     paid: Decimal
     balance: Decimal

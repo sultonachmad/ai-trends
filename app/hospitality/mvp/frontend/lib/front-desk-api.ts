@@ -28,6 +28,7 @@ export interface DeskEntry {
   children: number;
   source: string;
   total_amount: string;
+  total_with_tax: string;
   balance_due: string;
   /** The arrival or departure should already have happened. */
   overdue: boolean;

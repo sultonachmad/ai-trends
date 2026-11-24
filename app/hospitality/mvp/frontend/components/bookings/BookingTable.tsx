@@ -67,7 +67,7 @@ function Money({ booking }: { booking: Booking }) {
   const { t } = useLocale();
   return (
     <>
-      <span className="font-semibold tabular-nums">{formatRupiah(booking.total_amount)}</span>
+      <span className="font-semibold tabular-nums">{formatRupiah(booking.total_with_tax)}</span>
       <span className={`${badge} ml-2 ${paymentBadgeClass(booking.payment_state)}`}>
         {t(paymentStateKey(booking.payment_state))}
       </span>

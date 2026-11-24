@@ -36,7 +36,8 @@ export default function BillPrintPage() {
   if (error) return <p role="alert" className="p-8 text-sm">{t("common.loadFailed", { reason: error })}</p>;
   if (!bill) return <p className="p-8 text-sm text-muted-foreground">{t("common.loading")}</p>;
   const owed = bill.paid_to_channel ? "0" : bill.room_total;
-  const total = String(Number(owed) + Number(bill.extras_total));
+  const added = bill.taxes.included ? 0 : Number(bill.taxes.service) + Number(bill.taxes.pbjt);
+  const total = String(Number(owed) + Number(bill.extras_total) + added);
   return (
     <PrintableBill
       heading={t("bills.billHeading")}
@@ -65,6 +66,7 @@ export default function BillPrintPage() {
             isRoom: false,
           })),
       ]}
+      taxes={bill.taxes.confirmed ? bill.taxes : null}
       total={total}
       paid={bill.paid}
       balance={bill.balance}

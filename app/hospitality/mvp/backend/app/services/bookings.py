@@ -276,6 +276,8 @@ async def book_in_transaction(
         channel_id=source_id,
         source_detail={
             PRICE_EDITED: order.total_amount is not None,
+            # the price mode the booking was made under; channels are always nett
+            "price_mode": "nett" if order.booked_by == "channel" else prop.price_display_mode,
             **(order.source_detail or {}),
         },
         arrival_date=order.stay.arrival,
@@ -293,6 +295,9 @@ async def book_in_transaction(
     session.add(booking)
     await session.flush()
     await _write_lines(session, context, prop, booking, checked, cells)
+    from app.services.bill_balance import refresh_balance
+
+    await refresh_balance(session, context.tenant_id, booking)
     await _queue_channel_update(session, context, prop.id, [checked.stay])
     return booking
 

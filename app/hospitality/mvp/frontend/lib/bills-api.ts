@@ -61,6 +61,7 @@ export interface Bill {
   room_total: string;
   lines: BillLine[];
   extras_total: string;
+  taxes: { confirmed: boolean; included: boolean; service: string; pbjt: string };
   payments: BillPayment[];
   paid: string;
   balance: string;
@@ -81,6 +82,10 @@ export interface Receipt {
   departure: string;
   paid_to_channel: boolean;
   lines: { description: string; quantity: string; unit_price: string; amount: string; is_room: boolean }[];
+  taxes_included: boolean;
+  subtotal: string;
+  service: string;
+  pbjt: string;
   total: string;
   paid: string;
   balance: string;

@@ -1,7 +1,8 @@
 """What a guest owes the property: one rule for every page and every writer.
 
 Room nights count unless the channel was paid for them; extras, discounts, voids and
-corrections on the bill count; money received counts against it.
+corrections on the bill count; service charge and PBJT count when prices are "++";
+money received counts against it.
 """
 
 from decimal import Decimal
@@ -43,7 +44,11 @@ async def extras_total(session: AsyncSession, tenant_id: UUID, booking_id: UUID)
 
 async def refresh_balance(session: AsyncSession, tenant_id: UUID, booking: Reservation) -> None:
     """Set `balance_due` from the room, the bill and the money received. Does not commit."""
+    from app.services.bill_taxes import bill_tax
+
     await session.flush()
     extras = await extras_total(session, tenant_id, booking.id)
-    booking.balance_due = room_owed(booking) + extras - booking.paid_amount
+    taxes = await bill_tax(session, tenant_id, booking)
+    booking.total_tax = taxes.room_tax  # the room's own service and PBJT
+    booking.balance_due = room_owed(booking) + extras + taxes.added - booking.paid_amount
     session.add(booking)
