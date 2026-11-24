@@ -5,12 +5,16 @@
  * an English switch. A shared link can pre-fill dates, guests and the room type.
  */
 
-import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import { AvailabilityMonth } from "@/components/booking-page/AvailabilityMonth";
 import { GuestDetailsForm } from "@/components/booking-page/GuestDetailsForm";
 import { RoomResults } from "@/components/booking-page/RoomResults";
+import { staySectionTitle } from "@/components/booking-page/stay-classes";
+import { StayHero } from "@/components/booking-page/StayHero";
+import { StayPlanner } from "@/components/booking-page/StayPlanner";
+import { ThingsToKnow } from "@/components/booking-page/ThingsToKnow";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -22,12 +26,10 @@ import {
   type RoomResult,
   type StayQuery,
 } from "@/lib/booking-page-api";
-import { addDays, errorCode, nightsBetween, parseDeepLink } from "@/lib/booking-page-format";
+import { errorCode, nightsBetween, parseDeepLink } from "@/lib/booking-page-format";
 import { useLocale } from "@/lib/locale-store";
 
-const inputClass =
-  "w-full rounded-md border border-border bg-card px-3 py-2 text-base text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary";
-const labelClass = "mb-1 block text-sm font-medium";
+const CONTAINER = "mx-auto w-full max-w-[1128px] px-4 min-[744px]:px-6";
 const NOT_FOUND = 404;
 
 function BookingPage() {
@@ -47,6 +49,8 @@ function BookingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<{ room: RoomResult; option: RateOption } | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const revealResults = useRef(false);
 
   const runSearch = useCallback(
     async (stay: StayQuery) => {
@@ -106,54 +110,91 @@ function BookingPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    revealResults.current = true;
     void runSearch({ arrival, departure, adults, children });
   };
 
-  const shell = (content: React.ReactNode) => (
-    <div className="mx-auto min-h-screen max-w-2xl space-y-4 bg-background p-4 text-foreground">
-      <div className="flex justify-end">
-        <LanguageSwitch />
-      </div>
-      {content}
+  // Results land below the fold on a phone: take the guest (and screen reader) there.
+  useEffect(() => {
+    if (!result || chosen || !revealResults.current) return;
+    revealResults.current = false;
+    resultsRef.current?.focus({ preventScroll: true });
+    resultsRef.current?.scrollIntoView({ block: "start" });
+  }, [result, chosen]);
+
+  useEffect(() => {
+    if (chosen) window.scrollTo({ top: 0 });
+  }, [chosen]);
+
+  const shell = (content: React.ReactNode, name?: string, footer = false) => (
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-stay-hairline">
+        <div className={`${CONTAINER} flex h-20 items-center justify-between gap-4`}>
+          <p className="min-w-0 truncate text-type-title text-stay-primary min-[744px]:text-type-display-sm">{name}</p>
+          {/* The shared switch reads theme variables: point them at this page's tokens. */}
+          <div className="shrink-0 [--aside-active-bg:theme(colors.stay.surface-strong)] [--card-foreground:theme(colors.stay.ink)] [--input-border:theme(colors.stay.hairline)] [--primary-color:theme(colors.stay.ink)] [--sub-section-bg:theme(colors.stay.canvas)]">
+            <LanguageSwitch />
+          </div>
+        </div>
+      </header>
+      <div className={`${CONTAINER} flex-1 pb-28 min-[744px]:pb-16`}>{content}</div>
+      {footer && (
+        <footer className="border-t border-stay-hairline">
+          <p className={`${CONTAINER} py-6 pb-28 text-type-caption-sm text-stay-muted min-[744px]:pb-6`}>
+            © {page?.today.slice(0, 4)} {name}
+          </p>
+        </footer>
+      )}
     </div>
   );
+  const notice = (text: string, role?: "alert") => (
+    <p role={role} className="py-16 text-center text-type-body text-stay-muted">
+      {text}
+    </p>
+  );
 
-  if (missing) return shell(<p role="alert">{t("book.notFound")}</p>);
-  if (loadError) return shell(<p role="alert">{t("book.loadFailed")}</p>);
-  if (!page) return shell(<p className="text-muted-foreground">{t("common.loading")}</p>);
+  if (missing) return shell(notice(t("book.notFound"), "alert"));
+  if (loadError) return shell(notice(t("book.loadFailed"), "alert"));
+  if (!page) return shell(notice(t("common.loading")));
 
   const validStay = Boolean(arrival && departure && departure > arrival);
-  const tooLong = validStay && nightsBetween(arrival, departure) > page.max_nights;
+  const nights = validStay ? nightsBetween(arrival, departure) : 0;
+  const tooLong = nights > page.max_nights;
+  if (chosen && searched) {
+    return shell(
+      <GuestDetailsForm
+        slug={slug}
+        stay={searched}
+        room={chosen.room}
+        option={chosen.option}
+        depositPercent={page.deposit_percent}
+        holdMinutes={page.hold_minutes}
+        whatsapp={page.whatsapp_phone}
+        roomOrder={page.rooms.map((room) => room.id)}
+        onBack={() => {
+          revealResults.current = true;
+          setChosen(null);
+        }}
+        onPriceChanged={() => void runSearch(searched)}
+      />,
+      page.property_name,
+      true,
+    );
+  }
   return shell(
     <>
-      <header>
-        <h1 className="text-2xl font-bold">{page.property_name}</h1>
-        {page.city && <p className="text-sm text-muted-foreground">{page.city}</p>}
-        <p className="text-sm text-muted-foreground">
-          {t("book.times", {
-            in: page.check_in_time.slice(0, 5),
-            out: page.check_out_time.slice(0, 5),
-          })}
-        </p>
-      </header>
-      {chosen && searched ? (
-        <GuestDetailsForm
-          slug={slug}
-          stay={searched}
-          room={chosen.room}
-          option={chosen.option}
-          depositPercent={page.deposit_percent}
-          holdMinutes={page.hold_minutes}
-          whatsapp={page.whatsapp_phone}
-          onBack={() => setChosen(null)}
-          onPriceChanged={() => void runSearch(searched)}
-        />
-      ) : (
-        <>
-          <form
-            onSubmit={submit}
-            className="space-y-4 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm"
-          >
+      <div className="pt-6">
+        <StayHero rooms={page.rooms} />
+      </div>
+      <div className="grid gap-x-12 min-[744px]:grid-cols-[minmax(0,1fr)_320px] lg:grid-cols-[minmax(0,1fr)_372px]">
+        <div className="min-w-0 min-[744px]:col-start-1">
+          <div className="py-6">
+            <h1 className="text-type-display-xl">{page.property_name}</h1>
+            {page.city && <p className="text-type-body text-stay-muted">{page.city}</p>}
+          </div>
+          <section className="border-t border-stay-hairline py-8">
+            <h2 className={staySectionTitle}>{t("book.datesTitle")}</h2>
+            <p className="mb-4 text-type-body-sm text-stay-muted">{t("book.datesHint")}</p>
             <AvailabilityMonth
               slug={slug}
               today={page.today}
@@ -162,90 +203,42 @@ function BookingPage() {
               departure={departure}
               onPick={pick}
             />
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="book-arrival" className={labelClass}>
-                  {t("book.arrival")}
-                </label>
-                <input
-                  id="book-arrival"
-                  type="date"
-                  required
-                  min={page.today}
-                  max={page.last_arrival}
-                  value={arrival}
-                  onChange={(event) => {
-                    setArrival(event.target.value);
-                    setResult(null);
-                  }}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="book-departure" className={labelClass}>
-                  {t("book.departure")}
-                </label>
-                <input
-                  id="book-departure"
-                  type="date"
-                  required
-                  min={arrival ? addDays(arrival, 1) : page.today}
-                  value={departure}
-                  onChange={(event) => {
-                    setDeparture(event.target.value);
-                    setResult(null);
-                  }}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="book-adults" className={labelClass}>
-                  {t("book.adults")}
-                </label>
-                <input
-                  id="book-adults"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={50}
-                  required
-                  value={adults}
-                  onChange={(event) => setAdults(Number(event.target.value))}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label htmlFor="book-children" className={labelClass}>
-                  {t("book.children")}
-                </label>
-                <input
-                  id="book-children"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={50}
-                  required
-                  value={children}
-                  onChange={(event) => setChildren(Number(event.target.value))}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-            {tooLong && (
-              <p role="alert" className="text-sm text-destructive">
-                {t("book.error.stay_too_long")}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={busy || !validStay || tooLong}
-              className="min-h-11 w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {t(busy ? "book.searching" : "book.search")}
-            </button>
-          </form>
+          </section>
+        </div>
+        {/* Not an <aside>: the root layout reads any aside as the staff sidebar. */}
+        <div className="min-[744px]:col-start-2 min-[744px]:row-span-3 min-[744px]:row-start-1 min-[744px]:pt-6">
+          <div className="min-[744px]:sticky min-[744px]:top-6">
+            <StayPlanner
+              today={page.today}
+              lastArrival={page.last_arrival}
+              arrival={arrival}
+              departure={departure}
+              adults={adults}
+              childCount={children}
+              nights={nights}
+              tooLong={tooLong}
+              busy={busy}
+              onArrival={(value) => {
+                setArrival(value);
+                setResult(null);
+              }}
+              onDeparture={(value) => {
+                setDeparture(value);
+                setResult(null);
+              }}
+              onAdults={setAdults}
+              onChildren={setChildren}
+              onSubmit={submit}
+            />
+          </div>
+        </div>
+        <div
+          ref={resultsRef}
+          tabIndex={-1}
+          className="min-w-0 outline-none min-[744px]:col-start-1 [&:not(:empty)]:border-t [&:not(:empty)]:border-stay-hairline [&:not(:empty)]:py-8 max-[743.98px]:[&:not(:empty)]:mt-8"
+        >
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-type-body-sm text-stay-error">
               {error}
             </p>
           )}
@@ -255,12 +248,18 @@ function BookingPage() {
               arrival={searched.arrival}
               depositPercent={page.deposit_percent}
               preferredRoom={deepLink.room}
+              roomOrder={page.rooms.map((room) => room.id)}
               onChoose={(room, option) => setChosen({ room, option })}
             />
           )}
-        </>
-      )}
+        </div>
+        <div className="min-w-0 max-[743.98px]:mt-8 min-[744px]:col-start-1">
+          <ThingsToKnow page={page} />
+        </div>
+      </div>
     </>,
+    page.property_name,
+    true,
   );
 }
 

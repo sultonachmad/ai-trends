@@ -136,6 +136,27 @@ export function termsKey(option: Pick<RateOption, "non_refundable">): string {
   return option.non_refundable ? "book.terms.nonRefundable" : "book.terms.free";
 }
 
+/** A stable illustration choice for a room, so its picture does not change between visits. */
+export function plateVariant(id: string, count: number, order: readonly string[] = []): number {
+  const position = order.indexOf(id);
+  if (position >= 0) return position % count;
+  const sum = Array.from(id).reduce((total, char) => total + char.charCodeAt(0), 0);
+  return sum % count;
+}
+
+export function hasFreeCancellation(
+  options: readonly Pick<RateOption, "non_refundable" | "free_cancellation_days">[],
+): boolean {
+  return options.some(
+    (option) => !option.non_refundable && option.free_cancellation_days !== null,
+  );
+}
+
+export function whatsappUrl(phone: string | null): string | null {
+  const digits = phone?.replace(/\D/g, "") ?? "";
+  return digits ? `https://wa.me/${digits}` : null;
+}
+
 const BOOKING_PATH_KEY = "booking-path:";
 
 /**

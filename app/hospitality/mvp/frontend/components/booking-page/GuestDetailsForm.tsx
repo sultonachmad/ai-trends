@@ -2,6 +2,14 @@
 
 import { useRef, useState, type FormEvent } from "react";
 
+import { RoomPlate } from "@/components/booking-page/RoomPlate";
+import {
+  stayFocus,
+  stayInput,
+  stayLabel,
+  stayPrimaryButton,
+  staySecondaryButton,
+} from "@/components/booking-page/stay-classes";
 import { shortDate } from "@/lib/booking-format";
 import {
   changedTotal,
@@ -20,10 +28,6 @@ import {
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 
-const inputClass =
-  "w-full rounded-md border border-border bg-card px-3 py-2 text-base text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary";
-const labelClass = "mb-1 block text-sm font-medium";
-
 interface GuestDetailsFormProps {
   slug: string;
   stay: StayQuery;
@@ -32,6 +36,7 @@ interface GuestDetailsFormProps {
   depositPercent: number;
   holdMinutes: number;
   whatsapp: string | null;
+  roomOrder: readonly string[];
   onBack: () => void;
   onPriceChanged: () => void;
 }
@@ -45,6 +50,7 @@ export function GuestDetailsForm({
   depositPercent,
   holdMinutes,
   whatsapp,
+  roomOrder,
   onBack,
   onPriceChanged,
 }: GuestDetailsFormProps) {
@@ -92,118 +98,140 @@ export function GuestDetailsForm({
 
   const until = freeCancelUntil(stay.arrival, option.free_cancellation_days);
   const due = choice === "full" ? option.total : option.deposit;
+  const payLabel = t("book.continuePay", { amount: formatRupiah(due) });
   return (
     <form
       onSubmit={(event) => void submit(event)}
-      className="space-y-4 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm"
+      className="grid gap-x-12 gap-y-8 pt-6 min-[744px]:grid-cols-[minmax(0,1fr)_320px] lg:grid-cols-[minmax(0,1fr)_372px]"
     >
-      <div>
-        <h2 className="text-lg font-semibold">{room.name}</h2>
-        <p className="text-sm text-muted-foreground">
-          {option.name} · {shortDate(stay.arrival, locale)} – {shortDate(stay.departure, locale)}
-        </p>
-        <p className="mt-1 font-bold">{formatRupiah(option.total)}</p>
-        <p className="text-xs text-muted-foreground">{t("book.allIn")}</p>
-      </div>
-      <div>
-        <label htmlFor="guest-name" className={labelClass}>
-          {t("book.name")}
-        </label>
-        <input
-          id="guest-name"
-          required
-          maxLength={120}
-          autoComplete="name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className={inputClass}
-        />
-      </div>
-      <div>
-        <label htmlFor="guest-phone" className={labelClass}>
-          {t("book.phone")}
-        </label>
-        <input
-          id="guest-phone"
-          required
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          maxLength={24}
-          placeholder="08…"
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          className={inputClass}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">{t("book.phoneHint")}</p>
-      </div>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">{t("book.payHow")}</legend>
-        {(["deposit", "full"] as const).map((value) => (
-          <label
-            key={value}
-            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-          >
-            <input
-              type="radio"
-              name="pay-choice"
-              checked={choice === value}
-              onChange={() => setChoice(value)}
-            />
-            <span>
-              {value === "deposit"
-                ? t("book.payDeposit", {
-                    percent: depositPercent,
-                    amount: formatRupiah(option.deposit),
-                  })
-                : t("book.payFull", { amount: formatRupiah(option.total) })}
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <p className="rounded-lg bg-muted px-3 py-2 text-sm">
-        {t(termsKey(option), { date: until ? shortDate(until, locale) : "" })}{" "}
-        {t("book.holdNote", { minutes: holdMinutes })}
-      </p>
-      <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          required
-          className="mt-1"
-          checked={accepted}
-          onChange={(event) => setAccepted(event.target.checked)}
-        />
-        <span>{t("book.acceptTerms")}</span>
-      </label>
-      {error && (
-        <div role="alert" className="space-y-2 text-sm text-destructive">
-          <p>{error}</p>
-          {newPrice && (
-            <button
-              type="button"
-              onClick={onPriceChanged}
-              className="min-h-11 rounded-md border border-border px-3 py-1 text-foreground hover:bg-accent"
-            >
-              {t("book.seeNewPrice", { amount: formatRupiah(newPrice) })}
-            </button>
-          )}
-        </div>
-      )}
-      <div className="flex flex-wrap justify-between gap-2">
+      <div className="space-y-6">
         <button
           type="button"
           disabled={busy}
           onClick={onBack}
-          className="min-h-11 rounded-md bg-secondary px-4 py-2 text-sm text-secondary-foreground disabled:opacity-50"
+          className={`-ml-1 min-h-11 px-1 text-type-button text-stay-ink underline-offset-4 hover:underline disabled:text-stay-muted-soft ${stayFocus}`}
         >
-          {t("book.back")}
+          ‹ {t("book.back")}
         </button>
-        <button
-          type="submit"
-          disabled={busy || !accepted}
-          className="min-h-11 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {t("book.continuePay", { amount: formatRupiah(due) })}
+        <h1 className="text-type-display-xl">{t("book.guestDetails")}</h1>
+        <div>
+          <label htmlFor="guest-name" className={stayLabel}>
+            {t("book.name")}
+          </label>
+          <input
+            id="guest-name"
+            required
+            maxLength={120}
+            autoComplete="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={stayInput}
+          />
+        </div>
+        <div>
+          <label htmlFor="guest-phone" className={stayLabel}>
+            {t("book.phone")}
+          </label>
+          <input
+            id="guest-phone"
+            required
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={24}
+            placeholder="08…"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            className={stayInput}
+          />
+          <p className="mt-2 text-type-caption-sm text-stay-muted">{t("book.phoneHint")}</p>
+        </div>
+        <fieldset className="space-y-3 border-t border-stay-hairline pt-6">
+          <legend className="float-left mb-3 w-full text-type-display-sm">{t("book.payHow")}</legend>
+          {(["deposit", "full"] as const).map((value) => (
+            <label
+              key={value}
+              className="clear-both flex min-h-14 cursor-pointer items-center gap-3 rounded-stay-sm border border-stay-hairline p-4 text-type-body-sm transition-colors hover:border-stay-ink has-[:checked]:border-stay-ink has-[:checked]:bg-stay-surface-soft has-[:checked]:outline-1 has-[:checked]:outline-stay-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-stay-ink"
+            >
+              <input
+                type="radio"
+                name="pay-choice"
+                className="h-5 w-5 shrink-0 accent-stay-ink"
+                checked={choice === value}
+                onChange={() => setChoice(value)}
+              />
+              <span>
+                {value === "deposit"
+                  ? t("book.payDeposit", {
+                      percent: depositPercent,
+                      amount: formatRupiah(option.deposit),
+                    })
+                  : t("book.payFull", { amount: formatRupiah(option.total) })}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <p className="rounded-stay-sm bg-stay-surface-soft p-4 text-type-body-sm text-stay-body">
+          {t(termsKey(option), { date: until ? shortDate(until, locale) : "" })}{" "}
+          {t("book.holdNote", { minutes: holdMinutes })}
+        </p>
+        <label className="flex min-h-11 cursor-pointer items-start gap-3 text-type-body-sm text-stay-body">
+          <input
+            type="checkbox"
+            required
+            className="mt-0.5 h-5 w-5 shrink-0 accent-stay-ink"
+            checked={accepted}
+            onChange={(event) => setAccepted(event.target.checked)}
+          />
+          <span>{t("book.acceptTerms")}</span>
+        </label>
+        {error && (
+          <div role="alert" className="space-y-2 text-type-body-sm text-stay-error">
+            <p>{error}</p>
+            {newPrice && (
+              <button type="button" onClick={onPriceChanged} className={staySecondaryButton}>
+                {t("book.seeNewPrice", { amount: formatRupiah(newPrice) })}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {/* Not an <aside>: the root layout reads any aside as the staff sidebar. */}
+      <div className="min-[744px]:pt-16">
+        <div className="space-y-4 rounded-stay-md border border-stay-hairline bg-stay-canvas p-6 shadow-stay min-[744px]:sticky min-[744px]:top-6">
+          <div className="flex gap-4">
+            <RoomPlate id={room.id} order={roomOrder} className="h-24 w-24 shrink-0 rounded-stay-sm" />
+            <div className="min-w-0">
+              <h2 className="text-type-title">{room.name}</h2>
+              <p className="mt-1 text-type-body-sm text-stay-muted">{option.name}</p>
+              <p className="text-type-body-sm text-stay-muted">
+                {shortDate(stay.arrival, locale)} – {shortDate(stay.departure, locale)}
+              </p>
+            </div>
+          </div>
+          <dl className="space-y-2 border-t border-stay-hairline pt-4 text-type-body-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-stay-muted">{t("book.total")}</dt>
+              <dd>{formatRupiah(option.total)}</dd>
+            </div>
+            <div className="flex justify-between gap-4 text-type-title">
+              <dt>{t("book.dueNow")}</dt>
+              <dd>{formatRupiah(due)}</dd>
+            </div>
+          </dl>
+          <p className="text-type-caption-sm text-stay-muted">{t("book.allIn")}</p>
+          <button
+            type="submit"
+            disabled={busy || !accepted}
+            className={`hidden w-full min-[744px]:block ${stayPrimaryButton}`}
+          >
+            {payLabel}
+          </button>
+        </div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-stay-hairline bg-stay-canvas px-4 py-3 min-[744px]:hidden">
+        <button type="submit" disabled={busy || !accepted} className={`w-full ${stayPrimaryButton}`}>
+          {payLabel}
         </button>
       </div>
     </form>

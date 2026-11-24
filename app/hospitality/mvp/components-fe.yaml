@@ -150,6 +150,21 @@ components:
 - name: GuestDetailsForm
   path: frontend/components/booking-page/GuestDetailsForm.tsx
   description: Guest details, deposit or full, terms acceptance and checkout
+- name: RoomPlate
+  path: frontend/components/booking-page/RoomPlate.tsx
+  description: Drawn room picture for the public booking page, stable per room id (no room photos exist yet)
+- name: StayHero
+  path: frontend/components/booking-page/StayHero.tsx
+  description: Room mosaic at the top of the public booking page
+- name: StayPlanner
+  path: frontend/components/booking-page/StayPlanner.tsx
+  description: Reservation card with dates and guest steppers; bottom action bar on phones
+- name: ThingsToKnow
+  path: frontend/components/booking-page/ThingsToKnow.tsx
+  description: Property terms as icon rows, with a WhatsApp contact card
+- name: stay-classes
+  path: frontend/components/booking-page/stay-classes.ts
+  description: Shared button, input and heading classes built on the stay-* DESIGN.md tokens
 - name: BookingPageSection
   path: frontend/components/settings/BookingPageSection.tsx
   description: Owner setup of the public booking page on Settings

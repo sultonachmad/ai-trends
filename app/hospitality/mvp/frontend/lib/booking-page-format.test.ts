@@ -9,18 +9,52 @@ import {
   compactPrice,
   errorCode,
   freeCancelUntil,
+  hasFreeCancellation,
   isValidSlug,
   leadingBlanks,
   monthRange,
   newCheckoutKey,
   nightsBetween,
   parseDeepLink,
+  plateVariant,
   recallBookingPath,
   rememberBookingPath,
   shiftMonth,
   termsKey,
+  whatsappUrl,
 } from "@/lib/booking-page-format";
 import { LOCALES, translate } from "@/lib/i18n";
+
+describe("room presentation", () => {
+  it("gives a room the same plate every time, within range", () => {
+    expect(plateVariant("room-a", 3)).toBe(plateVariant("room-a", 3));
+    for (const id of ["", "a", "room-b", "9f3c-11"]) {
+      const variant = plateVariant(id, 3);
+      expect(variant).toBeGreaterThanOrEqual(0);
+      expect(variant).toBeLessThan(3);
+    }
+  });
+
+  it("gives neighbouring rooms different plates when the room order is known", () => {
+    const order = ["room-c", "room-a", "room-b"];
+    expect(order.map((id) => plateVariant(id, 3, order))).toEqual([0, 1, 2]);
+    expect(plateVariant("not-listed", 3, order)).toBe(plateVariant("not-listed", 3));
+  });
+
+  it("badges a room only when a refundable rate has a cancellation window", () => {
+    const rate = { non_refundable: false, free_cancellation_days: 3 };
+    expect(hasFreeCancellation([rate])).toBe(true);
+    expect(hasFreeCancellation([{ ...rate, non_refundable: true }])).toBe(false);
+    expect(hasFreeCancellation([{ ...rate, free_cancellation_days: null }])).toBe(false);
+    expect(hasFreeCancellation([])).toBe(false);
+  });
+
+  it("builds a WhatsApp link from digits, or none without a number", () => {
+    expect(whatsappUrl("+62 812-3456")).toBe("https://wa.me/628123456");
+    expect(whatsappUrl(null)).toBeNull();
+    expect(whatsappUrl("n/a")).toBeNull();
+  });
+});
 
 describe("dates", () => {
   it("moves across months and years", () => {

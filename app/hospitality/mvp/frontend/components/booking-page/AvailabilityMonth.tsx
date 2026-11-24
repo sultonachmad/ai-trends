@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { stayFocus } from "@/components/booking-page/stay-classes";
 import {
   compactPrice,
   leadingBlanks,
@@ -69,11 +70,10 @@ export function AvailabilityMonth({
   const byDate = new Map((days ?? []).map((day) => [day.date, day]));
   const canGoBack = month > shiftMonth(today, 0);
   const canGoForward = shiftMonth(month, 1) <= lastArrival;
-  const navClass =
-    "h-11 w-11 rounded-md border border-border text-lg hover:bg-accent disabled:opacity-40";
+  const navClass = `h-11 w-11 rounded-full border border-stay-hairline bg-stay-canvas text-lg text-stay-ink transition-colors hover:bg-stay-surface-soft disabled:cursor-not-allowed disabled:text-stay-muted-soft ${stayFocus}`;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -84,7 +84,7 @@ export function AvailabilityMonth({
         >
           ‹
         </button>
-        <h3 aria-live="polite" className="font-semibold capitalize">
+        <h3 aria-live="polite" className="text-type-title capitalize">
           {title}
         </h3>
         <button
@@ -97,10 +97,10 @@ export function AvailabilityMonth({
           ›
         </button>
       </div>
-      {failed && <p className="text-sm text-muted-foreground">{t("book.calendarFailed")}</p>}
-      <div className="grid grid-cols-7 gap-1 text-center text-xs">
+      {failed && <p className="text-type-body-sm text-stay-error">{t("book.calendarFailed")}</p>}
+      <div className="grid grid-cols-7 gap-y-1 text-center">
         {weekdays.map((name) => (
-          <span key={name} aria-hidden="true" className="py-1 text-muted-foreground">
+          <span key={name} aria-hidden="true" className="py-1 text-type-caption-sm text-stay-muted">
             {name}
           </span>
         ))}
@@ -115,13 +115,19 @@ export function AvailabilityMonth({
           const pickable = date >= today && (open || (Boolean(arrival) && !departure && date > arrival));
           const chosen = date === arrival || date === departure;
           const inside = Boolean(arrival && departure && date > arrival && date < departure);
-          const state = chosen
-            ? "bg-primary text-primary-foreground"
-            : inside
-              ? "bg-primary/15"
-              : open
-                ? "border border-border hover:bg-accent"
-                : "text-muted-foreground/60";
+          const hasRange = Boolean(arrival && departure);
+          const lozenge = inside
+            ? "bg-stay-surface-soft"
+            : hasRange && date === arrival
+              ? "rounded-l-full bg-stay-surface-soft"
+              : hasRange && date === departure
+                ? "rounded-r-full bg-stay-surface-soft"
+                : "";
+          const circle = chosen
+            ? "bg-stay-ink text-stay-canvas"
+            : pickable
+              ? "text-stay-ink group-hover:outline-1 group-hover:outline-stay-ink"
+              : "text-stay-muted-soft line-through";
           return (
             <button
               key={date}
@@ -134,11 +140,17 @@ export function AvailabilityMonth({
                   : t("book.dayClosed", { date })
               }
               onClick={() => onPick(date)}
-              className={`flex min-h-11 flex-col items-center justify-center rounded-md px-0 py-1 disabled:cursor-not-allowed ${state}`}
+              className="group flex min-h-14 flex-col items-stretch focus-visible:outline-none disabled:cursor-not-allowed"
             >
-              <span className="text-sm font-medium">{index + 1}</span>
-              <span className="text-[10px] leading-3">
-                {open && day?.lowest_price ? compactPrice(day.lowest_price) : " "}
+              <span className={`flex h-10 items-center justify-center ${lozenge}`}>
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-full text-type-body-sm group-focus-visible:outline-2 group-focus-visible:outline-offset-1 group-focus-visible:outline-stay-ink ${circle}`}
+                >
+                  {index + 1}
+                </span>
+              </span>
+              <span className="mt-0.5 h-3 text-type-badge font-normal text-stay-muted">
+                {open && day?.lowest_price ? compactPrice(day.lowest_price) : ""}
               </span>
             </button>
           );
