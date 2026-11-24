@@ -872,6 +872,9 @@ api_routers:
 - name: reports
   file: backend/app/routers/reports.py
   description: GET /api/reports/channels, permission reports:view
+- name: front_desk
+  file: backend/app/routers/front_desk.py
+  description: /api/front-desk routes, permissions frontdesk:view and frontdesk:edit
 services:
 - name: onboarding.create_workspace
   file: backend/app/services/onboarding.py
@@ -1062,6 +1065,27 @@ services:
 - name: booking_refunds
   file: backend/app/services/booking_refunds.py
   description: Records a refund sent outside the product, capped at money received, and clears the flags
+- name: stay_status
+  file: backend/app/services/stay_status.py
+  description: Booking statuses and what each group of them means
+- name: stay_changes
+  file: backend/app/services/stay_changes.py
+  description: Moves the end of an in-house stay, keeping prices of nights already slept
+- name: unit_status
+  file: backend/app/services/unit_status.py
+  description: The one writer of room status, with its history
+- name: room_assignment
+  file: backend/app/services/room_assignment.py
+  description: Free rooms, assign, clear, lock and in-house room moves
+- name: front_desk
+  file: backend/app/services/front_desk.py
+  description: Check-in, check-out, early departure, no-show and same-day undo
+- name: front_desk_reads
+  file: backend/app/services/front_desk_reads.py
+  description: Today's arrivals, in-house, departures, rooms and undoable stays
+- name: front_desk_errors
+  file: backend/app/services/front_desk_errors.py
+  description: Front desk refusals with stable codes the page translates
 middleware:
 - session
 - name: OriginCheckMiddleware
@@ -1292,3 +1316,6 @@ migrations:
 - name: 0014_report_index
   file: backend/migrations/versions/0014_report_index.py
   description: Index on reservationdailyrate (tenant_id, stay_date) for reports
+- name: 0015_checkout_index
+  file: backend/migrations/versions/0015_checkout_index.py
+  description: Partial index on reservationunit check-out time for the front desk

@@ -36,6 +36,7 @@ from app.services import tenant_audit
 from app.services.booking_guests import find_or_create_guest
 from app.services.bookings import Stay, cancel_booking, update_booking
 from app.services.channel_truth import mappings_of
+from app.services.stay_status import STARTED
 from app.tenancy.context import TenantContext
 
 log = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ APPLIED, NEEDS_ATTENTION, FAILED = "applied", "needs_attention", "failed"
 OVERBOOKING_RISK = "overbooking_risk"
 UNMAPPED_PRODUCT = "unmapped_product"
 PRICE_MISMATCH = "price_mismatch"
+STAY_STARTED = "stay_started"  # the guest has arrived: a person decides
 # A channel price further than this from our truth is worth a human look.
 PRICE_TOLERANCE = Decimal("0.01")
 CHANNEL_CANCEL_NOTE = "Dibatalkan di kanal"
@@ -270,6 +272,8 @@ async def _apply_stay(
         )
     else:
         reservation = await _reservation_for(session, context, connection, event)
+        if reservation is not None and reservation.status in STARTED:
+            raise _Attention(STAY_STARTED)
         if reservation is None or reservation.status != "confirmed":
             raise _Attention(UNMAPPED_PRODUCT)  # nothing to modify; staff must look
         from app.schemas.bookings import BookingUpdateRequest
@@ -300,6 +304,8 @@ async def _apply_cancel(
     event: ChannelBookingEvent,
 ) -> None:
     reservation = await _reservation_for(session, context, connection, event)
+    if reservation is not None and reservation.status in STARTED:
+        raise _Attention(STAY_STARTED)
     if reservation is None or reservation.status != "confirmed":
         # a cancel for a booking we never applied (e.g. it was unmapped) is done:
         # there is nothing to cancel, and nothing to ask staff for

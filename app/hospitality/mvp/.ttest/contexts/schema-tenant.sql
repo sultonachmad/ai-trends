@@ -999,6 +999,7 @@ CREATE TABLE reservationunit (
 CREATE INDEX ix_reservationunit_reservation ON reservationunit (tenant_id, reservation_id);
 CREATE INDEX ix_reservationunit_dates ON reservationunit (tenant_id, property_id, arrival_date, departure_date);
 CREATE INDEX ix_reservationunit_unit ON reservationunit (tenant_id, unit_id) WHERE unit_id IS NOT NULL;
+CREATE INDEX ix_reservationunit_checked_out ON reservationunit (tenant_id, property_id, checked_out_at) WHERE checked_out_at IS NOT NULL;
 
 -- Occupants per reservation unit.
 CREATE TABLE reservationguest (

@@ -38,6 +38,7 @@ interface BookingDetailDialogProps {
   onEdit: (booking: BookingDetail) => void;
 }
 
+const STAGED: readonly string[] = ["in_house", "checked_out", "no_show"];
 const secondary = "rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50";
 const errorText = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 
@@ -143,6 +144,14 @@ export function BookingDetailDialog({
               })}
             </p>
           </div>
+          {STAGED.includes(booking.status) && (
+            <p role="status" className="rounded-lg bg-muted px-3 py-2 font-medium">
+              {t(`bookings.status.${booking.status}`)}
+            </p>
+          )}
+          {booking.assigned_rooms.length > 0 && (
+            <p>{t("bookings.detail.rooms", { rooms: booking.assigned_rooms.join(", ") })}</p>
+          )}
           {booking.status === "cancelled" && (
             <p className="rounded-lg bg-muted px-3 py-2 font-medium">
               {t("bookings.detail.cancelledOn", {

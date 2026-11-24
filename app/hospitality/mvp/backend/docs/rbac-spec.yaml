@@ -99,6 +99,8 @@ permissions:
   "booking_page:view": "See the booking page setup"
   "booking_page:edit": "Set up and publish the booking page"
   "reports:view":      "See revenue and channel reports"
+  "frontdesk:view":    "See arrivals, in-house guests, departures and rooms"
+  "frontdesk:edit":    "Assign rooms and check guests in and out"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────
@@ -202,6 +204,14 @@ menus:
     order: 4
     active: true
     children:
+      # Today's arrivals, in-house guests, departures and rooms. frontdesk:view / frontdesk:edit.
+      - name: Front desk
+        path: /front-desk
+        icon: clipboard
+        permission: frontdesk:view
+        order: 0
+        active: true
+
       # Every booking, whatever its source. bookings:view / bookings:edit.
       - name: Bookings
         path: /bookings

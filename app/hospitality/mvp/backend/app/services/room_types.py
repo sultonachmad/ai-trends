@@ -6,15 +6,16 @@ longer sold is switched off, a unit that is no longer counted is retired, so his
 that points at them stays readable.
 """
 
+import datetime as dt
 import logging
 import uuid
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.tenant import Property, Unit, UnitType
+from app.models.tenant import Property, ReservationUnit, Unit, UnitType
 from app.schemas.rooms import (
     RoomTypeCreateRequest,
     RoomTypeRead,
@@ -23,6 +24,7 @@ from app.schemas.rooms import (
 )
 from app.services.calendar_dates import property_today
 from app.services.inventory import sync_units_in_use
+from app.services.stay_status import HOLDS_ROOM, IN_HOUSE
 from app.tenancy.business_settings import PropertySettings, resolve_property_settings
 from app.tenancy.context import TenantContext
 
@@ -53,6 +55,10 @@ class RoomTypeLimitError(Exception):
     def __init__(self, limit: int) -> None:
         super().__init__(f"room type limit reached ({limit})")
         self.limit = limit
+
+
+class UnitInUseError(Exception):
+    """More rooms hold a current or future guest than the number asked for."""
 
 
 class TooManyUnitsError(Exception):
@@ -195,9 +201,36 @@ def _new_unit(room: UnitType, number: int) -> Unit:
     )
 
 
-def _resize(session: AsyncSession, room: UnitType, units: list[Unit], wanted: int) -> list[Unit]:
-    """Bring the number of units in use to `wanted`: retire the last, or restore and add."""
-    in_use = [unit for unit in units if unit.is_active]
+async def _units_with_guests(
+    session: AsyncSession, context: TenantContext, units: list[Unit], today: dt.date
+) -> set[UUID]:
+    """Rooms assigned to a stay that is in progress or still to come."""
+    rows = await session.exec(
+        select(col(ReservationUnit.unit_id)).where(
+            col(ReservationUnit.tenant_id) == context.tenant_id,
+            col(ReservationUnit.unit_id).in_([unit.id for unit in units]),
+            col(ReservationUnit.status).in_(HOLDS_ROOM),
+            or_(
+                col(ReservationUnit.status) == IN_HOUSE,
+                col(ReservationUnit.departure_date) > today,
+            ),
+        )
+    )
+    return {unit_id for unit_id in rows.all() if unit_id}
+
+
+def _resize(
+    session: AsyncSession,
+    room: UnitType,
+    units: list[Unit],
+    wanted: int,
+    busy: frozenset[UUID] | set[UUID] = frozenset(),
+) -> list[Unit]:
+    """Bring the units in use to `wanted`: retire the last free ones, or restore and add."""
+    active = [unit for unit in units if unit.is_active]
+    in_use = [u for u in active if u.id in busy] + [u for u in active if u.id not in busy]
+    if len(busy & {unit.id for unit in active}) > wanted:
+        raise UnitInUseError
     for unit in in_use[wanted:]:
         unit.is_active = False
         unit.is_sellable = False
@@ -296,7 +329,9 @@ async def update_room_type(
     if "is_active" in changes:
         room.is_active = changes["is_active"]
     if "units" in changes:
-        units = _resize(session, room, units, changes["units"])
+        today = property_today(prop.timezone)
+        busy = await _units_with_guests(session, context, units, today)
+        units = _resize(session, room, units, changes["units"], busy)
         await session.flush()
         await sync_units_in_use(
             session, context, room.id, changes["units"], property_today(prop.timezone)

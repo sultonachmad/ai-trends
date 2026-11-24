@@ -26,6 +26,7 @@ from app.services.bookings import (
 )
 from app.services.calendar_dates import property_today
 from app.services.payment_links import money, pay_url
+from app.services.stay_status import STARTED
 from app.tenancy.public_booking import GuestBookingScope
 
 log = logging.getLogger(__name__)
@@ -81,7 +82,9 @@ async def _booking(scope: GuestBookingScope) -> Reservation:
 def _public_status(booking: Reservation) -> str:
     if booking.status == TENTATIVE:
         return "awaiting_payment"
-    return "cancelled" if booking.status == CANCELLED else "confirmed"
+    if booking.status in (CANCELLED, *STARTED):
+        return booking.status
+    return "confirmed"
 
 
 async def read_view(scope: GuestBookingScope) -> GuestBookingView:
@@ -150,7 +153,7 @@ async def cancel(scope: GuestBookingScope, request: GuestCancelRequest) -> Guest
     await session.commit()
     await lock_property(session, context, property_id)
     booking = await get_for_update(session, context, property_id, booking_id)
-    if booking.status == CANCELLED:
+    if booking.status in (CANCELLED, *STARTED):
         await session.rollback()
         raise CannotCancelError
     refund = refund_applies(booking, today)

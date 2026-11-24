@@ -16,6 +16,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import delete, insert
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -37,14 +38,21 @@ from app.services.booking_numbers import new_booking_number
 from app.services.booking_pricing import spread_total
 from app.services.booking_sources import staff_source
 from app.services.booking_stays import CheckedStay, Stay, check_stay, stay_times
+from app.services.stay_status import (
+    CANCELLED,
+    CONFIRMED,
+    FINISHED,
+    HOLDS_ROOM,
+    IN_HOUSE,
+    NO_SHOW,
+    STARTED,
+    TENTATIVE,
+)
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 
 log = logging.getLogger(__name__)
 
-CONFIRMED = "confirmed"
-CANCELLED = "cancelled"
-TENTATIVE = "tentative"  # held for a guest who has not paid yet
 NUMBER_ATTEMPTS = 5
 PRICE_EDITED = "price_edited"
 
@@ -55,6 +63,14 @@ class BookingNotFoundError(Exception):
 
 class BookingCancelledError(Exception):
     """The booking is cancelled and can no longer be changed."""
+
+
+class BookingStartedError(Exception):
+    """The guest has checked in or the stay has ended: this change is no longer possible."""
+
+
+class BookingFinishedError(Exception):
+    """The stay is over (checked out or no-show) and can no longer be changed."""
 
 
 class BookingHeldError(Exception):
@@ -115,8 +131,8 @@ async def _unused_number(session: AsyncSession, context: TenantContext, property
 
 
 def balance_to_collect(booking: Reservation) -> Decimal:
-    """What the guest still has to pay: nothing once the booking is cancelled."""
-    return Decimal(0) if booking.status == CANCELLED else booking.balance_due
+    """What the guest still has to pay: nothing once cancelled or a no-show."""
+    return Decimal(0) if booking.status in (CANCELLED, NO_SHOW) else booking.balance_due
 
 
 def _cell_amounts(checked: CheckedStay, total: Decimal | None) -> list[Decimal]:
@@ -132,15 +148,18 @@ async def _write_lines(
     booking: Reservation,
     checked: CheckedStay,
     cells: list[Decimal],
+    assignments: list[tuple[UUID, bool]] | None = None,
 ) -> None:
-    """Store one room line per unit with its nightly prices."""
+    """Store one room line per unit with its nightly prices, keeping any assigned rooms."""
     stay = checked.stay
+    kept = assignments or []
     start_at, end_at = stay_times(stay, prop.timezone)
     per_unit = len(checked.nights)
     line_rows, rate_rows = [], []
     for index in range(stay.units):
         line_id = uuid.uuid4()
         amounts = cells[index * per_unit : (index + 1) * per_unit]
+        unit_id, locked = kept[index] if index < len(kept) else (None, False)
         line_rows.append(
             {
                 "id": line_id,
@@ -148,6 +167,8 @@ async def _write_lines(
                 "reservation_id": booking.id,
                 "property_id": prop.id,
                 "unit_type_id": stay.room_type_id,
+                "unit_id": unit_id,
+                "is_assignment_locked": locked,
                 "rate_plan_id": stay.rate_plan_id,
                 "status": booking.status,
                 "arrival_date": stay.arrival,
@@ -409,6 +430,57 @@ def _changed_stay(current: Stay, request: BookingUpdateRequest) -> Stay:
     return replace(current, **{name: sent[name] for name in fields if name in sent})
 
 
+async def occupied_unit_ids(
+    session: AsyncSession,
+    context: TenantContext,
+    unit_ids: list[UUID],
+    start_at: dt.datetime,
+    blocked_until: dt.datetime,
+    other_than: UUID | None = None,
+) -> set[UUID]:
+    """Which of these rooms another live stay holds in this time (the database rule's range)."""
+    if not unit_ids:
+        return set()
+    statement = select(col(ReservationUnit.unit_id)).where(
+        col(ReservationUnit.tenant_id) == context.tenant_id,
+        col(ReservationUnit.unit_id).in_(unit_ids),
+        col(ReservationUnit.status).in_(HOLDS_ROOM),
+        col(ReservationUnit.start_at) < blocked_until,
+        col(ReservationUnit.blocked_until) > start_at,
+    )
+    if other_than is not None:
+        statement = statement.where(col(ReservationUnit.reservation_id) != other_than)
+    return {unit_id for unit_id in (await session.exec(statement)).all() if unit_id}
+
+
+async def _rooms_to_keep(
+    session: AsyncSession,
+    context: TenantContext,
+    prop: Property,
+    booking: Reservation,
+    old: Stay,
+    new: Stay,
+) -> list[tuple[UUID, bool]]:
+    """Assigned rooms that can stay on the changed booking (same type and still free)."""
+    if old.room_type_id != new.room_type_id:
+        return []
+    rows = await session.exec(
+        select(col(ReservationUnit.unit_id), col(ReservationUnit.is_assignment_locked))
+        .where(
+            col(ReservationUnit.tenant_id) == context.tenant_id,
+            col(ReservationUnit.reservation_id) == booking.id,
+            col(ReservationUnit.unit_id).is_not(None),
+        )
+        .order_by(col(ReservationUnit.created_at), col(ReservationUnit.id))
+    )
+    assigned = [(unit_id, bool(locked)) for unit_id, locked in rows.all()]
+    start_at, end_at = stay_times(new, prop.timezone)
+    taken = await occupied_unit_ids(
+        session, context, [unit_id for unit_id, _ in assigned], start_at, end_at, booking.id
+    )
+    return [entry for entry in assigned if entry[0] not in taken]
+
+
 async def _replace_lines(
     session: AsyncSession,
     context: TenantContext,
@@ -432,6 +504,7 @@ async def _replace_lines(
     await inventory.release_units(session, context, old.room_type_id, old.nights, old.units)
     await session.flush()
     await _take(session, context, prop, checked, allow_overbooking, before)
+    assignments = await _rooms_to_keep(session, context, prop, booking, old, new)
     line_ids = select(col(ReservationUnit.id)).where(
         col(ReservationUnit.tenant_id) == context.tenant_id,
         col(ReservationUnit.reservation_id) == booking.id,
@@ -449,7 +522,7 @@ async def _replace_lines(
         )
     )
     cells = _cell_amounts(checked, total)
-    await _write_lines(session, context, prop, booking, checked, cells)
+    await _write_lines(session, context, prop, booking, checked, cells, assignments)
     booking.total_amount = sum(cells, Decimal("0"))
 
 
@@ -528,6 +601,27 @@ async def _change_stay_and_price(
     return new
 
 
+IN_HOUSE_EDITS = frozenset(
+    {"departure", "adults", "children", "guest_name", "guest_phone", "notes", "allow_overbooking"}
+)
+
+
+async def _check_can_edit(
+    session: AsyncSession, booking: Reservation, request: BookingUpdateRequest
+) -> None:
+    if booking.status == CANCELLED:
+        raise BookingCancelledError
+    if booking.status == TENTATIVE:
+        await session.rollback()
+        raise BookingHeldError
+    if booking.status in FINISHED:
+        await session.rollback()
+        raise BookingFinishedError
+    if booking.status == IN_HOUSE and request.model_fields_set - IN_HOUSE_EDITS:
+        await session.rollback()
+        raise BookingStartedError
+
+
 async def update_booking(
     session: AsyncSession,
     context: TenantContext,
@@ -538,13 +632,15 @@ async def update_booking(
     """Change the fields that were sent; availability moves with the stay. Commits."""
     await lock_property(session, context, prop.id)
     booking = await get_for_update(session, context, prop.id, booking_id)
-    if booking.status == CANCELLED:
-        raise BookingCancelledError
-    if booking.status == TENTATIVE:
-        await session.rollback()
-        raise BookingHeldError
-    old = stay_of(booking, await lines_of(session, context, [booking.id]))
-    new = await _change_stay_and_price(session, context, prop, booking, old, request)
+    await _check_can_edit(session, booking, request)
+    lines = await lines_of(session, context, [booking.id])
+    old = stay_of(booking, lines)
+    if booking.status == IN_HOUSE:
+        from app.services.stay_changes import change_in_house_stay
+
+        new = await change_in_house_stay(session, context, prop, booking, lines, old, request)
+    else:
+        new = await _change_stay_and_price(session, context, prop, booking, old, request)
     await _change_guest(session, context, booking, request)
     if request.source is not None:
         booking.channel_id = (await staff_source(session, context, request.source)).id
@@ -556,7 +652,13 @@ async def update_booking(
     booking.updated_by = str(context.user_id)
     session.add(booking)
     await _queue_channel_update(session, context, prop.id, [old, new])
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:  # the database's own guard against a double assignment
+        await session.rollback()
+        from app.services.stay_changes import RoomTakenError
+
+        raise RoomTakenError from None
     await session.refresh(booking)  # amounts as the database stores them
     log.info("Booking updated booking=%s", booking.id)
     return booking
@@ -574,6 +676,9 @@ async def cancel_booking(
     booking = await get_for_update(session, context, prop.id, booking_id)
     if booking.status == CANCELLED:
         raise BookingCancelledError
+    if booking.status in STARTED:
+        await session.rollback()
+        raise BookingStartedError
     lines = await lines_of(session, context, [booking.id])
     stay = stay_of(booking, lines)
     await inventory.release_units(session, context, stay.room_type_id, stay.nights, stay.units)

@@ -93,7 +93,7 @@ export interface GuestBooking {
   property_name: string;
   property_whatsapp: string | null;
   number: string;
-  status: "awaiting_payment" | "confirmed" | "cancelled";
+  status: "awaiting_payment" | "confirmed" | "cancelled" | "in_house" | "checked_out" | "no_show";
   arrival: string;
   departure: string;
   nights: number;

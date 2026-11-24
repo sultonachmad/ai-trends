@@ -45,6 +45,11 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Unit not found"
         ) from None
+    except rooms.UnitInUseError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Some of these rooms have current or future guests. Move them first.",
+        ) from None
     except rooms.RoomTypeNameTakenError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

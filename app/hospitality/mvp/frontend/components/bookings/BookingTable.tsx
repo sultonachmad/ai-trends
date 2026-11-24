@@ -18,6 +18,7 @@ interface BookingTableProps {
   onOpen: (booking: Booking) => void;
 }
 
+const STAGED: readonly string[] = ["in_house", "checked_out", "no_show"];
 const badge = "inline-block rounded-full px-2 py-0.5 text-xs font-medium";
 
 function Flags({ booking, today }: { booking: Booking; today: string }) {
@@ -29,6 +30,9 @@ function Flags({ booking, today }: { booking: Booking; today: string }) {
         <span className={`${badge} bg-accent text-accent-foreground`}>
           {t(`bookings.today.${note}`)}
         </span>
+      )}
+      {STAGED.includes(booking.status) && (
+        <span className={`${badge} bg-muted`}>{t(`bookings.status.${booking.status}`)}</span>
       )}
       {booking.status === "tentative" && (
         <span className={`${badge} bg-accent text-accent-foreground`}>

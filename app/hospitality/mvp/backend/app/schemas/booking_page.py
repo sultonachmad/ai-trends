@@ -126,7 +126,9 @@ class GuestBookingView(BaseModel):
     property_name: str
     property_whatsapp: str | None
     number: str
-    status: Literal["awaiting_payment", "confirmed", "cancelled"]
+    status: Literal[
+        "awaiting_payment", "confirmed", "cancelled", "in_house", "checked_out", "no_show"
+    ]
     arrival: dt.date
     departure: dt.date
     nights: int

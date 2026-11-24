@@ -20,13 +20,15 @@ export const PAYMENT_METHODS: readonly PaymentMethod[] = ["cash", "bank_transfer
 export interface Booking {
   id: string;
   number: string;
-  status: "confirmed" | "cancelled" | "tentative";
+  status: "confirmed" | "cancelled" | "tentative" | "in_house" | "checked_out" | "no_show";
   arrival: string;
   departure: string;
   nights: number;
   room_type: { id: string; name: string };
   rate_plan: { id: string; name: string };
   units: number;
+  /** Names of the rooms given to this booking so far. */
+  assigned_rooms: string[];
   adults: number;
   children: number;
   guest: { id: string | null; name: string; phone: string | null };

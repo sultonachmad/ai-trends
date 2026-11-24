@@ -36,6 +36,7 @@ from app.services.bookings import (
 from app.services.calendar_dates import property_today
 from app.services.channel_push import _context as worker_context
 from app.services.payment_links import NEEDS_REFUND_FLAG, cancel_pending_payments
+from app.services.stay_status import STARTED
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 from app.tenancy.session import bind_tenant
@@ -121,7 +122,7 @@ async def settle_paid_link(
     context = worker_context(tenant_id, session)
     await lock_property(session, context, link.property_id)
     booking = await get_for_update(session, context, link.property_id, link.reservation_id)
-    if booking.status == CONFIRMED:
+    if booking.status == CONFIRMED or booking.status in STARTED:
         # A second payment for a booking already paid: never counted, always refunded.
         _flag_refund(session, booking, payment)
         log.error("REFUND REVIEW: extra payment %s for booking %s", payment.id, booking.id)

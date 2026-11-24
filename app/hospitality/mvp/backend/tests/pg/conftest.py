@@ -420,7 +420,7 @@ async def sold_matches_bookings(session, tenant_id: str) -> bool:
               FROM reservationunit u
               CROSS JOIN LATERAL generate_series(
                 u.arrival_date, u.departure_date - 1, interval '1 day') AS night
-              WHERE u.tenant_id = :t AND u.status IN ('confirmed', 'tentative')
+              WHERE u.tenant_id = :t AND u.status IN ('confirmed', 'tentative', 'in_house', 'checked_out')
               GROUP BY 1, 2
             ),
             sold AS (

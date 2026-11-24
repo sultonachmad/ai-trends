@@ -20,7 +20,7 @@ from app.models.tenant import Channel, Property, Reservation, ReservationDailyRa
 from app.schemas.reports import ChannelReport, ReportFigures, ReportRow
 from app.services import calendar_dates as dates_of
 from app.services.booking_holds import BOOKING_PAGE
-from app.services.bookings import CANCELLED, CONFIRMED
+from app.services.stay_status import CANCELLED, EARNING
 from app.tenancy.context import TenantContext
 
 MAX_REPORT_DAYS = 366
@@ -104,7 +104,7 @@ async def _stayed(
         .where(
             col(Reservation.tenant_id) == context.tenant_id,
             col(Reservation.property_id) == property_id,
-            col(Reservation.status) == CONFIRMED,
+            col(Reservation.status).in_(EARNING),
             col(ReservationDailyRate.stay_date) >= start,
             col(ReservationDailyRate.stay_date) <= end,
         )

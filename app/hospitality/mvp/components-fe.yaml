@@ -180,6 +180,21 @@ components:
 - name: RefundDoneForm
   path: frontend/components/bookings/RefundDoneForm.tsx
   description: Records a refund sent to the guest from the booking detail
+- name: DeskEntryCard
+  path: frontend/components/front-desk/DeskEntryCard.tsx
+  description: One booking on the front desk with its rooms and actions
+- name: RoomsToday
+  path: frontend/components/front-desk/RoomsToday.tsx
+  description: Every room with its status and current guest
+- name: AssignRoomDialog
+  path: frontend/components/front-desk/AssignRoomDialog.tsx
+  description: Choose, change, clear or lock a booking's room
+- name: DeskActionDialog
+  path: frontend/components/front-desk/DeskActionDialog.tsx
+  description: Confirms check-in, check-out, no-show and undo with warnings
+- name: StayChangeDialog
+  path: frontend/components/front-desk/StayChangeDialog.tsx
+  description: Changes departure, guests and notes after check-in
 pages:
 - name: HomePage
   path: frontend/app/page.tsx
@@ -269,6 +284,9 @@ pages:
 - name: ReportsPage
   path: frontend/app/(authenticated)/reports/page.tsx
   description: Channel report with period choices, permission reports:view
+- name: FrontDeskPage
+  path: frontend/app/(authenticated)/front-desk/page.tsx
+  description: Arrivals, in-house, departures and rooms, permission frontdesk:view
 hooks:
 - name: useRbac
   path: frontend/lib/rbac-store.tsx
@@ -378,5 +396,11 @@ utilities:
 - name: reports-api
   path: frontend/lib/reports-api.ts
   description: Calls GET /api/reports/channels
+- name: front-desk-format
+  path: frontend/lib/front-desk-format.ts
+  description: Front desk rules and refusal messages
+- name: front-desk-api
+  path: frontend/lib/front-desk-api.ts
+  description: Calls the /api/front-desk routes
 api_routes:
 - api/auth/[...nextauth]

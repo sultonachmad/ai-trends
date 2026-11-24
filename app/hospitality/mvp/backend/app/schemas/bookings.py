@@ -35,7 +35,7 @@ ReasonText = Annotated[
 SearchText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 
 BookingTab = Literal["upcoming", "staying", "past", "cancelled"]
-BookingStatus = Literal["confirmed", "cancelled", "tentative"]
+BookingStatus = Literal["confirmed", "cancelled", "tentative", "in_house", "checked_out", "no_show"]
 PaymentState = Literal["unpaid", "partly_paid", "paid", "overpaid"]
 PaymentMethodIn = Literal["cash", "bank_transfer", "other"]
 UNITS_CEILING = 100
@@ -169,6 +169,7 @@ class BookingRead(BaseModel):
     room_type: NamedRef
     rate_plan: NamedRef
     units: int
+    assigned_rooms: list[str] = []  # names of the rooms given to this booking so far
     adults: int
     children: int
     guest: BookingGuest

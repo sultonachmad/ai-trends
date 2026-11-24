@@ -39,7 +39,7 @@ from app.services import booking_payments as payments
 from app.services import booking_reads as reads
 from app.services import booking_refunds as refunds
 from app.services import booking_stays as stays
-from app.services import bookings
+from app.services import bookings, stay_changes
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
@@ -64,6 +64,22 @@ _MESSAGES: dict[type[Exception], tuple[int, str]] = {
     bookings.BookingCancelledError: (
         status.HTTP_409_CONFLICT,
         "This booking is cancelled and can no longer be changed.",
+    ),
+    bookings.BookingStartedError: (
+        status.HTTP_409_CONFLICT,
+        "This guest has already arrived. Only the departure date, guests and notes can change.",
+    ),
+    bookings.BookingFinishedError: (
+        status.HTTP_409_CONFLICT,
+        "This stay has ended and can no longer be changed.",
+    ),
+    stay_changes.DepartureInPastError: (
+        UNPROCESSABLE,
+        "The departure date cannot be before today or the arrival date.",
+    ),
+    stay_changes.RoomTakenError: (
+        status.HTTP_409_CONFLICT,
+        "The guest's room is taken on the added nights. Move the guest first.",
     ),
     bookings.BookingHeldError: (
         status.HTTP_409_CONFLICT,

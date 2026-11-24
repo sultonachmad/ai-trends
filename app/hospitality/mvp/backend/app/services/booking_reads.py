@@ -4,7 +4,7 @@ import datetime as dt
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, func, or_, tuple_
+from sqlalchemy import ColumnElement, and_, func, or_, tuple_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -18,6 +18,7 @@ from app.models.tenant import (
     Reservation,
     ReservationDailyRate,
     ReservationUnit,
+    Unit,
     UnitType,
 )
 from app.schemas.bookings import (
@@ -51,6 +52,7 @@ from app.services.bookings import (
     stay_of,
 )
 from app.services.inventory import taken_by_night, units_in_use
+from app.services.stay_status import FINISHED, IN_HOUSE, NOT_ACTIVE, STARTED
 from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 from app.tenancy.timezones import property_zone
@@ -151,7 +153,7 @@ async def _oversold_bookings(
     today: dt.date,
 ) -> set[UUID]:
     """Ids of confirmed bookings with a night, today or later, that has more sold than units."""
-    live = [b for b in bookings if b.status != CANCELLED and b.departure_date > today]
+    live = [b for b in bookings if b.status not in NOT_ACTIVE and b.departure_date > today]
     if not live:
         return set()
     room_ids = list({stays[b.id].room_type_id for b in live})
@@ -173,7 +175,7 @@ async def _oversold_bookings(
 
 
 def _status_for_people(status: str) -> str:
-    return status if status in (CANCELLED, TENTATIVE) else CONFIRMED
+    return status if status in (CANCELLED, TENTATIVE, *STARTED) else CONFIRMED
 
 
 async def read_many(
@@ -194,6 +196,9 @@ async def read_many(
         session, context, Guest, {b.booker_guest_id for b in bookings if b.booker_guest_id}
     )
     sources = await _by_id(session, context, Channel, {b.channel_id for b in bookings})
+    assigned = await _by_id(
+        session, context, Unit, {line.unit_id for line in lines if line.unit_id}
+    )
     today = dates_of.property_today(prop.timezone)
     at_risk = await _oversold_bookings(session, context, bookings, stays, today)
     result = []
@@ -212,6 +217,11 @@ async def read_many(
                 room_type=NamedRef(id=stay.room_type_id, name=rooms[stay.room_type_id].name),
                 rate_plan=NamedRef(id=stay.rate_plan_id, name=plans[stay.rate_plan_id].name),
                 units=stay.units,
+                assigned_rooms=[
+                    assigned[line.unit_id].name or assigned[line.unit_id].code
+                    for line in by_booking[booking.id]
+                    if line.unit_id in assigned
+                ],
                 adults=stay.adults,
                 children=stay.children,
                 guest=BookingGuest(
@@ -342,14 +352,17 @@ async def find_booking(
 
 def _tab_filter(tab: BookingTab, today: dt.date) -> tuple[list[ColumnElement[bool]], object, bool]:
     """(conditions, sort column, newest first) for a tab."""
-    confirmed = col(Reservation.status) != CANCELLED
+    active = col(Reservation.status).not_in(NOT_ACTIVE)
+    in_house = col(Reservation.status) == IN_HOUSE
     arrival, departure = col(Reservation.arrival_date), col(Reservation.departure_date)
     if tab == "upcoming":
-        return [confirmed, arrival > today], arrival, False
+        return [active, ~in_house, arrival > today], arrival, False
     if tab == "staying":
-        return [confirmed, arrival <= today, departure > today], departure, False
+        dated = and_(arrival <= today, departure > today)
+        return [active, or_(in_house, dated)], departure, False
     if tab == "past":
-        return [confirmed, departure <= today], departure, True
+        ended = and_(active, ~in_house, departure <= today)
+        return [or_(col(Reservation.status).in_(FINISHED), ended)], departure, True
     return [col(Reservation.status) == CANCELLED], col(Reservation.cancelled_at), True
 
 
@@ -446,7 +459,7 @@ async def _own_units(
                 col(Reservation.tenant_id) == context.tenant_id,
                 col(Reservation.property_id) == property_id,
                 col(Reservation.id) == booking_id,
-                col(Reservation.status) != CANCELLED,
+                col(Reservation.status).not_in(NOT_ACTIVE),
             )
         )
     ).first()
