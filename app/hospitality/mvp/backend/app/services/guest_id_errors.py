@@ -115,3 +115,8 @@ class TooManyScansError(GuestIdError):
 class TryAgainError(GuestIdError):
     code = "try_again"
     message = "This guest's ID was just changed elsewhere. Try again."
+
+
+class GuestReportedError(GuestIdError):
+    code = "guest_reported"
+    message = "This guest is recorded in APOA. Undo the APOA marks first."

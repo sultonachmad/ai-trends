@@ -119,7 +119,7 @@ def is_usable(document: GuestDocument, today: dt.date) -> bool:
     )
 
 
-async def _documents(
+async def documents_of(
     session: AsyncSession, context: TenantContext, guest_ids: list[UUID], today: dt.date
 ) -> dict[UUID, GuestDocument]:
     """Each guest's best confirmed document: a usable one first, the newest first."""
@@ -214,7 +214,7 @@ async def main_guest_ready(
     if not on_booking:
         return False
     main = on_booking[0][0]
-    document = (await _documents(session, context, [main.id], today)).get(main.id)
+    document = (await documents_of(session, context, [main.id], today)).get(main.id)
     return document is not None and is_usable(document, today)
 
 
@@ -223,7 +223,7 @@ async def read_guests(scope: IdentityScope, booking_id: UUID) -> GuestsView:
     today = dates_of.property_today(scope.prop.timezone)
     booking, lines = await booking_of(session, context, scope.prop, booking_id)
     on_booking = await guests_of(session, context, booking, lines)
-    documents = await _documents(session, context, [g.id for g, _ in on_booking], today)
+    documents = await documents_of(session, context, [g.id for g, _ in on_booking], today)
     scans = await _live_scans(
         session, context, [d.scan_document_id for d in documents.values() if d.scan_document_id]
     )

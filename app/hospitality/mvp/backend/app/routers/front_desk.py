@@ -47,6 +47,7 @@ VIEW = require_permission("frontdesk:view", "See arrivals, in-house guests, depa
 
 EDIT = require_permission("frontdesk:edit", "Assign rooms and check guests in and out")
 
+APOA_VIEW = "apoa:view"
 BOOKING_EDIT = "bookings:edit"  # lowering a price or waiving payment needs booking rights
 
 front_desk_router = APIRouter(prefix="/api/front-desk", tags=["front-desk"])
@@ -77,10 +78,13 @@ async def _answer(
 async def today(
     context: TenantContext = Depends(get_tenant_context),
     session: AsyncSession = Depends(get_tenant_session),
-    _view=VIEW,
+    rbac_session: AsyncSession = Depends(get_session, use_cache=False),
+    user: dict = VIEW,
 ) -> FrontDeskToday:
     prop = await find_property(session, context)
-    return await reads.read_today(session, context, prop)
+    # APOA counts only for staff who may see foreign guest reporting.
+    with_apoa = await _user_has_permission(int(user["user_id"]), APOA_VIEW, rbac_session)
+    return await reads.read_today(session, context, prop, with_apoa=with_apoa)
 
 
 @front_desk_router.get("/bookings/{booking_id}/free-rooms", response_model=list[FreeRoom])

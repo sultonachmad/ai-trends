@@ -204,6 +204,15 @@ components:
 - name: PrintableBill
   path: frontend/components/bills/PrintableBill.tsx
   description: Printable bill or receipt layout
+- name: ApoaCard
+  path: frontend/components/apoa/ApoaCard.tsx
+  description: One foreign guest's APOA steps, deadline, passport photo download and actions
+- name: ApoaStepDialog
+  path: frontend/components/apoa/ApoaStepDialog.tsx
+  description: Record an APOA step with a receipt number, or skip or undo it with a reason
+- name: ApoaRegister
+  path: frontend/components/apoa/ApoaRegister.tsx
+  description: Download the masked APOA register for a date range
 - name: GuestIdDialog
   path: frontend/components/guest-ids/GuestIdDialog.tsx
   description: Guests on a booking with masked IDs, capture, removal and the ID history
@@ -217,6 +226,9 @@ components:
   path: frontend/components/settings/TaxSection.tsx
   description: Region, PBJT, service charge, price mode and taxed extras with owner confirmation
 pages:
+- name: ApoaPage
+  path: frontend/app/(authenticated)/apoa/page.tsx
+  description: Foreign guests (APOA) - to report, to check out, done, unlisted guests, register
 - name: HomePage
   path: frontend/app/page.tsx
   layout: RootLayout
@@ -441,6 +453,12 @@ utilities:
 - name: taxes-api
   path: frontend/lib/taxes-api.ts
   description: Calls /api/settings/taxes
+- name: apoa-api
+  path: frontend/lib/apoa-api.ts
+  description: Calls the /api/apoa routes
+- name: apoa-format
+  path: frontend/lib/apoa-format.ts
+  description: APOA deadlines, form checks and refusal messages
 - name: guest-ids-api
   path: frontend/lib/guest-ids-api.ts
   description: Calls the /api/bookings/{id}/guests routes

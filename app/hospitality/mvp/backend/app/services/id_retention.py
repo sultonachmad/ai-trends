@@ -19,6 +19,7 @@ import logging
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -176,7 +177,21 @@ async def _clear_numbers(session: AsyncSession, tenant_id: UUID, today: dt.date)
         document.doc_number_hash = None
         document.doc_number_last4 = None
         session.add(document)
+    await _forget_in_reports(session, tenant_id, [document.id for document in due])
     return len(due)
+
+
+async def _forget_in_reports(session: AsyncSession, tenant_id: UUID, document_ids: list) -> None:
+    """APOA records keep the name and dates of what was reported, not passport details."""
+    if not document_ids:
+        return
+    await session.execute(
+        text(
+            "UPDATE foreignguestreport SET payload = payload - 'last4' - 'visa_type' "
+            "- 'entry_date' WHERE tenant_id = :t AND guest_document_id = ANY(:ids)"
+        ),
+        {"t": tenant_id, "ids": document_ids},
+    )
 
 
 async def _purge_tenant(

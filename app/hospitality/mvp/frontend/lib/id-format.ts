@@ -32,6 +32,7 @@ export const GUEST_ID_ERROR_CODES = [
   "too_many_scans",
   "try_again",
   "id_unreadable",
+  "guest_reported",
 ] as const;
 export const ID_PROBLEM_CODES = [
   "doc_type",

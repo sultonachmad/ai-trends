@@ -105,6 +105,8 @@ permissions:
   "bills:edit":        "Add charges and payments to guest bills (discounts also need bookings:edit)"
   "guestid:view":      "See who is staying and their masked ID details"
   "guestid:edit":      "Capture and confirm guest IDs, and show full numbers and images (logged)"
+  "apoa:view":         "See which foreign guests still need reporting to APOA"
+  "apoa:edit":         "Record APOA check-ins and check-outs of foreign guests"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────
@@ -230,6 +232,14 @@ menus:
         icon: calendar
         permission: calendar:view
         order: 2
+        active: true
+
+      # Foreign guests to check in to and out of APOA (Imigrasi). apoa:view / apoa:edit.
+      - name: Foreign guests (APOA)
+        path: /apoa
+        icon: clipboard
+        permission: apoa:view
+        order: 3
         active: true
 
 

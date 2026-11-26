@@ -57,6 +57,8 @@ export interface DeskToday {
   /** Checked out or no-show today, and still possible to undo. */
   done_today: DeskEntry[];
   rooms: RoomToday[];
+  /** Foreign guests due or overdue in APOA (counts only). */
+  apoa: { due: number; overdue: number };
 }
 
 export interface FreeRoom {

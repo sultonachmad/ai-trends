@@ -17,6 +17,9 @@ from app.schemas.front_desk import CheckInRequest, CheckOutRequest, UndoRequest
 from app.services import calendar_dates as dates_of
 from app.services import front_desk_errors as errors
 from app.services import inventory, tenant_audit
+from app.services.apoa import release_for_front_desk_undo
+from app.services.apoa_reads import ARRIVAL as ARRIVAL_STEP
+from app.services.apoa_reads import DEPARTURE as DEPARTURE_STEP
 from app.services.bill_balance import refresh_balance
 from app.services.bill_errors import BalanceOwedError
 from app.services.bookings import (
@@ -288,6 +291,7 @@ async def _undo_check_in(
 ) -> None:
     if not all(is_on_day(line.checked_in_at, prop.timezone, today) for line in lines):
         raise errors.UndoNotAllowedError
+    await release_for_front_desk_undo(session, context, booking.id, ARRIVAL_STEP)
     units = await _locked_units(session, context, [line.unit_id for line in lines])
     for line in lines:
         line.checked_in_at, line.checked_in_by = None, None
@@ -313,6 +317,7 @@ async def _undo_check_out(
         session, context, unit_ids, lines[0].start_at, lines[0].blocked_until, booking.id
     ):
         raise errors.UndoNotAllowedError
+    await release_for_front_desk_undo(session, context, booking.id, DEPARTURE_STEP)
     for line in lines:
         line.checked_out_at, line.checked_out_by = None, None
         set_unit_status(session, context, units[line.unit_id], fo=OCCUPIED)

@@ -25,6 +25,7 @@ from app.documents.images import detect_image_type
 from app.documents.storage import DocumentStorage
 from app.models.tenant import (
     Document,
+    ForeignGuestReport,
     Guest,
     GuestDocument,
     Property,
@@ -469,6 +470,23 @@ async def confirm(
 # ---- removing ---------------------------------------------------------------------------
 
 
+async def _drop_open_reports(scope: IdentityScope, link_ids: list[UUID]) -> None:
+    """A guest reported to APOA stays on the booking; undone (pending) records go."""
+    reports = (
+        await scope.session.exec(
+            select(ForeignGuestReport).where(
+                col(ForeignGuestReport.tenant_id) == scope.context.tenant_id,
+                col(ForeignGuestReport.reservation_guest_id).in_(link_ids),
+            )
+        )
+    ).all()
+    if any(report.status != "pending" for report in reports):
+        raise errors.GuestReportedError
+    for report in reports:
+        await scope.session.delete(report)
+    await scope.session.flush()
+
+
 async def remove_guest(scope: IdentityScope, booking_id: UUID, guest_id: UUID) -> None:
     """Take a companion off the booking. Their ID record stays on their profile. Commits."""
     booking, lines = await _locked_booking(scope, booking_id)
@@ -486,6 +504,7 @@ async def remove_guest(scope: IdentityScope, booking_id: UUID, guest_id: UUID) -
     ).all()
     if not links:
         raise errors.GuestNotOnBookingError
+    await _drop_open_reports(scope, [link.id for link in links])
     for link in links:
         await scope.session.delete(link)
     await tenant_audit.record(

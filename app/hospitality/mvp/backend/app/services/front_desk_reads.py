@@ -1,6 +1,7 @@
 """What the front desk sees today, in the property's time zone."""
 
 import datetime as dt
+import logging
 from uuid import UUID
 
 from sqlalchemy import and_, or_
@@ -8,6 +9,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.tenant import Channel, Guest, Property, Reservation, ReservationUnit, Unit, UnitType
+from app.schemas.apoa import ApoaCounts
 from app.schemas.front_desk import FrontDeskEntry, FrontDeskRoom, FrontDeskToday, RoomToday
 from app.services import calendar_dates as dates_of
 from app.services.bill_taxes import with_tax
@@ -24,6 +26,8 @@ from app.services.stay_status import (
 )
 from app.tenancy.context import TenantContext
 from app.tenancy.timezones import property_zone
+
+log = logging.getLogger(__name__)
 
 ATTENTION_DAYS = 7  # unprocessed arrivals older than this are left alone
 MAX_ROWS = 500
@@ -182,7 +186,7 @@ async def _done_today(
 
 
 async def read_today(
-    session: AsyncSession, context: TenantContext, prop: Property
+    session: AsyncSession, context: TenantContext, prop: Property, *, with_apoa: bool = False
 ) -> FrontDeskToday:
     property_id, timezone = prop.id, prop.timezone
     today = dates_of.property_today(timezone)
@@ -207,4 +211,16 @@ async def read_today(
         departures=[entry for entry in in_house if entry.departure <= today],
         done_today=entries[len(arriving) + len(staying) :],
         rooms=await _rooms_today(session, context, property_id, in_house),
+        apoa=await _apoa_counts(session, context, prop) if with_apoa else ApoaCounts(),
     )
+
+
+async def _apoa_counts(session: AsyncSession, context: TenantContext, prop: Property) -> ApoaCounts:
+    # Imported here: the APOA list builds on this module's neighbours (bookings, rooms).
+    from app.services.apoa_reads import counts
+
+    try:
+        return await counts(session, context, prop)
+    except Exception:  # noqa: BLE001 — the banner must never take the front desk down
+        log.exception("APOA counts failed property=%s", prop.id)
+        return ApoaCounts()

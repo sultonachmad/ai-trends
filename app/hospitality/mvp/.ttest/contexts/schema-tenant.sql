@@ -948,6 +948,7 @@ CREATE TABLE reservation (
 );
 CREATE INDEX ix_reservation_dates ON reservation (tenant_id, property_id, arrival_date, departure_date);
 CREATE INDEX ix_reservation_status ON reservation (tenant_id, property_id, status);
+CREATE INDEX ix_reservation_stay_open ON reservation (tenant_id, property_id, status, departure_date) WHERE status IN ('in_house', 'checked_out');
 CREATE UNIQUE INDEX ux_reservation_channel_ref ON reservation (tenant_id, channel_id, channel_reference)
   WHERE channel_reference IS NOT NULL;
 
@@ -2645,6 +2646,8 @@ CREATE TABLE foreignguestreport (
   FOREIGN KEY (tenant_id, guest_id) REFERENCES guest (tenant_id, id),
   FOREIGN KEY (tenant_id, guest_document_id) REFERENCES guestdocument (tenant_id, id) ON DELETE SET NULL (guest_document_id)
 );
+CREATE INDEX ix_foreignguestreport_guest ON foreignguestreport (tenant_id, guest_id);
+CREATE INDEX ix_foreignguestreport_document ON foreignguestreport (tenant_id, guest_document_id) WHERE guest_document_id IS NOT NULL;
 CREATE INDEX ix_foreignguestreport_due ON foreignguestreport (tenant_id, property_id, due_at) WHERE status IN ('pending','ready','failed');
 
 -- Periodic tax return (PBJT hotel/restaurant per kab/kota, tourist tax, VAT).

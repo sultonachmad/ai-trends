@@ -20,7 +20,7 @@ import {
   refusedRooms,
 } from "@/lib/front-desk-format";
 import { billErrorKey } from "@/lib/bill-format";
-import { guestIdErrorKey } from "@/lib/id-format";
+import { apoaErrorKey } from "@/lib/apoa-format";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 import { useCan } from "@/lib/rbac-store";
@@ -116,7 +116,7 @@ export function DeskActionDialog({
       } else if (isRefusedAs(cause, "id_missing")) {
         setIdMissing(true);
       } else {
-        const key = billErrorKey(cause) ?? guestIdErrorKey(cause);
+        const key = billErrorKey(cause) ?? apoaErrorKey(cause);
         const rooms = refusedRooms(cause).join(", ");
         const text = key ? t(key) : cause instanceof Error ? cause.message : String(cause);
         setError(rooms ? `${text} (${rooms})` : text);

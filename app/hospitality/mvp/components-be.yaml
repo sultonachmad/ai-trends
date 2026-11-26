@@ -878,6 +878,10 @@ api_routers:
 - name: bills
   file: backend/app/routers/bills.py
   description: /api/bills routes, permissions bills:view and bills:edit (price changes need bookings:edit)
+- name: apoa
+  file: backend/app/routers/apoa.py
+  description: /api/apoa worklist, marks, not-required, undo and the masked CSV register (exports
+    logged), permissions apoa:view and apoa:edit; every answer no-store
 - name: guest_ids
   file: backend/app/routers/guest_ids.py
   description: /api/bookings/{id}/guests routes (scan, confirm, remove, logged reveal and image,
@@ -1120,6 +1124,17 @@ services:
 - name: bill_taxes
   file: backend/app/services/bill_taxes.py
   description: Service charge and PBJT on a booking's nights and bill lines by date and price mode
+- name: apoa_reads
+  file: backend/app/services/apoa_reads.py
+  description: Foreign guests to check in to and out of APOA, deadlines, overdue, unlisted guests,
+    front desk counts
+- name: apoa
+  file: backend/app/services/apoa.py
+  description: Record APOA check-in and check-out (receipt reference), not required, undo; front
+    desk undo refused while APOA is recorded
+- name: apoa_register
+  file: backend/app/services/apoa_register.py
+  description: CSV register for immigration officers by stay date; masked, formula-safe, local times
 - name: id_validation
   file: backend/app/services/id_validation.py
   description: Pure KTP/NIK and passport checks (structure, birth date and gender in the NIK, expiry, visa)
@@ -1386,6 +1401,9 @@ migrations:
 - name: 0016_bill_guards
   file: backend/migrations/versions/0016_bill_guards.py
   description: One guest bill per booking, one void per line, frozen receipt lines and paid amount
+- name: 0018_apoa_indexes
+  file: backend/migrations/versions/0018_apoa_indexes.py
+  description: Index on open and recent stays; foreign guest reports by guest and by document
 - name: 0017_guest_id_indexes
   file: backend/migrations/versions/0017_guest_id_indexes.py
   description: One guest document per guest and type; indexes for scans, retention and guests by profile

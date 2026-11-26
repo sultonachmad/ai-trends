@@ -140,6 +140,14 @@ class Reservation(TenantEntity, table=True):
         Index("ix_reservation_dates", "tenant_id", "property_id", "arrival_date", "departure_date"),
         Index("ix_reservation_status", "tenant_id", "property_id", "status"),
         Index(
+            "ix_reservation_stay_open",
+            "tenant_id",
+            "property_id",
+            "status",
+            "departure_date",
+            postgresql_where=text("status IN ('in_house', 'checked_out')"),
+        ),
+        Index(
             "ux_reservation_channel_ref",
             "tenant_id",
             "channel_id",

@@ -98,6 +98,12 @@ class PropertySettings(BaseModel):
         le=3650,
         description="Days guest ID numbers are kept after the stay (pending legal review).",
     )
+    apoa_deadline_hours: int = Field(
+        default=24,
+        ge=1,
+        le=72,
+        description="Hours after check-in or check-out to report in APOA (unconfirmed).",
+    )
     id_max_upload_mb: int = Field(
         default=5, ge=1, le=MAX_PROOF_UPLOAD_MB, description="Largest guest ID image, in MB."
     )

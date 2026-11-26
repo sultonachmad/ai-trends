@@ -47,7 +47,7 @@ Targets are proposed and should be reviewed after the first pilot month.
 - **Guest bill**: room charges, extras, discounts and corrections with reasons, deposits, cash, transfer and existing payment methods, refunds, receipt, and a check-out that shows the balance.
 - **Tax pack**: PBJT and service charge as separate lines, nett and ++ pricing, configurable region settings with starter values for Bali, Jakarta, Yogyakarta, Bandung and Surabaya, and a monthly tax summary export. Starter values must be verified before use.
 - **Guest ID**: KTP/NIK for domestic guests; passport, visa type and permit for foreigners; a scan, review and correct flow using a simulated reader, replaceable by an approved provider. Staff always confirm the fields. Access is restricted, viewed records are logged, and retention follows the policy decided below.
-- **APOA**: guest data prepared in APOA's field order for staff to copy or export, a record of who submitted it and when, and overdue alerts. Staff still submit in the official APOA system.
+- **APOA**: a worklist of foreign guests to check in to and out of APOA, the passport photo ready for APOA's manual check-in, a record of who submitted it and when, overdue alerts, and a register for immigration officers. Staff still submit in the official APOA system, which reads the passport itself and has no import or API (checked against the official guide, Nov 2026).
 - **End of day**: daily close with checks, cash book, shift totals and a daily summary.
 - **Operations mobile**: phone-friendly room status board, cleaning tasks from arrivals and departures, a big-button mode, and maintenance requests that can take a room off sale.
 - **Access and language**: every feature has its own permission, every action that affects money or identity data is in the history, and all text is in Bahasa Indonesia first and English second.
@@ -77,7 +77,7 @@ Targets are proposed and should be reviewed after the first pilot month.
 | 2 | Guest bill | Staff see every charge and payment on one bill, settle it at check-out and give a receipt | complete | `.claude/plans/phase-2-m2-guest-bill.plan.md` |
 | 3 | Tax pack | Bills show correct PBJT and service charge for the property's region, in nett or ++ pricing | complete | `.claude/plans/phase-2-m3-tax-pack.plan.md` |
 | 4 | Guest ID | Staff capture and confirm KTP or passport details at check-in, with restricted access | complete | `.claude/plans/phase-2-m4-guest-id.plan.md` |
-| 5 | APOA reporting | Staff submit foreign guests from prepared data and can see what is reported or overdue | pending | — |
+| 5 | APOA reporting | Staff submit foreign guests from prepared data and can see what is reported or overdue | complete | `.claude/plans/phase-2-m5-apoa.plan.md` |
 | 6 | End of day | An operator closes the day and sees cash, shift totals and what still needs attention | pending | — |
 | 7 | Housekeeping on phone | Housekeepers see their rooms and update status from a phone, and the front desk sees it at once | pending | — |
 | 8 | Maintenance and tax export | Staff report repairs that can block a room, and an owner exports the monthly tax summary | pending | — |

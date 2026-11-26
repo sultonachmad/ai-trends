@@ -89,6 +89,13 @@ class ForeignGuestReport(TenantEntity, table=True):
             ("status IN ('pending', 'ready', 'submitted', 'failed', 'not_required', 'cancelled')"),
             name="foreignguestreport_status_check",
         ),
+        Index("ix_foreignguestreport_guest", "tenant_id", "guest_id"),
+        Index(
+            "ix_foreignguestreport_document",
+            "tenant_id",
+            "guest_document_id",
+            postgresql_where=text("guest_document_id IS NOT NULL"),
+        ),
         Index(
             "ix_foreignguestreport_due",
             "tenant_id",

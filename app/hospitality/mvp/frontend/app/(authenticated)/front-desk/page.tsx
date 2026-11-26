@@ -3,6 +3,7 @@
 /** Front desk — today's arrivals, in-house guests, departures and rooms. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { BillDialog } from "@/components/bills/BillDialog";
@@ -45,6 +46,7 @@ export default function FrontDeskPage() {
   const canEdit = useCan("frontdesk:edit");
   const canSeeBills = useCan("bills:view");
   const canSeeIds = useCan("guestid:view");
+  const canSeeApoa = useCan("apoa:view");
   const [billId, setBillId] = useState<string | null>(null);
   const [guestsId, setGuestsId] = useState<string | null>(null);
   const [desk, setDesk] = useState<DeskToday | null>(null);
@@ -128,6 +130,19 @@ export default function FrontDeskPage() {
         <p role="alert" className="text-sm text-destructive">
           {t("common.loadFailed", { reason: error })}
         </p>
+      )}
+      {desk && canSeeApoa && desk.apoa.due > 0 && (
+        <div
+          role="status"
+          className={`flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${
+            desk.apoa.overdue > 0 ? "bg-destructive/10 text-destructive" : "bg-accent text-accent-foreground"
+          }`}
+        >
+          <span>{t("apoa.banner", { due: desk.apoa.due, overdue: desk.apoa.overdue })}</span>
+          <Link href="/apoa" className="min-h-11 rounded-md border border-current px-3 py-2 font-medium">
+            {t("apoa.bannerOpen")}
+          </Link>
+        </div>
       )}
       <div role="tablist" aria-label={t("frontdesk.title")} className="flex flex-wrap gap-2">
         {DESK_TABS.map((name) => (
