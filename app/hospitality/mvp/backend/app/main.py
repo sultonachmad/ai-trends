@@ -33,10 +33,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # The workspace's own access model: the manager role (all application permissions)
     # and, for owners who signed up before roles existed, a one-time grant.
-    from app.services.workspace_access import backfill_owner_access, ensure_manager_role
+    from app.services.workspace_access import (
+        backfill_owner_access,
+        ensure_manager_role,
+        ensure_staff_roles,
+    )
 
     async with _rbac_session_factory() as _access_db:
         await ensure_manager_role(_access_db)
+        await ensure_staff_roles(_access_db)
         await backfill_owner_access(_access_db)
     # ============================================================================
     # PREFAB:audit-evidence — startup check
@@ -411,6 +416,8 @@ def create_app() -> FastAPI:
     from app.routers.apoa import apoa_router
     from app.routers.cash_drawers import cash_drawers_router
     from app.routers.end_of_day import end_of_day_router
+    from app.routers.housekeeping import housekeeping_router
+    from app.routers.staff import join_router, staff_router
     from app.routers.bills import bills_router
     from app.routers.front_desk import front_desk_router
     from app.routers.guest_ids import guest_ids_router
@@ -419,6 +426,9 @@ def create_app() -> FastAPI:
     app.include_router(apoa_router)
     app.include_router(cash_drawers_router)
     app.include_router(end_of_day_router)
+    app.include_router(housekeeping_router)
+    app.include_router(staff_router)
+    app.include_router(join_router)
     app.include_router(bills_router)
     app.include_router(guest_ids_router)
     app.include_router(front_desk_router)

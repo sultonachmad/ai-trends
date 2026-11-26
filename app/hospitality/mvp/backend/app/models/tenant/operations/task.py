@@ -61,6 +61,13 @@ TaskInspectionResult = Literal[
     "pass",
     "fail",
 ]
+TaskProblemKind = Literal[
+    "dnd",
+    "refused",
+    "repair",
+    "empty",
+    "other",
+]
 TaskSource = Literal[
     "auto",
     "manual",
@@ -152,6 +159,36 @@ class Task(TenantEntity, table=True):
             ("((unit_id IS NOT NULL) OR (area_id IS NOT NULL) OR (task_kind = 'other'::text))"),
             name="task_check",
         ),
+        CheckConstraint(
+            (
+                "problem_kind IS NULL OR problem_kind IN "
+                "('dnd', 'refused', 'repair', 'empty', 'other')"
+            ),
+            name="task_problem_kind_check",
+        ),
+        CheckConstraint(
+            "(problem_kind IS NULL) = (problem_at IS NULL)", name="task_problem_at_check"
+        ),
+        Index(
+            "ux_task_unit_day_kind",
+            "tenant_id",
+            "unit_id",
+            "scheduled_for",
+            "task_kind",
+            unique=True,
+            postgresql_where=text(
+                "unit_id IS NOT NULL AND task_kind IN ('departure_clean', 'stayover_clean') "
+                "AND status IN ('pending', 'assigned', 'in_progress', 'paused', "
+                "'failed_inspection')"
+            ),
+        ),
+        Index(
+            "ix_task_open_problem",
+            "tenant_id",
+            "property_id",
+            "problem_at",
+            postgresql_where=text("problem_kind IS NOT NULL AND problem_cleared_at IS NULL"),
+        ),
         Index("ix_task_board", "tenant_id", "property_id", "scheduled_for", "status"),
         Index(
             "ix_task_assignee",
@@ -201,6 +238,12 @@ class Task(TenantEntity, table=True):
         default="auto", sa_type=Text, sa_column_kwargs={"server_default": text("'auto'::text")}
     )
     vendor_fee: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
+    problem_kind: str | None = Field(default=None, sa_type=Text)
+    problem_note: str | None = Field(default=None, sa_type=Text)
+    problem_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
+    problem_by: str | None = Field(default=None, sa_type=Text)
+    problem_cleared_at: dt.datetime | None = utc_datetime_field(nullable=True)  # type: ignore[assignment]
+    problem_cleared_by: str | None = Field(default=None, sa_type=Text)
 
 
 class TaskCreate(SQLModel):
@@ -228,6 +271,12 @@ class TaskCreate(SQLModel):
     notes: str | None = None
     source: TaskSource = "auto"
     vendor_fee: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
+    problem_kind: TaskProblemKind | None = None
+    problem_note: str | None = None
+    problem_at: dt.datetime | None = None
+    problem_by: str | None = None
+    problem_cleared_at: dt.datetime | None = None
+    problem_cleared_by: str | None = None
 
 
 class TaskUpdate(SQLModel):
@@ -255,6 +304,12 @@ class TaskUpdate(SQLModel):
     notes: str | None = None
     source: TaskSource | None = None
     vendor_fee: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
+    problem_kind: TaskProblemKind | None = None
+    problem_note: str | None = None
+    problem_at: dt.datetime | None = None
+    problem_by: str | None = None
+    problem_cleared_at: dt.datetime | None = None
+    problem_cleared_by: str | None = None
 
 
 class TaskRead(SQLModel):
@@ -284,6 +339,12 @@ class TaskRead(SQLModel):
     notes: str | None
     source: str
     vendor_fee: Decimal | None
+    problem_kind: str | None
+    problem_note: str | None
+    problem_at: dt.datetime | None
+    problem_by: str | None
+    problem_cleared_at: dt.datetime | None
+    problem_cleared_by: str | None
     created_at: dt.datetime
     updated_at: dt.datetime
     created_by: str | None

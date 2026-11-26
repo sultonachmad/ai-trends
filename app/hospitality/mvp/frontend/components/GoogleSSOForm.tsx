@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { safeCallbackUrl } from "@/lib/safe-callback";
 
 export function GoogleSSOForm() {
   // The callback URL is read on click, not during render: the login page has
@@ -8,8 +9,10 @@ export function GoogleSSOForm() {
   // generation of /login. `/` redirects to `/login`, so default to the dashboard.
   const handleClick = () => {
     const callbackUrl =
-      new URLSearchParams(window.location.search).get("callbackUrl") ??
-      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/dashboard`;
+      safeCallbackUrl(
+        new URLSearchParams(window.location.search).get("callbackUrl"),
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/dashboard`,
+      );
     void signIn("google", { callbackUrl });
   };
 

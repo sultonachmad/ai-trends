@@ -55,6 +55,7 @@ from app.services.unit_status import (
     is_ready,
     set_unit_status,
 )
+from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 
 log = logging.getLogger(__name__)
@@ -110,7 +111,9 @@ async def _finish(
     return booking
 
 
-def _check_rooms(lines: list[ReservationUnit], units: dict[UUID, Unit], accept: bool) -> None:
+def _check_rooms(
+    lines: list[ReservationUnit], units: dict[UUID, Unit], accept: bool, ready_when: str
+) -> None:
     rooms = [units[line.unit_id] for line in lines]
     broken = [room_name(u) for u in rooms if u.service_status == OUT_OF_ORDER]
     if broken:
@@ -118,7 +121,7 @@ def _check_rooms(lines: list[ReservationUnit], units: dict[UUID, Unit], accept: 
     occupied = [room_name(u) for u in rooms if u.fo_status == OCCUPIED]
     if occupied:
         raise errors.RoomOccupiedError(occupied)
-    not_ready = [room_name(u) for u in rooms if not is_ready(u)]
+    not_ready = [room_name(u) for u in rooms if not is_ready(u, ready_when)]
     if not_ready and not accept:
         raise errors.RoomNotReadyError(not_ready)
 
@@ -140,7 +143,8 @@ async def check_in(
     if any(line.unit_id is None for line in lines):
         raise errors.RoomsMissingError
     units = await _locked_units(session, context, [line.unit_id for line in lines])
-    _check_rooms(lines, units, request.accept_not_ready)
+    ready_when = resolve_property_settings(prop.settings).hk_ready_when
+    _check_rooms(lines, units, request.accept_not_ready, ready_when)
     payload = await _id_check(session, context, booking, lines, today, request.no_id_reason)
     now = dt.datetime.now(dt.UTC)
     for line in lines:

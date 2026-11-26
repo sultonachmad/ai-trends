@@ -26,6 +26,7 @@ from app.services.stay_status import (
     NO_SHOW,
     NO_SHOW_AT,
 )
+from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 from app.tenancy.timezones import property_zone
 
@@ -215,7 +216,16 @@ async def read_today(
         rooms=await _rooms_today(session, context, property_id, in_house),
         apoa=await _apoa_counts(session, context, prop) if with_apoa else ApoaCounts(),
         day_close=DayCloseState(unclosed=await oldest_unclosed(session, context, prop, today)),
+        problems=await _problems(session, context, prop),
+        poll_seconds=resolve_property_settings(prop.settings).hk_poll_seconds,
     )
+
+
+async def _problems(session: AsyncSession, context: TenantContext, prop: Property) -> list:
+    # Imported here: the housekeeping board builds on this module (stays, rooms).
+    from app.services.housekeeping_board import open_problems
+
+    return await open_problems(session, context, prop)
 
 
 async def _apoa_counts(session: AsyncSession, context: TenantContext, prop: Property) -> ApoaCounts:

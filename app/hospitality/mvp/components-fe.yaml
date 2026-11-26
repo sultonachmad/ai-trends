@@ -204,6 +204,30 @@ components:
 - name: PrintableBill
   path: frontend/components/bills/PrintableBill.tsx
   description: Printable bill or receipt layout
+- name: TaskCard
+  path: frontend/components/housekeeping/TaskCard.tsx
+  description: One room to clean - guests, requests, problem, and Start/Done/Take/Problem/inspect buttons
+- name: BigButtonView
+  path: frontend/components/housekeeping/BigButtonView.tsx
+  description: One room at a time with large Start, Done and Problem buttons
+- name: ReasonDialog
+  path: frontend/components/housekeeping/ReasonDialog.tsx
+  description: Problem in a room (big choices, optional note) or why a room failed inspection
+- name: AllRooms
+  path: frontend/components/housekeeping/AllRooms.tsx
+  description: Every room's cleaning status with mark clean/dirty/inspected and clean today
+- name: PlanView
+  path: frontend/components/housekeeping/PlanView.tsx
+  description: Supervisor - give rooms to people, share free rooms evenly, housekeeping rules
+- name: HousekeepingProblems
+  path: frontend/components/front-desk/HousekeepingProblems.tsx
+  description: Problems housekeepers reported, on the front desk, until dealt with
+- name: InviteForm
+  path: frontend/components/staff/InviteForm.tsx
+  description: Name, email and role in; a join link out, to copy or send by WhatsApp
+- name: TeamList
+  path: frontend/components/staff/TeamList.tsx
+  description: Team members with role and remove, and join links not used yet
 - name: CashDrawerDialog
   path: frontend/components/cash-drawer/CashDrawerDialog.tsx
   description: Your cash drawer - open with float, paid-outs, count and close with a note
@@ -235,6 +259,15 @@ pages:
 - name: EndOfDayPage
   path: frontend/app/(authenticated)/end-of-day/page.tsx
   description: End of day - checklist, close with reason, reopen, summary and drawers
+- name: HousekeepingPage
+  path: frontend/app/(authenticated)/housekeeping/page.tsx
+  description: Rooms to clean (phone-first) - my rooms, big buttons, all rooms, plan the day; housekeeping:view
+- name: StaffPage
+  path: frontend/app/(authenticated)/staff/page.tsx
+  description: Staff - join links, roles and removal; staff:view
+- name: JoinPage
+  path: frontend/app/join/[token]/page.tsx
+  description: Public join link landing - what it is for, sign in, join
 - name: ApoaPage
   path: frontend/app/(authenticated)/apoa/page.tsx
   description: Foreign guests (APOA) - to report, to check out, done, unlisted guests, register
@@ -468,6 +501,15 @@ utilities:
 - name: end-of-day-format
   path: frontend/lib/end-of-day-format.ts
   description: Drawer count checks, dates, refusal messages
+- name: housekeeping-api
+  path: frontend/lib/housekeeping-api.ts
+  description: Calls the /api/housekeeping routes
+- name: housekeeping-format
+  path: frontend/lib/housekeeping-format.ts
+  description: My rooms, next room, big-button action, problems per room, refusal messages, join links
+- name: staff-api
+  path: frontend/lib/staff-api.ts
+  description: Calls the /api/staff and /api/join routes
 - name: apoa-api
   path: frontend/lib/apoa-api.ts
   description: Calls the /api/apoa routes

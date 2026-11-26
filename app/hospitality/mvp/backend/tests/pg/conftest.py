@@ -94,7 +94,7 @@ async def pg_engine() -> AsyncIterator[AsyncEngine]:
     import app.models  # noqa: F401 — registers all table metadata
     import app.rbac.models  # noqa: F401
     from app.rbac.seed import seed_rbac
-    from app.services.workspace_access import ensure_manager_role
+    from app.services.workspace_access import ensure_manager_role, ensure_staff_roles
 
     async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
@@ -102,6 +102,7 @@ async def pg_engine() -> AsyncIterator[AsyncEngine]:
     async with seed_factory() as seed_session:
         await seed_rbac(seed_session)
         await ensure_manager_role(seed_session)
+        await ensure_staff_roles(seed_session)
     yield engine
     await engine.dispose()
 

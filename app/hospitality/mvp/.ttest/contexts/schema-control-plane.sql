@@ -279,6 +279,7 @@ CREATE TABLE tenantinvitation (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           uuid NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
   email               text NOT NULL,
+  display_name        text,
   token_hash          text NOT NULL UNIQUE,      -- store hash only; token goes in the URL path
   role_codes          text[] NOT NULL DEFAULT '{}',
   property_ids        uuid[] NOT NULL DEFAULT '{}',
@@ -292,6 +293,8 @@ CREATE TABLE tenantinvitation (
   updated_by          text
 );
 CREATE INDEX ix_tenantinvitation_email ON tenantinvitation (lower(email));
+CREATE INDEX ix_tenantinvitation_tenant ON tenantinvitation (tenant_id, created_at);
+CREATE UNIQUE INDEX ux_tenantinvitation_open_email ON tenantinvitation (tenant_id, lower(email)) WHERE accepted_at IS NULL AND revoked_at IS NULL;
 
 -- =============================================================================
 -- 6. Platform-level usage metering (billing of AI and other metered features)

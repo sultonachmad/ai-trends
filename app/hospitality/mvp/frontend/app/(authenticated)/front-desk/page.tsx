@@ -15,6 +15,7 @@ import {
   DeskEntryCard,
   type DeskActionKind,
 } from "@/components/front-desk/DeskEntryCard";
+import { HousekeepingProblems } from "@/components/front-desk/HousekeepingProblems";
 import { RoomsToday } from "@/components/front-desk/RoomsToday";
 import { StayChangeDialog } from "@/components/front-desk/StayChangeDialog";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -27,8 +28,11 @@ import {
   type DeskToday,
 } from "@/lib/front-desk-api";
 import { DESK_TABS, type DeskTab } from "@/lib/front-desk-format";
+import { clearProblem, setRoomStatus } from "@/lib/housekeeping-api";
+import { housekeepingErrorKey } from "@/lib/housekeeping-format";
 import { useLocale } from "@/lib/locale-store";
 import { useCan } from "@/lib/rbac-store";
+import { usePolling } from "@/lib/use-polling";
 import { fetchOnboardingStatus } from "@/lib/workspace-api";
 
 const FORBIDDEN = 403;
@@ -50,6 +54,11 @@ export default function FrontDeskPage() {
   const canSeeApoa = useCan("apoa:view");
   const canUseDrawer = useCan("bills:edit");
   const canCloseDays = useCan("endofday:view");
+  const canEditRooms = useCan("housekeeping:edit");
+  const canSuperviseRooms = useCan("housekeeping:manage");
+  const canClearProblems = canEdit || canSuperviseRooms;
+  const [hkBusy, setHkBusy] = useState(false);
+  const [hkError, setHkError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [billId, setBillId] = useState<string | null>(null);
   const [guestsId, setGuestsId] = useState<string | null>(null);
@@ -91,6 +100,23 @@ export default function FrontDeskPage() {
       cancelled = true;
     };
   }, [router, load]);
+
+  // Housekeepers update rooms from their phones: keep the desk current while it is open.
+  const dialogOpen = Boolean(roomTarget || action || changing || billId || guestsId || drawerOpen);
+  usePolling(load, (desk?.poll_seconds ?? 15) * 1000, desk !== null && !dialogOpen && !hkBusy);
+  const housekeeping = async (call: () => Promise<unknown>) => {
+    setHkBusy(true);
+    setHkError(null);
+    try {
+      await call();
+      await load();
+    } catch (cause) {
+      const key = housekeepingErrorKey(cause);
+      setHkError(key ? t(key) : errorText(cause));
+    } finally {
+      setHkBusy(false);
+    }
+  };
 
   const finished = () => {
     setRoomTarget(null);
@@ -173,6 +199,18 @@ export default function FrontDeskPage() {
           </Link>
         </div>
       )}
+      {hkError && (
+        <p role="alert" className="text-sm text-destructive">
+          {hkError}
+        </p>
+      )}
+      {desk && (
+        <HousekeepingProblems
+          problems={desk.problems}
+          busy={hkBusy}
+          onDone={canClearProblems ? (problem) => void housekeeping(() => clearProblem(problem.task_id)) : undefined}
+        />
+      )}
       <div role="tablist" aria-label={t("frontdesk.title")} className="flex flex-wrap gap-2">
         {DESK_TABS.map((name) => (
           <button
@@ -195,7 +233,13 @@ export default function FrontDeskPage() {
       {!desk ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : tab === "rooms" ? (
-        <RoomsToday rooms={desk.rooms} />
+        <RoomsToday
+          rooms={desk.rooms}
+          busy={hkBusy}
+          onStatus={
+            canEditRooms ? (room, status) => void housekeeping(() => setRoomStatus(room.id, status)) : undefined
+          }
+        />
       ) : list.length === 0 ? (
         <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           {t(`frontdesk.empty.${tab}`)}

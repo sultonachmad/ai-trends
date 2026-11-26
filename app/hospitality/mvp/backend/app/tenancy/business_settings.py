@@ -13,7 +13,7 @@ stored override fails loudly instead of being ignored.
 import datetime as dt
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -116,6 +116,15 @@ class PropertySettings(BaseModel):
     bank_account_holder: BankText | None = Field(default=None, description="Name on that account.")
     inbox_poll_seconds: int = Field(
         default=5, ge=2, le=120, description="How often the inbox list checks for new messages."
+    )
+    hk_ready_when: Literal["clean", "inspected"] = Field(
+        default="clean", description="A room is ready for check-in once clean, or only inspected."
+    )
+    hk_stayover: Literal["daily", "on_request"] = Field(
+        default="daily", description="Occupied rooms are cleaned every day, or only on request."
+    )
+    hk_poll_seconds: int = Field(
+        default=15, ge=5, le=120, description="How often the rooms board checks for changes."
     )
     thread_poll_seconds: int = Field(
         default=3, ge=2, le=120, description="How often an open conversation checks for messages."

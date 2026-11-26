@@ -885,6 +885,14 @@ api_routers:
   file: backend/app/routers/end_of_day.py
   description: /api/end-of-day/days/{date} read, close (override needs bookings:edit), reopen;
     endofday:view and endofday:edit
+- name: housekeeping
+  file: backend/app/routers/housekeeping.py
+  description: /api/housekeeping board, task start/done/take/problem/clear-problem, assign/inspect/split
+    (housekeeping:manage), room status by hand, clean request, rules, big buttons
+- name: staff
+  file: backend/app/routers/staff.py
+  description: /api/staff team, join links, role and removal (staff:view, staff:edit); /api/join/{token}
+    public preview and join with the signed-in account
 - name: apoa
   file: backend/app/routers/apoa.py
   description: /api/apoa worklist, marks, not-required, undo and the masked CSV register (exports
@@ -1168,6 +1176,26 @@ services:
   file: backend/app/services/guest_ids.py
   description: Encrypted ID photo upload (own photos only, capped), confirm checked fields as one document
     per guest and type, guests on a booking; never merges profiles by number
+- name: housekeeping_tasks
+  file: backend/app/services/housekeeping_tasks.py
+  description: Today's cleaning tasks kept in step with the rooms on every board read (departure,
+    stay-over, cancel unstarted, carry over unfinished)
+- name: housekeeping_work
+  file: backend/app/services/housekeeping_work.py
+  description: Start, done, problem, take, assign, split evenly, inspect, room status by hand, clean
+    request, big buttons and housekeeping rules
+- name: housekeeping_board
+  file: backend/app/services/housekeeping_board.py
+  description: The rooms board in cleaning order and open problems for the front desk
+- name: housekeeping_errors
+  file: backend/app/services/housekeeping_errors.py
+  description: Stable refusal codes for housekeeping and staff actions
+- name: staff_invites
+  file: backend/app/services/staff_invites.py
+  description: Join links (hashed token, one use, 7 days, invited email only), preview and joining
+- name: staff_team
+  file: backend/app/services/staff_team.py
+  description: Team list, change a member's ready-made role, remove a member
 - name: guest_id_reads
   file: backend/app/services/guest_id_reads.py
   description: Guests and masked IDs, check-in readiness, logged number and image views, ID history
@@ -1351,6 +1379,9 @@ utilities_backend:
   file: backend/app/routers/channel_simulator.py
   description: 'DEV ONLY: place and change a booking on the simulated agency (channels:edit)'
 schemas:
+- name: housekeeping and staff schemas
+  file: backend/app/schemas/housekeeping.py, staff.py
+  description: HkBoard/HkTask/HkRoom/HkProblem and action requests; InviteRequest, TeamRead, JoinPreview
 - name: workspace schemas
   file: backend/app/schemas/workspace.py
   description: OnboardingRequest, OnboardingStatus, WorkspaceRead
@@ -1434,3 +1465,7 @@ migrations:
 - name: 0017_guest_id_indexes
   file: backend/migrations/versions/0017_guest_id_indexes.py
   description: One guest document per guest and type; indexes for scans, retention and guests by profile
+- name: 0020_housekeeping
+  file: backend/migrations/versions/0020_housekeeping.py
+  description: Problem columns on task, one live task per room, kind and day, open problems index, invitation
+    display name and tenant index

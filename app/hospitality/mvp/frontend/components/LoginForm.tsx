@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { safeCallbackUrl } from "@/lib/safe-callback";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -53,8 +54,10 @@ export function LoginForm() {
 
       // `/` redirects to `/login` (middleware.ts), so default to the dashboard.
       const callbackUrl =
-        new URLSearchParams(window.location.search).get("callbackUrl") ??
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/dashboard`;
+        safeCallbackUrl(
+        new URLSearchParams(window.location.search).get("callbackUrl"),
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/dashboard`,
+      );
       window.location.href = callbackUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

@@ -32,11 +32,20 @@ class TenantInvitation(UUIDEntity, table=True):
             ondelete="SET NULL",
         ),
         Index("ix_tenantinvitation_email", text("lower(email)")),
+        Index("ix_tenantinvitation_tenant", "tenant_id", "created_at"),
+        Index(
+            "ux_tenantinvitation_open_email",
+            "tenant_id",
+            text("lower(email)"),
+            unique=True,
+            postgresql_where=text("accepted_at IS NULL AND revoked_at IS NULL"),
+        ),
         MIGRATION_ONLY,
     )
 
     tenant_id: UUID = Field(sa_type=Uuid)
     email: str = Field(sa_type=Text)
+    display_name: str | None = Field(default=None, sa_type=Text)
     token_hash: str = Field(sa_type=Text, description="store hash only; token goes in the URL path")
     role_codes: list[str] = Field(
         default_factory=list,
@@ -59,6 +68,7 @@ class TenantInvitationCreate(SQLModel):
 
     tenant_id: UUID
     email: str
+    display_name: str | None = None
     role_codes: list[str] = Field(default_factory=list)
     property_ids: list[UUID] = Field(default_factory=list)
     invited_by_user_id: int | None = None
@@ -72,6 +82,7 @@ class TenantInvitationUpdate(SQLModel):
 
     tenant_id: UUID | None = None
     email: str | None = None
+    display_name: str | None = None
     role_codes: list[str] | None = None
     property_ids: list[UUID] | None = None
     invited_by_user_id: int | None = None
@@ -86,6 +97,7 @@ class TenantInvitationRead(SQLModel):
     id: UUID
     tenant_id: UUID
     email: str
+    display_name: str | None
     role_codes: list[str]
     property_ids: list[UUID]
     invited_by_user_id: int | None

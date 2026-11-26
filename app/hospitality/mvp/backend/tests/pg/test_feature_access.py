@@ -98,7 +98,7 @@ async def test_the_owner_who_creates_the_workspace_is_manager(pg_client, pg_sess
     ).scalar_one()
 
     assert roles == ["manager"]
-    assert int(granted) == 29  # every application permission
+    assert int(granted) == 34  # every application permission
 
 
 async def test_a_member_without_configured_access_sees_and_does_nothing(
@@ -135,7 +135,9 @@ async def test_a_member_without_configured_access_sees_and_does_nothing(
 async def test_a_narrow_role_sees_but_cannot_change(pg_client, other_client, pg_session) -> None:
     workspace = await start_workspace(pg_client)
     staff = await add_staff_member(pg_session, other_client, workspace, role=None)
-    await _give_role(pg_session, staff["user_id"], "front_desk", ["bookings:view", "inbox:view"])
+    await _give_role(
+        pg_session, staff["user_id"], "narrow_test_role", ["bookings:view", "inbox:view"]
+    )
 
     bookings = await other_client.get("/api/bookings?tab=upcoming")
     inbox = await other_client.get("/api/conversations")

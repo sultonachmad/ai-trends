@@ -1,5 +1,6 @@
 /** Front desk calls (backend: app/routers/front_desk.py). */
 
+import type { HkProblem } from "@/lib/housekeeping-api";
 import { request } from "@/lib/api-client";
 
 export type EarlyChoice = "keep_price" | "nights_stayed";
@@ -61,6 +62,10 @@ export interface DeskToday {
   apoa: { due: number; overdue: number };
   /** The oldest past day not closed yet, if any. */
   day_close: { unclosed: string | null };
+  /** Housekeeping problems the desk has not dealt with yet. */
+  problems: HkProblem[];
+  /** How often the page refreshes while open, in seconds. */
+  poll_seconds: number;
 }
 
 export interface FreeRoom {

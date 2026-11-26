@@ -27,6 +27,7 @@ from app.services.unit_status import (
     is_ready,
     set_unit_status,
 )
+from app.tenancy.business_settings import resolve_property_settings
 from app.tenancy.context import TenantContext
 
 log = logging.getLogger(__name__)
@@ -69,14 +70,15 @@ async def free_rooms(
         for unit in units
         if unit.id not in taken and not (in_house and unit.fo_status == OCCUPIED)
     ]
-    ordered = sorted(free, key=lambda unit: (not is_ready(unit), unit.sort_order))
+    ready_when = resolve_property_settings(prop.settings).hk_ready_when
+    ordered = sorted(free, key=lambda unit: (not is_ready(unit, ready_when), unit.sort_order))
     return [
         FreeRoom(
             id=unit.id,
             name=room_name(unit),
             hk_status=unit.hk_status,
             service_status=unit.service_status,
-            ready=is_ready(unit),
+            ready=is_ready(unit, ready_when),
         )
         for unit in ordered
     ]
@@ -132,7 +134,9 @@ async def _locked_units(
     return {unit.id: unit for unit in rows.all()}
 
 
-def _check_target(unit: Unit | None, line: ReservationUnit, request: AssignRoomRequest) -> None:
+def _check_target(
+    unit: Unit | None, line: ReservationUnit, request: AssignRoomRequest, ready_when: str
+) -> None:
     if (
         unit is None
         or unit.unit_type_id != line.unit_type_id
@@ -146,7 +150,7 @@ def _check_target(unit: Unit | None, line: ReservationUnit, request: AssignRoomR
         return
     if unit.fo_status == OCCUPIED:
         raise errors.RoomOccupiedError([room_name(unit)])
-    if not is_ready(unit) and not request.accept_not_ready:
+    if not is_ready(unit, ready_when) and not request.accept_not_ready:
         raise errors.RoomNotReadyError([room_name(unit)])
 
 
@@ -173,7 +177,8 @@ async def assign_room(
     previous = units.get(line.unit_id) if line.unit_id else None
     if request.unit_id is not None:
         target = units.get(request.unit_id)
-        _check_target(target, line, request)
+        ready_when = resolve_property_settings(prop.settings).hk_ready_when
+        _check_target(target, line, request, ready_when)
         if await occupied_unit_ids(
             session, context, [request.unit_id], line.start_at, line.blocked_until
         ):

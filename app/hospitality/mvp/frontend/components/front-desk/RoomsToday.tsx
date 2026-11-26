@@ -13,7 +13,16 @@ function hkClass(status: string): string {
 }
 
 /** Every room right now: who is in it and whether it is ready. */
-export function RoomsToday({ rooms }: { rooms: RoomToday[] }) {
+export function RoomsToday({
+  rooms,
+  busy = false,
+  onStatus,
+}: {
+  rooms: RoomToday[];
+  busy?: boolean;
+  /** Given when the person may change a room's cleaning status by hand. */
+  onStatus?: (room: RoomToday, status: "clean" | "dirty") => void;
+}) {
   const { t, locale } = useLocale();
   if (rooms.length === 0) {
     return <p className="text-sm text-muted-foreground">{t("frontdesk.noRooms")}</p>;
@@ -37,6 +46,16 @@ export function RoomsToday({ rooms }: { rooms: RoomToday[] }) {
               </span>
             )}
           </div>
+          {onStatus && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onStatus(room, room.hk_status === "dirty" ? "clean" : "dirty")}
+              className="min-h-11 rounded-md border border-border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
+            >
+              {t(room.hk_status === "dirty" ? "hk.room.markClean" : "hk.room.markDirty")}
+            </button>
+          )}
           {room.guest_name && (
             <p className="text-sm">
               {room.guest_name}

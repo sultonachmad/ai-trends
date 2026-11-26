@@ -2227,11 +2227,18 @@ CREATE TABLE task (
   notes                 text,
   source                text NOT NULL DEFAULT 'auto' CHECK (source IN ('auto','manual','guest','message','inspection','ai')),
   vendor_fee            numeric(18,2),
+  problem_kind          text CHECK (problem_kind IS NULL OR problem_kind IN ('dnd','refused','repair','empty','other')),
+  problem_note          text,
+  problem_at            timestamptz,
+  problem_by            text,
+  problem_cleared_at    timestamptz,
+  problem_cleared_by    text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   created_by text, updated_by text,
   UNIQUE (tenant_id, id),
   CHECK (unit_id IS NOT NULL OR area_id IS NOT NULL OR task_kind = 'other'),
+  CHECK ((problem_kind IS NULL) = (problem_at IS NULL)),
   FOREIGN KEY (tenant_id, property_id) REFERENCES property (tenant_id, id),
   FOREIGN KEY (tenant_id, template_id) REFERENCES tasktemplate (tenant_id, id) ON DELETE SET NULL (template_id),
   FOREIGN KEY (tenant_id, unit_id) REFERENCES unit (tenant_id, id) ON DELETE CASCADE,
@@ -2242,6 +2249,8 @@ CREATE TABLE task (
   FOREIGN KEY (tenant_id, inspected_by_staff_id) REFERENCES staffmember (tenant_id, id) ON DELETE SET NULL (inspected_by_staff_id)
 );
 CREATE INDEX ix_task_board ON task (tenant_id, property_id, scheduled_for, status);
+CREATE UNIQUE INDEX ux_task_unit_day_kind ON task (tenant_id, unit_id, scheduled_for, task_kind) WHERE unit_id IS NOT NULL AND task_kind IN ('departure_clean','stayover_clean') AND status IN ('pending','assigned','in_progress','paused','failed_inspection');
+CREATE INDEX ix_task_open_problem ON task (tenant_id, property_id, problem_at) WHERE problem_kind IS NOT NULL AND problem_cleared_at IS NULL;
 CREATE INDEX ix_task_assignee ON task (tenant_id, assigned_staff_id, scheduled_for) WHERE assigned_staff_id IS NOT NULL;
 
 -- Unit status history (append-only).

@@ -51,9 +51,18 @@ roles:
       the user who creates a workspace (the property owner); an administrator
       can assign it to anyone else, or build narrower roles from single codes.
 
-  # Narrower roles are deliberately not predefined: build them in /admin from the
-  # permission codes below (e.g. front desk = inbox:view, inbox:edit,
-  # bookings:view, bookings:edit and nothing else).
+  # Two narrower ready-made roles an owner can give on the Staff page (created at
+  # startup by app/services/workspace_access.py, which holds their exact codes; codes
+  # are added there, never removed). Anything else is built in /admin.
+  front_desk:
+    description: >
+      Front desk staff: bookings, front desk, bills, guest IDs, APOA, inbox, the
+      day's summary, and room cleaning status.
+
+  housekeeper:
+    description: >
+      Housekeepers: the rooms board and their cleaning tasks (housekeeping:view,
+      housekeeping:edit).
 
 
 # ── Permissions (Capabilities) ───────────────────────────────────────────────
@@ -109,6 +118,11 @@ permissions:
   "apoa:edit":         "Record APOA check-ins and check-outs of foreign guests"
   "endofday:view":     "See the day's summary, checklist and cash drawers"
   "endofday:edit":     "Close and reopen business days"
+  "housekeeping:view": "See the rooms board and cleaning tasks"
+  "housekeeping:edit": "Work cleaning tasks and change a room's cleaning status"
+  "housekeeping:manage": "Assign and inspect rooms, and set housekeeping rules"
+  "staff:view":        "See the team and open join links"
+  "staff:edit":        "Invite staff, change their role and remove them"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────
@@ -255,7 +269,7 @@ menus:
 
   - name: Distribution
     icon: globe
-    order: 5
+    order: 6
     active: true
     children:
       # Room types and rate plans. rooms:view / rooms:edit.
@@ -277,7 +291,7 @@ menus:
 
   - name: Reports
     icon: chart
-    order: 6
+    order: 7
     active: true
     children:
       # Bookings, revenue and commission by source. reports:view.
@@ -289,9 +303,22 @@ menus:
         active: true
 
 
+  - name: Housekeeping
+    icon: home
+    order: 5
+    active: true
+    children:
+      # Today's rooms to clean, phone-first. housekeeping:view / edit / manage.
+      - name: Rooms to clean
+        path: /housekeeping
+        icon: home
+        permission: housekeeping:view
+        order: 1
+        active: true
+
   - name: Property
     icon: settings
-    order: 7
+    order: 8
     active: true
     children:
       # Property settings; the bank account stays owner-only. settings:view / settings:edit.
@@ -300,6 +327,13 @@ menus:
         icon: settings
         permission: settings:view
         order: 1
+        active: true
+      # The team and join links. staff:view / staff:edit.
+      - name: Staff
+        path: /staff
+        icon: team
+        permission: staff:view
+        order: 2
         active: true
 
 
