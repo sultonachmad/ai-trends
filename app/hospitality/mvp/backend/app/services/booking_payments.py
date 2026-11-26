@@ -19,6 +19,8 @@ from app.services import calendar_dates as dates_of
 from app.services.bill_balance import refresh_balance
 from app.services.booking_reads import CAPTURED, captured_payments
 from app.services.bookings import TENTATIVE, BookingHeldError, get_for_update, lock_property
+from app.services.cash_drawers import drawer_for_entry, ensure_drawer_open
+from app.services.closed_days import ensure_open
 from app.tenancy.context import TenantContext
 from app.tenancy.timezones import property_zone
 
@@ -74,6 +76,10 @@ async def record_payment(
         raise BookingHeldError
     if len(await captured_payments(session, context, booking.id)) >= MAX_PAYMENTS_PER_BOOKING:
         raise TooManyPaymentsError
+    await ensure_open(session, context, prop.id, request.received_on)
+    drawer_id = await drawer_for_entry(
+        session, context, prop, method=request.method, on=request.received_on
+    )
     session.add(
         Payment(
             tenant_id=context.tenant_id,
@@ -87,6 +93,7 @@ async def record_payment(
             captured_amount=request.amount,
             captured_at=received_at,
             idempotency_key=f"booking-payment:{uuid.uuid4()}",
+            cashier_shift_id=drawer_id,
             metadata_={"note": request.note or None, "recorded_by": str(context.user_id)},
             created_by=str(context.user_id),
         )
@@ -124,6 +131,10 @@ async def remove_payment(
     ).first()
     if payment is None:
         raise PaymentNotFoundError
+    if payment.captured_at is not None:
+        received_on = payment.captured_at.astimezone(property_zone(prop.timezone)).date()
+        await ensure_open(session, context, prop.id, received_on)
+    await ensure_drawer_open(session, context, payment.cashier_shift_id)
     payment.status = REMOVED
     payment.failure_reason = "entered_by_mistake"
     payment.updated_by = str(context.user_id)

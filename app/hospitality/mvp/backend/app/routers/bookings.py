@@ -40,6 +40,7 @@ from app.services import booking_reads as reads
 from app.services import booking_refunds as refunds
 from app.services import booking_stays as stays
 from app.services import bookings, stay_changes
+from app.services.front_desk_errors import FrontDeskError
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
 from app.tenancy.session import get_tenant_session
@@ -147,6 +148,10 @@ async def _guarded(call: Callable[[], Awaitable[T]]) -> T:
     except tuple(_MESSAGES) as exc:
         code, detail = _MESSAGES[type(exc)]
         raise HTTPException(status_code=code, detail=detail) from None
+    except FrontDeskError as exc:  # for example a payment dated on a closed day
+        raise HTTPException(
+            status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}
+        ) from None
 
 
 @bookings_router.post("/quote", response_model=BookingQuote)

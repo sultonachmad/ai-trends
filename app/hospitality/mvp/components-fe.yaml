@@ -204,6 +204,12 @@ components:
 - name: PrintableBill
   path: frontend/components/bills/PrintableBill.tsx
   description: Printable bill or receipt layout
+- name: CashDrawerDialog
+  path: frontend/components/cash-drawer/CashDrawerDialog.tsx
+  description: Your cash drawer - open with float, paid-outs, count and close with a note
+- name: DaySummaryView
+  path: frontend/components/end-of-day/DaySummaryView.tsx
+  description: A day's rooms, guests, money, extras and cash drawers
 - name: ApoaCard
   path: frontend/components/apoa/ApoaCard.tsx
   description: One foreign guest's APOA steps, deadline, passport photo download and actions
@@ -226,6 +232,9 @@ components:
   path: frontend/components/settings/TaxSection.tsx
   description: Region, PBJT, service charge, price mode and taxed extras with owner confirmation
 pages:
+- name: EndOfDayPage
+  path: frontend/app/(authenticated)/end-of-day/page.tsx
+  description: End of day - checklist, close with reason, reopen, summary and drawers
 - name: ApoaPage
   path: frontend/app/(authenticated)/apoa/page.tsx
   description: Foreign guests (APOA) - to report, to check out, done, unlisted guests, register
@@ -453,6 +462,12 @@ utilities:
 - name: taxes-api
   path: frontend/lib/taxes-api.ts
   description: Calls /api/settings/taxes
+- name: end-of-day-api
+  path: frontend/lib/end-of-day-api.ts
+  description: Calls /api/cash-drawers and /api/end-of-day
+- name: end-of-day-format
+  path: frontend/lib/end-of-day-format.ts
+  description: Drawer count checks, dates, refusal messages
 - name: apoa-api
   path: frontend/lib/apoa-api.ts
   description: Calls the /api/apoa routes

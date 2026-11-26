@@ -74,7 +74,8 @@ export function billErrorKey(cause: unknown): string | null {
     return null;
   }
   const code = (cause.detail as { code?: string }).code;
-  return code && (BILL_ERROR_CODES as readonly string[]).includes(code)
-    ? `frontdesk.error.${code}`
+  if (code && (BILL_ERROR_CODES as readonly string[]).includes(code)) return `frontdesk.error.${code}`;
+  return code === "day_closed" || code === "drawer_closed" || code === "stale_drawer"
+    ? `endofday.error.${code}`
     : null;
 }

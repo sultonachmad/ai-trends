@@ -22,6 +22,7 @@ import {
   type BookingDetail,
   type PaymentMethod,
 } from "@/lib/bookings-api";
+import { endOfDayErrorKey } from "@/lib/end-of-day-format";
 import { useLocale } from "@/lib/locale-store";
 import { formatRupiah } from "@/lib/money";
 
@@ -58,6 +59,10 @@ export function BookingDetailDialog({
   onOpenGuests,
 }: BookingDetailDialogProps) {
   const { t, locale } = useLocale();
+  const refusalText = (cause: unknown) => {
+    const key = endOfDayErrorKey(cause); // a coded refusal, e.g. a payment on a closed day
+    return key ? t(key) : errorText(cause);
+  };
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,7 +89,7 @@ export function BookingDetailDialog({
         if (request === loadRequest.current) setBooking(loaded);
       })
       .catch((cause) => {
-        if (request === loadRequest.current) setError(errorText(cause));
+        if (request === loadRequest.current) setError(errorText(cause)); // a read: no coded refusal
       });
   }, [bookingId, today]);
 
@@ -97,7 +102,7 @@ export function BookingDetailDialog({
       onChanged();
       return true;
     } catch (cause) {
-      setError(errorText(cause));
+      setError(refusalText(cause));
       return false;
     } finally {
       setBusy(false);

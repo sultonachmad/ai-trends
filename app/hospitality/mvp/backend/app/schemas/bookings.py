@@ -220,6 +220,8 @@ class RefundDoneRequest(BaseModel):
     amount: Rupiah
     refunded_on: dt.date
     note: NotesText | None = None
+    # How the money went back: cash comes out of the person's drawer when dated today.
+    method: Literal["bank_transfer", "cash", "other"] = "bank_transfer"
 
 
 class RefundRecord(BaseModel):

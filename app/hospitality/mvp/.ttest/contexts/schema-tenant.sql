@@ -949,6 +949,7 @@ CREATE TABLE reservation (
 CREATE INDEX ix_reservation_dates ON reservation (tenant_id, property_id, arrival_date, departure_date);
 CREATE INDEX ix_reservation_status ON reservation (tenant_id, property_id, status);
 CREATE INDEX ix_reservation_stay_open ON reservation (tenant_id, property_id, status, departure_date) WHERE status IN ('in_house', 'checked_out');
+CREATE INDEX ix_reservation_cancelled ON reservation (tenant_id, property_id, cancelled_at) WHERE cancelled_at IS NOT NULL;
 CREATE UNIQUE INDEX ux_reservation_channel_ref ON reservation (tenant_id, channel_id, channel_reference)
   WHERE channel_reference IS NOT NULL;
 
@@ -1004,6 +1005,7 @@ CREATE INDEX ix_reservationunit_reservation ON reservationunit (tenant_id, reser
 CREATE INDEX ix_reservationunit_dates ON reservationunit (tenant_id, property_id, arrival_date, departure_date);
 CREATE INDEX ix_reservationunit_unit ON reservationunit (tenant_id, unit_id) WHERE unit_id IS NOT NULL;
 CREATE INDEX ix_reservationunit_checked_out ON reservationunit (tenant_id, property_id, checked_out_at) WHERE checked_out_at IS NOT NULL;
+CREATE INDEX ix_reservationunit_checked_in ON reservationunit (tenant_id, property_id, checked_in_at) WHERE checked_in_at IS NOT NULL;
 
 -- Occupants per reservation unit.
 CREATE TABLE reservationguest (
@@ -1185,6 +1187,33 @@ CREATE TABLE cashiershift (
   FOREIGN KEY (tenant_id, property_id) REFERENCES property (tenant_id, id),
   FOREIGN KEY (tenant_id, staff_member_id) REFERENCES staffmember (tenant_id, id)
 );
+CREATE UNIQUE INDEX ux_cashiershift_open ON cashiershift (tenant_id, property_id, staff_member_id) WHERE status = 'open';
+CREATE INDEX ix_cashiershift_day ON cashiershift (tenant_id, property_id, business_date);
+
+-- Refunds and paid-outs: money out that is not a booking payment (migration 0019).
+CREATE TABLE cashmovement (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id        uuid NOT NULL,
+  property_id      uuid NOT NULL,
+  cashier_shift_id uuid,
+  reservation_id   uuid,
+  kind             text NOT NULL CHECK (kind IN ('refund','paid_out')),
+  method           text NOT NULL CHECK (method IN ('cash','bank_transfer','other')),
+  amount           numeric(18,2) NOT NULL CHECK (amount > 0),
+  occurred_at      timestamptz NOT NULL,
+  reason           text,
+  recorded_by      text NOT NULL,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, id),
+  FOREIGN KEY (tenant_id, property_id) REFERENCES property (tenant_id, id),
+  FOREIGN KEY (tenant_id, cashier_shift_id) REFERENCES cashiershift (tenant_id, id),
+  FOREIGN KEY (tenant_id, reservation_id) REFERENCES reservation (tenant_id, id)
+);
+CREATE INDEX ix_cashmovement_day ON cashmovement (tenant_id, property_id, occurred_at);
+CREATE INDEX ix_cashmovement_reservation ON cashmovement (tenant_id, reservation_id) WHERE reservation_id IS NOT NULL;
+CREATE INDEX ix_cashmovement_shift ON cashmovement (tenant_id, cashier_shift_id) WHERE cashier_shift_id IS NOT NULL;
+CREATE TRIGGER trg_cashmovement_no_update BEFORE UPDATE ON cashmovement FOR EACH ROW EXECUTE FUNCTION forbid_update();
+CREATE TRIGGER trg_cashmovement_no_delete BEFORE DELETE ON cashmovement FOR EACH ROW EXECUTE FUNCTION forbid_delete();
 
 -- =============================================================================
 -- I. PAYMENTS
@@ -1342,6 +1371,8 @@ CREATE TABLE payment (
   FOREIGN KEY (tenant_id, cashier_shift_id) REFERENCES cashiershift (tenant_id, id)
 );
 CREATE INDEX ix_payment_reservation ON payment (tenant_id, reservation_id) WHERE reservation_id IS NOT NULL;
+CREATE INDEX ix_payment_shift ON payment (tenant_id, cashier_shift_id) WHERE cashier_shift_id IS NOT NULL;
+CREATE INDEX ix_payment_captured ON payment (tenant_id, property_id, captured_at);
 CREATE INDEX ix_payment_gateway_ref ON payment (tenant_id, gateway_reference) WHERE gateway_reference IS NOT NULL;
 
 -- Raw gateway callbacks / webhooks (append-only).
@@ -3255,12 +3286,29 @@ CREATE TRIGGER trg_invoice_protect BEFORE UPDATE OR DELETE ON invoice FOR EACH R
 CREATE OR REPLACE FUNCTION protect_closed_businessday() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
-  IF OLD.status = 'closed' AND NEW.status <> 'closed' THEN
-    RAISE EXCEPTION 'business date % is closed', OLD.business_date USING ERRCODE = 'restrict_violation';
+  IF OLD.status <> 'closed' THEN
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+  END IF;
+  -- A closed day is neither deleted nor rewritten. Only the reopen action, which names
+  -- this very row in its own transaction, may set it back to open (migration 0019).
+  IF TG_OP = 'DELETE' OR NEW.status = 'closed'
+     OR coalesce(current_setting('app.reopen_day', true), '') <> OLD.id::text THEN
+    RAISE EXCEPTION 'business date % is closed', OLD.business_date
+      USING ERRCODE = 'restrict_violation';
   END IF;
   RETURN NEW;
 END $$;
 CREATE TRIGGER trg_businessday_protect BEFORE UPDATE ON businessday FOR EACH ROW EXECUTE FUNCTION protect_closed_businessday();
+CREATE TRIGGER trg_businessday_no_delete BEFORE DELETE ON businessday FOR EACH ROW EXECUTE FUNCTION protect_closed_businessday();
+CREATE OR REPLACE FUNCTION protect_closed_cashiershift() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.status <> 'open' THEN
+    RAISE EXCEPTION 'cash drawer % is closed', OLD.id USING ERRCODE = 'restrict_violation';
+  END IF;
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END $$;
+CREATE TRIGGER trg_cashiershift_protect BEFORE UPDATE OR DELETE ON cashiershift FOR EACH ROW EXECUTE FUNCTION protect_closed_cashiershift();
 
 -- updated_at maintenance for every table that has the column.
 DO $$

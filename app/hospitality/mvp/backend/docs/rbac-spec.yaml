@@ -107,6 +107,8 @@ permissions:
   "guestid:edit":      "Capture and confirm guest IDs, and show full numbers and images (logged)"
   "apoa:view":         "See which foreign guests still need reporting to APOA"
   "apoa:edit":         "Record APOA check-ins and check-outs of foreign guests"
+  "endofday:view":     "See the day's summary, checklist and cash drawers"
+  "endofday:edit":     "Close and reopen business days"
 
 
 # ── Navigation Menus ─────────────────────────────────────────────────────────
@@ -240,6 +242,14 @@ menus:
         icon: clipboard
         permission: apoa:view
         order: 3
+        active: true
+
+      # Close the previous day: checklist, summary, cash drawers. endofday:view / endofday:edit.
+      - name: End of day
+        path: /end-of-day
+        icon: clipboard
+        permission: endofday:view
+        order: 4
         active: true
 
 

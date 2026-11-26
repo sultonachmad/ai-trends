@@ -117,6 +117,13 @@ class ReservationUnit(TenantEntity, table=True):
             "ix_reservationunit_dates", "tenant_id", "property_id", "arrival_date", "departure_date"
         ),
         Index(
+            "ix_reservationunit_checked_in",
+            "tenant_id",
+            "property_id",
+            "checked_in_at",
+            postgresql_where=text("checked_in_at IS NOT NULL"),
+        ),
+        Index(
             "ix_reservationunit_checked_out",
             "tenant_id",
             "property_id",

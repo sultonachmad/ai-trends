@@ -59,6 +59,8 @@ export interface DeskToday {
   rooms: RoomToday[];
   /** Foreign guests due or overdue in APOA (counts only). */
   apoa: { due: number; overdue: number };
+  /** The oldest past day not closed yet, if any. */
+  day_close: { unclosed: string | null };
 }
 
 export interface FreeRoom {

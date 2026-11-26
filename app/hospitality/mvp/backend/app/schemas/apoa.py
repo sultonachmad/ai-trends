@@ -6,15 +6,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from app.schemas.plain_text import PLAIN_TEXT
+
 Step = Literal["arrival", "departure"]
-# No markup, control characters, line separators or text-direction tricks: these end up
-# in a register handed to an immigration officer.
-_PLAIN = r"^[^<>\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]*$"
 Reason = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=3, max_length=300, pattern=_PLAIN)
+    str, StringConstraints(strip_whitespace=True, min_length=3, max_length=300, pattern=PLAIN_TEXT)
 ]
 Reference = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80, pattern=_PLAIN)
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80, pattern=PLAIN_TEXT)
 ]
 
 

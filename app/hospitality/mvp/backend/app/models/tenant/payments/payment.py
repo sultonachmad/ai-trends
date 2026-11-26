@@ -142,6 +142,13 @@ class Payment(TenantEntity, table=True):
             name="payment_check2",
         ),
         Index(
+            "ix_payment_shift",
+            "tenant_id",
+            "cashier_shift_id",
+            postgresql_where=text("cashier_shift_id IS NOT NULL"),
+        ),
+        Index("ix_payment_captured", "tenant_id", "property_id", "captured_at"),
+        Index(
             "ix_payment_reservation",
             "tenant_id",
             "reservation_id",

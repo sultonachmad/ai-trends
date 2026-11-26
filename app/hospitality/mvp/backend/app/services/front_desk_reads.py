@@ -10,11 +10,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.tenant import Channel, Guest, Property, Reservation, ReservationUnit, Unit, UnitType
 from app.schemas.apoa import ApoaCounts
+from app.schemas.end_of_day import DayCloseState
 from app.schemas.front_desk import FrontDeskEntry, FrontDeskRoom, FrontDeskToday, RoomToday
 from app.services import calendar_dates as dates_of
 from app.services.bill_taxes import with_tax
 from app.services.booking_reads import _by_id
 from app.services.bookings import balance_to_collect, lines_of
+from app.services.closed_days import oldest_unclosed
 from app.services.room_assignment import room_name
 from app.services.stay_status import (
     CHECKED_OUT,
@@ -212,6 +214,7 @@ async def read_today(
         done_today=entries[len(arriving) + len(staying) :],
         rooms=await _rooms_today(session, context, property_id, in_house),
         apoa=await _apoa_counts(session, context, prop) if with_apoa else ApoaCounts(),
+        day_close=DayCloseState(unclosed=await oldest_unclosed(session, context, prop, today)),
     )
 
 

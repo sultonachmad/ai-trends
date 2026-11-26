@@ -140,6 +140,13 @@ class Reservation(TenantEntity, table=True):
         Index("ix_reservation_dates", "tenant_id", "property_id", "arrival_date", "departure_date"),
         Index("ix_reservation_status", "tenant_id", "property_id", "status"),
         Index(
+            "ix_reservation_cancelled",
+            "tenant_id",
+            "property_id",
+            "cancelled_at",
+            postgresql_where=text("cancelled_at IS NOT NULL"),
+        ),
+        Index(
             "ix_reservation_stay_open",
             "tenant_id",
             "property_id",

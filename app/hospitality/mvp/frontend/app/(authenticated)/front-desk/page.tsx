@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { BillDialog } from "@/components/bills/BillDialog";
+import { CashDrawerDialog } from "@/components/cash-drawer/CashDrawerDialog";
 import { GuestIdDialog } from "@/components/guest-ids/GuestIdDialog";
 import { AssignRoomDialog } from "@/components/front-desk/AssignRoomDialog";
 import { DeskActionDialog } from "@/components/front-desk/DeskActionDialog";
@@ -47,6 +48,9 @@ export default function FrontDeskPage() {
   const canSeeBills = useCan("bills:view");
   const canSeeIds = useCan("guestid:view");
   const canSeeApoa = useCan("apoa:view");
+  const canUseDrawer = useCan("bills:edit");
+  const canCloseDays = useCan("endofday:view");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [billId, setBillId] = useState<string | null>(null);
   const [guestsId, setGuestsId] = useState<string | null>(null);
   const [desk, setDesk] = useState<DeskToday | null>(null);
@@ -124,8 +128,33 @@ export default function FrontDeskPage() {
             <p className="text-sm text-muted-foreground">{shortDate(desk.date, locale)}</p>
           )}
         </div>
-        <LanguageSwitch />
+        <div className="flex flex-wrap items-center gap-2">
+          {canUseDrawer && (
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="min-h-11 rounded-md border border-border px-4 py-2 text-sm hover:bg-accent"
+            >
+              {t("drawer.button")}
+            </button>
+          )}
+          <LanguageSwitch />
+        </div>
       </div>
+      {desk?.day_close.unclosed && canCloseDays && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground"
+        >
+          <span>{t("endofday.banner", { date: shortDate(desk.day_close.unclosed, locale) })}</span>
+          <Link
+            href={`/end-of-day?date=${desk.day_close.unclosed}`}
+            className="min-h-11 rounded-md border border-current px-3 py-2 font-medium"
+          >
+            {t("endofday.bannerOpen")}
+          </Link>
+        </div>
+      )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {t("common.loadFailed", { reason: error })}
@@ -223,6 +252,7 @@ export default function FrontDeskPage() {
                 : undefined
             }
           />
+          <CashDrawerDialog open={drawerOpen} onClose={() => setDrawerOpen(false)} />
           <GuestIdDialog
             bookingId={guestsId}
             onClose={() => setGuestsId(null)}

@@ -167,7 +167,12 @@ export const recordPayment = (id: string, input: PaymentInput) =>
   request<BookingDetail>(`${base}/${id}/payments`, json("POST", input));
 export const markRefundDone = (
   id: string,
-  input: { amount: number | string; refunded_on: string; note?: string },
+  input: {
+    amount: number | string;
+    refunded_on: string;
+    note?: string;
+    method?: "bank_transfer" | "cash" | "other";
+  },
 ) => request<BookingDetail>(`${base}/${id}/refund-done`, json("POST", input));
 export const removePayment = (id: string, paymentId: string) =>
   request<BookingDetail>(`${base}/${id}/payments/${paymentId}`, { method: "DELETE" });

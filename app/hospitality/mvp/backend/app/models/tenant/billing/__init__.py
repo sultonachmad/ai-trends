@@ -6,6 +6,12 @@ from app.models.tenant.billing.business_day import (
     BusinessDayRead,
     BusinessDayUpdate,
 )
+from app.models.tenant.billing.cash_movement import (
+    CashMovement,
+    CashMovementCreate,
+    CashMovementRead,
+    CashMovementUpdate,
+)
 from app.models.tenant.billing.cashier_shift import (
     CashierShift,
     CashierShiftCreate,
@@ -54,6 +60,10 @@ __all__ = [
     "RoutingInstructionCreate",
     "RoutingInstructionRead",
     "RoutingInstructionUpdate",
+    "CashMovement",
+    "CashMovementCreate",
+    "CashMovementRead",
+    "CashMovementUpdate",
     "CashierShift",
     "CashierShiftCreate",
     "CashierShiftRead",

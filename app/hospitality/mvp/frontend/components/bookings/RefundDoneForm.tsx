@@ -27,6 +27,7 @@ export function RefundDoneForm({ bookingId, today, busy, onSubmit, onProblem }: 
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today);
   const [note, setNote] = useState("");
+  const [method, setMethod] = useState<"bank_transfer" | "cash" | "other">("bank_transfer");
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -38,6 +39,7 @@ export function RefundDoneForm({ bookingId, today, busy, onSubmit, onProblem }: 
       markRefundDone(bookingId, {
         amount: parsed,
         refunded_on: date,
+        method,
         ...(note.trim() ? { note: note.trim() } : {}),
       }).catch((cause: unknown) => {
         if (cause instanceof ApiError && cause.message === OVER_PAID_DETAIL) {
@@ -81,6 +83,23 @@ export function RefundDoneForm({ bookingId, today, busy, onSubmit, onProblem }: 
             className={inputClass}
           />
         </div>
+      </div>
+      <div>
+        <label htmlFor="refund-method" className="mb-1 block text-xs">
+          {t("bookings.refund.method")}
+        </label>
+        <select
+          id="refund-method"
+          value={method}
+          onChange={(event) => setMethod(event.target.value as typeof method)}
+          className={inputClass}
+        >
+          {(["bank_transfer", "cash", "other"] as const).map((option) => (
+            <option key={option} value={option}>
+              {t(`drawer.method.${option}`)}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label htmlFor="refund-note" className="mb-1 block text-xs">

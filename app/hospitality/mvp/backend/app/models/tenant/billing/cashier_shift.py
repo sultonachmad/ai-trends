@@ -17,6 +17,7 @@ from sqlalchemy import (
     Column,
     Computed,
     ForeignKeyConstraint,
+    Index,
     Numeric,
     Text,
     UniqueConstraint,
@@ -52,6 +53,15 @@ class CashierShift(TenantEntity, table=True):
         CheckConstraint(
             "status IN ('open', 'closed', 'reconciled')", name="cashiershift_status_check"
         ),
+        Index(
+            "ux_cashiershift_open",
+            "tenant_id",
+            "property_id",
+            "staff_member_id",
+            unique=True,
+            postgresql_where=text("status = 'open'"),
+        ),
+        Index("ix_cashiershift_day", "tenant_id", "property_id", "business_date"),
         MIGRATION_ONLY,
     )
 

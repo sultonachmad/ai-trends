@@ -878,6 +878,13 @@ api_routers:
 - name: bills
   file: backend/app/routers/bills.py
   description: /api/bills routes, permissions bills:view and bills:edit (price changes need bookings:edit)
+- name: cash_drawers
+  file: backend/app/routers/cash_drawers.py
+  description: /api/cash-drawers/mine (open with float, paid-outs, count and close), bills:edit
+- name: end_of_day
+  file: backend/app/routers/end_of_day.py
+  description: /api/end-of-day/days/{date} read, close (override needs bookings:edit), reopen;
+    endofday:view and endofday:edit
 - name: apoa
   file: backend/app/routers/apoa.py
   description: /api/apoa worklist, marks, not-required, undo and the masked CSV register (exports
@@ -1124,6 +1131,22 @@ services:
 - name: bill_taxes
   file: backend/app/services/bill_taxes.py
   description: Service charge and PBJT on a booking's nights and bill lines by date and price mode
+- name: cash_drawers
+  file: backend/app/services/cash_drawers.py
+  description: Drawers per person and day; cash today opens one; refunds and paid-outs as cash
+    movements; expected cash, count and difference
+- name: closed_days
+  file: backend/app/services/closed_days.py
+  description: Closed-day lock for every dated money writer; property first day; oldest unclosed day
+- name: day_close
+  file: backend/app/services/day_close.py
+  description: Close past days in order from the first day (snapshot per day), reopen the latest
+- name: day_checks
+  file: backend/app/services/day_checks.py
+  description: Blocking items and warnings before a day can be closed
+- name: day_summary
+  file: backend/app/services/day_summary.py
+  description: Occupancy, ADR, RevPAR, movements, extras, money by method, cash out, left unpaid
 - name: apoa_reads
   file: backend/app/services/apoa_reads.py
   description: Foreign guests to check in to and out of APOA, deadlines, overdue, unlisted guests,
@@ -1401,6 +1424,10 @@ migrations:
 - name: 0016_bill_guards
   file: backend/migrations/versions/0016_bill_guards.py
   description: One guest bill per booking, one void per line, frozen receipt lines and paid amount
+- name: 0019_day_close
+  file: backend/migrations/versions/0019_day_close.py
+  description: cashmovement (refunds and paid-outs, immutable, RLS); one open drawer per person;
+    closed days and drawers frozen (reopen only by naming the row); summary and payment indexes
 - name: 0018_apoa_indexes
   file: backend/migrations/versions/0018_apoa_indexes.py
   description: Index on open and recent stays; foreign guest reports by guest and by document

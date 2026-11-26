@@ -75,6 +75,7 @@ asyncio_default_test_loop_scope = "session"
 markers = [
     "unit: fast tests with no external services",
     "integration: needs a PostgreSQL server (tests/pg); skipped when none is reachable",
+    "real_first_day: end-of-day test that keeps the property's real first day",
 ]
 
 [tool.coverage.run]

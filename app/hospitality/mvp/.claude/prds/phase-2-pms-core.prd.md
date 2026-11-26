@@ -78,7 +78,7 @@ Targets are proposed and should be reviewed after the first pilot month.
 | 3 | Tax pack | Bills show correct PBJT and service charge for the property's region, in nett or ++ pricing | complete | `.claude/plans/phase-2-m3-tax-pack.plan.md` |
 | 4 | Guest ID | Staff capture and confirm KTP or passport details at check-in, with restricted access | complete | `.claude/plans/phase-2-m4-guest-id.plan.md` |
 | 5 | APOA reporting | Staff submit foreign guests from prepared data and can see what is reported or overdue | complete | `.claude/plans/phase-2-m5-apoa.plan.md` |
-| 6 | End of day | An operator closes the day and sees cash, shift totals and what still needs attention | pending | — |
+| 6 | End of day | An operator closes the day and sees cash, shift totals and what still needs attention | complete | `.claude/plans/phase-2-m6-end-of-day.plan.md` |
 | 7 | Housekeeping on phone | Housekeepers see their rooms and update status from a phone, and the front desk sees it at once | pending | — |
 | 8 | Maintenance and tax export | Staff report repairs that can block a room, and an owner exports the monthly tax summary | pending | — |
 

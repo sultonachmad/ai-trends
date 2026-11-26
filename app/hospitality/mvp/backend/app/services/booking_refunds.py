@@ -19,10 +19,14 @@ from app.services import calendar_dates as dates_of
 from app.services import tenant_audit
 from app.services.booking_holds import _lock_link_of
 from app.services.bookings import get_for_update, lock_property
+from app.services.cash_drawers import REFUND, cash_movement, drawer_for_entry
+from app.services.closed_days import ensure_open
 from app.services.payment_links import NEEDS_REFUND_FLAG
 from app.tenancy.context import TenantContext
+from app.tenancy.timezones import property_zone
 
 log = logging.getLogger(__name__)
+NOON = dt.time(12)  # a refund dated without a time is shown at midday
 
 ENTITY = "reservation"
 
@@ -81,6 +85,39 @@ async def _clear_payment_flags(
             session.add(payment)
 
 
+async def _ledger(
+    session: AsyncSession,
+    context: TenantContext,
+    prop: Property,
+    booking: Reservation,
+    request: RefundDoneRequest,
+) -> None:
+    """The refund as a cash movement: the cash book and daily totals see it, and what
+    the booking owes is not changed a second time."""
+    drawer_id = await drawer_for_entry(
+        session,
+        context,
+        prop,
+        method=request.method,
+        on=request.refunded_on,
+        cash_leaves_now=True,  # the cash comes out of today's drawer, whatever the date
+    )
+    on = dt.datetime.combine(request.refunded_on, NOON, tzinfo=property_zone(prop.timezone))
+    session.add(
+        cash_movement(
+            context,
+            prop,
+            amount=Decimal(request.amount),
+            method=request.method,
+            kind=REFUND,
+            on=on.astimezone(dt.UTC),
+            drawer_id=drawer_id,
+            reservation_id=booking.id,
+            reason=request.note or None,
+        )
+    )
+
+
 async def mark_refund_done(
     session: AsyncSession,
     context: TenantContext,
@@ -103,12 +140,15 @@ async def mark_refund_done(
     if refunded + Decimal(request.amount) > received:
         await session.rollback()
         raise RefundAmountError
+    await ensure_open(session, context, property_id, request.refunded_on)
+    await _ledger(session, context, prop, booking, request)
     done_at = dt.datetime.now(dt.UTC).isoformat()
     if link is not None:
         await _clear_payment_flags(session, context, link.id, done_at)
     record = {
         "amount": str(Decimal(request.amount)),
         "refunded_on": request.refunded_on.isoformat(),
+        "method": request.method,
         "note": request.note or None,
         "recorded_by": str(context.user_id),
         "recorded_at": done_at,
