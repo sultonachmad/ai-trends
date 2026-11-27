@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { shortDate } from "@/lib/booking-format";
 import type { HkTask } from "@/lib/housekeeping-api";
 import { isOpen, mainAction } from "@/lib/housekeeping-format";
@@ -70,6 +72,11 @@ export function TaskCard({
         <p className="text-sm text-destructive">
           {t("hk.problemShown", { kind: t(`hk.problem.${task.problem_kind}`) })}
           {task.problem_note && ` — ${task.problem_note}`}
+          {task.problem_kind === "repair" && (
+            <Link href="/maintenance" className="ml-2 underline">
+              {t("repair.title")}
+            </Link>
+          )}
         </p>
       )}
       {task.status === "failed_inspection" && task.notes && (

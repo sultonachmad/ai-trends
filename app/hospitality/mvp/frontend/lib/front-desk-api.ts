@@ -1,6 +1,7 @@
 /** Front desk calls (backend: app/routers/front_desk.py). */
 
 import type { HkProblem } from "@/lib/housekeeping-api";
+import type { MaintNotice } from "@/lib/maintenance-api";
 import { request } from "@/lib/api-client";
 
 export type EarlyChoice = "keep_price" | "nights_stayed";
@@ -64,6 +65,8 @@ export interface DeskToday {
   day_close: { unclosed: string | null };
   /** Housekeeping problems the desk has not dealt with yet. */
   problems: HkProblem[];
+  /** Urgent repairs and rooms off sale. */
+  maintenance: MaintNotice[];
   /** How often the page refreshes while open, in seconds. */
   poll_seconds: number;
 }

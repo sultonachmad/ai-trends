@@ -28,12 +28,12 @@ TOO_LARGE_DETAIL = "The upload is too large."
 BAD_LENGTH_DETAIL = "Invalid Content-Length"
 
 _UPLOAD_PATH = re.compile(
-    r"^/api/(?:pay/[^/]+/proofs|transfer-proofs|bookings/[^/]+/guests/scan)/?$"
+    r"^/api/(?:pay/[^/]+/proofs|transfer-proofs|bookings/[^/]+/guests/scan|maintenance)/?$"
 )
 
 
 def is_upload_path(path: str) -> bool:
-    """True for the routes that accept an image: transfer proofs and guest IDs."""
+    """True for the routes that accept an image: transfer proofs, guest IDs and repairs."""
     return _UPLOAD_PATH.fullmatch(path) is not None
 
 

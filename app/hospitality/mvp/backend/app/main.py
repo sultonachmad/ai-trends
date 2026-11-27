@@ -417,6 +417,8 @@ def create_app() -> FastAPI:
     from app.routers.cash_drawers import cash_drawers_router
     from app.routers.end_of_day import end_of_day_router
     from app.routers.housekeeping import housekeeping_router
+    from app.routers.maintenance import maintenance_router
+    from app.routers.tax_summary import tax_summary_router
     from app.routers.staff import join_router, staff_router
     from app.routers.bills import bills_router
     from app.routers.front_desk import front_desk_router
@@ -427,6 +429,8 @@ def create_app() -> FastAPI:
     app.include_router(cash_drawers_router)
     app.include_router(end_of_day_router)
     app.include_router(housekeeping_router)
+    app.include_router(maintenance_router)
+    app.include_router(tax_summary_router)
     app.include_router(staff_router)
     app.include_router(join_router)
     app.include_router(bills_router)

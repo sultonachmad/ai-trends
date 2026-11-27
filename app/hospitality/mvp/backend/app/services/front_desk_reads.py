@@ -217,8 +217,16 @@ async def read_today(
         apoa=await _apoa_counts(session, context, prop) if with_apoa else ApoaCounts(),
         day_close=DayCloseState(unclosed=await oldest_unclosed(session, context, prop, today)),
         problems=await _problems(session, context, prop),
+        maintenance=await _maintenance(session, context, prop),
         poll_seconds=resolve_property_settings(prop.settings).hk_poll_seconds,
     )
+
+
+async def _maintenance(session: AsyncSession, context: TenantContext, prop: Property) -> list:
+    # Imported here: maintenance reads build on room assignment, as this module does.
+    from app.services.maintenance_reads import notices
+
+    return await notices(session, context, prop)
 
 
 async def _problems(session: AsyncSession, context: TenantContext, prop: Property) -> list:

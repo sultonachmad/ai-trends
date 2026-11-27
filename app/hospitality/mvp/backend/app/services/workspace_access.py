@@ -145,8 +145,15 @@ STAFF_ROLE_CODES: dict[str, tuple[str, ...]] = {
         "proofs:view",
         "housekeeping:view",
         "housekeeping:edit",
+        "maintenance:view",
+        "maintenance:edit",
     ),
-    HOUSEKEEPER_ROLE: ("housekeeping:view", "housekeeping:edit"),
+    HOUSEKEEPER_ROLE: (
+        "housekeeping:view",
+        "housekeeping:edit",
+        "maintenance:view",
+        "maintenance:edit",
+    ),
 }
 STAFF_ROLES = (MANAGER_ROLE, FRONT_DESK_ROLE, HOUSEKEEPER_ROLE)
 

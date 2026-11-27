@@ -39,6 +39,7 @@ from app.services.front_desk_errors import FrontDeskError
 from app.services.housekeeping_board import read_board
 from app.services.housekeeping_errors import ClearPermissionError
 from app.services.housekeeping_tasks import sync_day
+from app.services.maintenance_blocks import refresh_blocks
 from app.services.unit_status import MOBILE, STAFF
 from app.services.workspace import find_property
 from app.tenancy.context import TenantContext, get_tenant_context
@@ -114,6 +115,7 @@ async def board(
 ) -> HkBoard:
     full = await _sees_all_guests(user, rbac_session)
     prop = await find_property(session, context)
+    await refresh_blocks(session, context, prop)  # rooms off sale start or end
     await sync_day(session, context, prop)
     return await read_board(session, context, prop, full_guests=full)
 

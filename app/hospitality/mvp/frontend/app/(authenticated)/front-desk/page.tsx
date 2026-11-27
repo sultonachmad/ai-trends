@@ -16,6 +16,7 @@ import {
   type DeskActionKind,
 } from "@/components/front-desk/DeskEntryCard";
 import { HousekeepingProblems } from "@/components/front-desk/HousekeepingProblems";
+import { RepairNotices } from "@/components/front-desk/RepairNotices";
 import { RoomsToday } from "@/components/front-desk/RoomsToday";
 import { StayChangeDialog } from "@/components/front-desk/StayChangeDialog";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -56,6 +57,7 @@ export default function FrontDeskPage() {
   const canCloseDays = useCan("endofday:view");
   const canEditRooms = useCan("housekeeping:edit");
   const canSuperviseRooms = useCan("housekeeping:manage");
+  const canSeeRepairs = useCan("maintenance:view");
   const canClearProblems = canEdit || canSuperviseRooms;
   const [hkBusy, setHkBusy] = useState(false);
   const [hkError, setHkError] = useState<string | null>(null);
@@ -204,6 +206,7 @@ export default function FrontDeskPage() {
           {hkError}
         </p>
       )}
+      {desk && <RepairNotices notices={desk.maintenance} canOpen={canSeeRepairs} />}
       {desk && (
         <HousekeepingProblems
           problems={desk.problems}

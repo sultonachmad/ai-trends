@@ -140,6 +140,28 @@ class WorkOrder(TenantEntity, table=True):
         CheckConstraint(
             "recharge_to IN ('none', 'owner', 'guest')", name="workorder_recharge_to_check"
         ),
+        ForeignKeyConstraint(
+            ["tenant_id", "task_id"],
+            ["task.tenant_id", "task.id"],
+            name="workorder_tenant_id_task_id_fkey",
+            ondelete="SET NULL (task_id)",
+        ),
+        CheckConstraint("unit_id IS NOT NULL OR place IS NOT NULL", name="workorder_where_check"),
+        Index("ix_workorder_recent", "tenant_id", "property_id", "created_at"),
+        Index(
+            "ix_workorder_unit",
+            "tenant_id",
+            "unit_id",
+            "created_at",
+            postgresql_where=text("unit_id IS NOT NULL"),
+        ),
+        Index(
+            "ux_workorder_task",
+            "tenant_id",
+            "task_id",
+            unique=True,
+            postgresql_where=text("task_id IS NOT NULL"),
+        ),
         Index(
             "ix_workorder_open",
             "tenant_id",
@@ -194,6 +216,10 @@ class WorkOrder(TenantEntity, table=True):
     preventive_schedule_id: UUID | None = Field(
         default=None, sa_type=Uuid, description="FK added below"
     )
+    place: str | None = Field(default=None, sa_type=Text)
+    status_note: str | None = Field(default=None, sa_type=Text)
+    vendor_name: str | None = Field(default=None, sa_type=Text)
+    task_id: UUID | None = Field(default=None, sa_type=Uuid)
 
 
 class WorkOrderCreate(SQLModel):
@@ -225,6 +251,10 @@ class WorkOrderCreate(SQLModel):
     recharge_to: WorkOrderRechargeTo = "none"
     photo_document_ids: list[UUID] = Field(default_factory=list)
     preventive_schedule_id: UUID | None = None
+    place: str | None = None
+    status_note: str | None = None
+    vendor_name: str | None = None
+    task_id: UUID | None = None
 
 
 class WorkOrderUpdate(SQLModel):
@@ -256,6 +286,10 @@ class WorkOrderUpdate(SQLModel):
     recharge_to: WorkOrderRechargeTo | None = None
     photo_document_ids: list[UUID] | None = None
     preventive_schedule_id: UUID | None = None
+    place: str | None = None
+    status_note: str | None = None
+    vendor_name: str | None = None
+    task_id: UUID | None = None
 
 
 class WorkOrderRead(SQLModel):
@@ -289,6 +323,10 @@ class WorkOrderRead(SQLModel):
     recharge_to: str
     photo_document_ids: list[UUID]
     preventive_schedule_id: UUID | None
+    place: str | None
+    status_note: str | None
+    vendor_name: str | None
+    task_id: UUID | None
     created_at: dt.datetime
     updated_at: dt.datetime
     created_by: str | None

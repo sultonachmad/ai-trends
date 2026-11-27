@@ -149,7 +149,12 @@ async def report_problem(
     *,
     can_manage: bool,
 ) -> Task:
-    """Something stops the cleaning. Do not disturb and refused end it for today."""
+    """Something stops the cleaning. Do not disturb and refused end it for today.
+
+    "Needs repair" adds a repair request, whose row needs the property: the property lock
+    is taken first then, in the same order as the task sync (property, then tasks)."""
+    if request.kind == "repair":
+        await lock_property(session, context, prop.id)
     task = await locked_task(session, context, prop, task_id)
     _claim(task, my_staff_id(context), can_manage)
     if request.kind in GUEST_SAID_NO:
@@ -162,6 +167,10 @@ async def report_problem(
     task.problem_kind, task.problem_note = request.kind, request.note
     task.problem_at, task.problem_by = dt.datetime.now(dt.UTC), str(context.user_id)
     task.problem_cleared_at = task.problem_cleared_by = None
+    if request.kind == "repair":  # it becomes a repair request, reported once per task
+        from app.services.maintenance import from_cleaning
+
+        await from_cleaning(session, context, task, request.note)
     log.info("Housekeeping problem task=%s kind=%s", task.id, request.kind)
     return await _done(session, task, str(context.user_id))
 

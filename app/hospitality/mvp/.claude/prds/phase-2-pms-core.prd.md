@@ -80,7 +80,7 @@ Targets are proposed and should be reviewed after the first pilot month.
 | 5 | APOA reporting | Staff submit foreign guests from prepared data and can see what is reported or overdue | complete | `.claude/plans/phase-2-m5-apoa.plan.md` |
 | 6 | End of day | An operator closes the day and sees cash, shift totals and what still needs attention | complete | `.claude/plans/phase-2-m6-end-of-day.plan.md` |
 | 7 | Housekeeping on phone | Housekeepers see their rooms and update status from a phone, and the front desk sees it at once | complete | `.claude/plans/phase-2-m7-housekeeping.plan.md` |
-| 8 | Maintenance and tax export | Staff report repairs that can block a room, and an owner exports the monthly tax summary | pending | — |
+| 8 | Maintenance and tax export | Staff report repairs that can block a room, and an owner exports the monthly tax summary | complete | `.claude/plans/phase-2-m8-maintenance-tax-export.plan.md` |
 
 ## Open Questions
 

@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from app.schemas.apoa import ApoaCounts
 from app.schemas.end_of_day import DayCloseState
 from app.schemas.housekeeping import HkProblem
+from app.schemas.maintenance import MaintNotice
 
 UndoReason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=300)]
 EarlyChoice = Literal["keep_price", "nights_stayed"]
@@ -70,6 +71,7 @@ class FrontDeskToday(BaseModel):
     apoa: ApoaCounts = ApoaCounts()  # foreign guests due or overdue in APOA
     day_close: DayCloseState = DayCloseState()  # the oldest past day still open
     problems: list[HkProblem] = []  # housekeeping problems the desk has not dealt with
+    maintenance: list[MaintNotice] = []  # urgent repairs and rooms off sale
     poll_seconds: int = 15  # how often the page refreshes while open
 
 

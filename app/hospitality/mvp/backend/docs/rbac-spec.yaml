@@ -57,12 +57,12 @@ roles:
   front_desk:
     description: >
       Front desk staff: bookings, front desk, bills, guest IDs, APOA, inbox, the
-      day's summary, and room cleaning status.
+      day's summary, room cleaning status, and reporting repairs.
 
   housekeeper:
     description: >
-      Housekeepers: the rooms board and their cleaning tasks (housekeeping:view,
-      housekeeping:edit).
+      Housekeepers: the rooms board and their cleaning tasks, and reporting repairs
+      (housekeeping:view/edit, maintenance:view/edit).
 
 
 # ── Permissions (Capabilities) ───────────────────────────────────────────────
@@ -121,6 +121,10 @@ permissions:
   "housekeeping:view": "See the rooms board and cleaning tasks"
   "housekeeping:edit": "Work cleaning tasks and change a room's cleaning status"
   "housekeeping:manage": "Assign and inspect rooms, and set housekeeping rules"
+  "maintenance:view":  "See repair requests and rooms off sale"
+  "maintenance:edit":  "Report repairs and work the ones given to you"
+  "maintenance:manage": "Give repairs to people, cancel them and take rooms off sale"
+  "taxes:view":        "See and download the monthly tax summary"
   "staff:view":        "See the team and open join links"
   "staff:edit":        "Invite staff, change their role and remove them"
 
@@ -301,6 +305,13 @@ menus:
         permission: reports:view
         order: 1
         active: true
+      # Service charge and PBJT of a month, with spreadsheet files. taxes:view.
+      - name: Monthly tax
+        path: /tax-summary
+        icon: chart
+        permission: taxes:view
+        order: 2
+        active: true
 
 
   - name: Housekeeping
@@ -314,6 +325,13 @@ menus:
         icon: home
         permission: housekeeping:view
         order: 1
+        active: true
+      # Repair requests and rooms off sale. maintenance:view / edit / manage.
+      - name: Repairs
+        path: /maintenance
+        icon: settings
+        permission: maintenance:view
+        order: 2
         active: true
 
   - name: Property

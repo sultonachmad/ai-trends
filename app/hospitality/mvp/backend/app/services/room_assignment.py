@@ -18,6 +18,7 @@ from app.services.bookings import (
     lock_property,
     occupied_unit_ids,
 )
+from app.services.room_blocks import blocked_unit_ids
 from app.services.stay_status import CONFIRMED, IN_HOUSE
 from app.services.unit_status import (
     DIRTY,
@@ -64,11 +65,14 @@ async def free_rooms(
     taken = await occupied_unit_ids(
         session, context, [unit.id for unit in units], first.start_at, first.blocked_until
     )
+    off_sale = await blocked_unit_ids(
+        session, context, [unit.id for unit in units], first.start_at, first.blocked_until
+    )
     in_house = first.status == IN_HOUSE
     free = [
         unit
         for unit in units
-        if unit.id not in taken and not (in_house and unit.fo_status == OCCUPIED)
+        if unit.id not in taken | off_sale and not (in_house and unit.fo_status == OCCUPIED)
     ]
     ready_when = resolve_property_settings(prop.settings).hk_ready_when
     ordered = sorted(free, key=lambda unit: (not is_ready(unit, ready_when), unit.sort_order))
@@ -183,6 +187,10 @@ async def assign_room(
             session, context, [request.unit_id], line.start_at, line.blocked_until
         ):
             raise errors.RoomTakenError([room_name(target)])
+        if await blocked_unit_ids(
+            session, context, [request.unit_id], line.start_at, line.blocked_until
+        ):
+            raise errors.RoomOutOfOrderError([room_name(target)])
     if line.status == IN_HOUSE:
         set_unit_status(session, context, previous, fo=VACANT, hk=DIRTY)
         set_unit_status(session, context, units[request.unit_id], fo=OCCUPIED)

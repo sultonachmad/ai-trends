@@ -2330,6 +2330,10 @@ CREATE TABLE workorder (
   recharge_to            text NOT NULL DEFAULT 'none' CHECK (recharge_to IN ('none','owner','guest')),
   photo_document_ids     uuid[] NOT NULL DEFAULT '{}',
   preventive_schedule_id uuid,                        -- FK added below
+  place                  text,                        -- a place that is not a room
+  status_note            text,                        -- why it waits / was cancelled / what was done
+  vendor_name            text,                        -- an outside repairer, as text
+  task_id                uuid,                        -- the cleaning task it was reported from
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   created_by text, updated_by text,
@@ -2345,6 +2349,12 @@ CREATE TABLE workorder (
   FOREIGN KEY (tenant_id, vendor_id) REFERENCES vendor (tenant_id, id) ON DELETE SET NULL (vendor_id)
 );
 CREATE INDEX ix_workorder_open ON workorder (tenant_id, property_id, status) WHERE status NOT IN ('verified','cancelled');
+ALTER TABLE workorder ADD FOREIGN KEY (tenant_id, task_id) REFERENCES task (tenant_id, id) ON DELETE SET NULL (task_id);
+ALTER TABLE workorder ADD CONSTRAINT workorder_where_check CHECK (unit_id IS NOT NULL OR place IS NOT NULL);
+CREATE INDEX ix_workorder_recent ON workorder (tenant_id, property_id, created_at);
+CREATE INDEX ix_workorder_unit ON workorder (tenant_id, unit_id, created_at) WHERE unit_id IS NOT NULL;
+CREATE UNIQUE INDEX ux_workorder_task ON workorder (tenant_id, task_id) WHERE task_id IS NOT NULL;
+CREATE INDEX ix_unitblock_work_order ON unitblock (tenant_id, work_order_id) WHERE work_order_id IS NOT NULL;
 
 CREATE TABLE preventiveschedule (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -37,6 +37,7 @@ from app.services.guest_id_reads import main_guest_ready
 from app.services.id_retention import stay_ended
 from app.services.receipts import issue_receipt
 from app.services.room_assignment import _locked_units, room_name
+from app.services.room_blocks import blocked_unit_ids
 from app.services.stay_changes import shorten_stay
 from app.services.stay_status import (
     CHECKED_OUT,
@@ -145,6 +146,15 @@ async def check_in(
     units = await _locked_units(session, context, [line.unit_id for line in lines])
     ready_when = resolve_property_settings(prop.settings).hk_ready_when
     _check_rooms(lines, units, request.accept_not_ready, ready_when)
+    off_sale = await blocked_unit_ids(
+        session,
+        context,
+        list(units),
+        min(line.start_at for line in lines),
+        max(line.blocked_until for line in lines),
+    )
+    if off_sale:
+        raise errors.RoomOutOfOrderError([room_name(units[unit_id]) for unit_id in off_sale])
     payload = await _id_check(session, context, booking, lines, today, request.no_id_reason)
     now = dt.datetime.now(dt.UTC)
     for line in lines:

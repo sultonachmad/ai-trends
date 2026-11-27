@@ -98,7 +98,7 @@ async def test_the_owner_who_creates_the_workspace_is_manager(pg_client, pg_sess
     ).scalar_one()
 
     assert roles == ["manager"]
-    assert int(granted) == 34  # every application permission
+    assert int(granted) == 38  # every application permission
 
 
 async def test_a_member_without_configured_access_sees_and_does_nothing(

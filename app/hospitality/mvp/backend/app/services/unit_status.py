@@ -20,6 +20,7 @@ INSPECTED = "inspected"
 READY = (CLEAN, INSPECTED)
 STAFF, MOBILE = "staff", "mobile"
 OUT_OF_ORDER = "out_of_order"
+IN_SERVICE = "in_service"
 
 
 def is_ready(unit: Unit, ready_when: str = CLEAN) -> bool:
@@ -62,6 +63,7 @@ def set_unit_status(
     *,
     fo: str | None = None,
     hk: str | None = None,
+    service: str | None = None,
     source: str = STAFF,
     task_id: UUID | None = None,
 ) -> None:
@@ -74,4 +76,17 @@ def set_unit_status(
         _log(session, context, unit, "hk_status", unit.hk_status, hk, now, source, task_id)
         unit.hk_status = hk
         unit.hk_status_changed_at = now
+    if service is not None and service != unit.service_status:
+        _log(
+            session,
+            context,
+            unit,
+            "service_status",
+            unit.service_status,
+            service,
+            now,
+            source,
+            task_id,
+        )
+        unit.service_status = service
     session.add(unit)

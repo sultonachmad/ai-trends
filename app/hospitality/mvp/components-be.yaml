@@ -889,6 +889,13 @@ api_routers:
   file: backend/app/routers/housekeeping.py
   description: /api/housekeeping board, task start/done/take/problem/clear-problem, assign/inspect/split
     (housekeeping:manage), room status by hand, clean request, rules, big buttons
+- name: maintenance
+  file: backend/app/routers/maintenance.py
+  description: /api/maintenance board, report with photo, start/wait/fix (edit, own or free), assign,
+    cancel, off-sale and on-sale (maintenance:manage), photo
+- name: tax_summary
+  file: backend/app/routers/tax_summary.py
+  description: /api/tax-summary/{YYYY-MM} by day and booking, days.csv and bookings.csv (taxes:view)
 - name: staff
   file: backend/app/routers/staff.py
   description: /api/staff team, join links, role and removal (staff:view, staff:edit); /api/join/{token}
@@ -1190,6 +1197,27 @@ services:
 - name: housekeeping_errors
   file: backend/app/services/housekeeping_errors.py
   description: Stable refusal codes for housekeeping and staff actions
+- name: maintenance
+  file: backend/app/services/maintenance.py
+  description: Repair requests - report (numbered per property), from cleaning, start, wait, fix with
+    cost, cancel, assign to staff or an outside repairer
+- name: maintenance_blocks
+  file: backend/app/services/maintenance_blocks.py
+  description: Room off sale for chosen nights (unit block, inventory blocked, channels told, out of
+    order), back on sale needing a clean, start and end of blocks on board reads
+- name: maintenance_reads
+  file: backend/app/services/maintenance_reads.py
+  description: Repairs board, front desk notices, repair photo store and read
+- name: room_blocks
+  file: backend/app/services/room_blocks.py
+  description: Rooms off sale for a time (room assignment and check-in refuse them); block night window
+- name: tax_summary
+  file: backend/app/services/tax_summary.py
+  description: A month's service charge and PBJT by day and booking, as the bills split them; channel
+    bookings apart; closed-day draft state
+- name: tax_export
+  file: backend/app/services/tax_export.py
+  description: Monthly tax files by day and by booking (formula-safe, BOM, notes), export in the history
 - name: staff_invites
   file: backend/app/services/staff_invites.py
   description: Join links (hashed token, one use, 7 days, invited email only), preview and joining
@@ -1379,6 +1407,9 @@ utilities_backend:
   file: backend/app/routers/channel_simulator.py
   description: 'DEV ONLY: place and change a booking on the simulated agency (channels:edit)'
 schemas:
+- name: maintenance and tax schemas
+  file: backend/app/schemas/maintenance.py, tax_summary.py
+  description: MaintBoard/MaintRequest/MaintNotice and step requests; TaxMonth/TaxDay/TaxBooking/TaxAmounts
 - name: housekeeping and staff schemas
   file: backend/app/schemas/housekeeping.py, staff.py
   description: HkBoard/HkTask/HkRoom/HkProblem and action requests; InviteRequest, TeamRead, JoinPreview
@@ -1469,3 +1500,7 @@ migrations:
   file: backend/migrations/versions/0020_housekeeping.py
   description: Problem columns on task, one live task per room, kind and day, open problems index, invitation
     display name and tenant index
+- name: 0021_maintenance
+  file: backend/migrations/versions/0021_maintenance.py
+  description: Repair request place, step note, outside repairer and cleaning task link; indexes by room,
+    task and block request

@@ -16,6 +16,7 @@ from sqlalchemy import (
     Column,
     Computed,
     ForeignKeyConstraint,
+    Index,
     Text,
     UniqueConstraint,
     Uuid,
@@ -86,6 +87,12 @@ class UnitBlock(TenantEntity, table=True):
             using="gist",
             name="ex_unitblock_no_overlap",
             where=text("(status = 'active'::text)"),
+        ),
+        Index(
+            "ix_unitblock_work_order",
+            "tenant_id",
+            "work_order_id",
+            postgresql_where=text("work_order_id IS NOT NULL"),
         ),
         MIGRATION_ONLY,
     )

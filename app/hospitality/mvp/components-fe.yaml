@@ -228,6 +228,24 @@ components:
 - name: TeamList
   path: frontend/components/staff/TeamList.tsx
   description: Team members with role and remove, and join links not used yet
+- name: RepairCard
+  path: frontend/components/maintenance/RepairCard.tsx
+  description: One repair - where, what, photo, steps, give to someone, off sale and back
+- name: ReportForm
+  path: frontend/components/maintenance/ReportForm.tsx
+  description: Report a repair - room or place, category, urgent, description, camera photo
+- name: NoteDialog
+  path: frontend/components/maintenance/NoteDialog.tsx
+  description: Note for waiting, fixed (with cost) or cancelled
+- name: OffSaleDialog
+  path: frontend/components/maintenance/OffSaleDialog.tsx
+  description: Choose the nights a room is off sale
+- name: RepairNotices
+  path: frontend/components/front-desk/RepairNotices.tsx
+  description: Urgent repairs and rooms off sale on the front desk
+- name: TaxMonthView
+  path: frontend/components/reports/TaxMonthView.tsx
+  description: A month's tax due, revenue before tax, channel part and days
 - name: CashDrawerDialog
   path: frontend/components/cash-drawer/CashDrawerDialog.tsx
   description: Your cash drawer - open with float, paid-outs, count and close with a note
@@ -268,6 +286,12 @@ pages:
 - name: JoinPage
   path: frontend/app/join/[token]/page.tsx
   description: Public join link landing - what it is for, sign in, join
+- name: MaintenancePage
+  path: frontend/app/(authenticated)/maintenance/page.tsx
+  description: Repairs - report, for me and all, steps, off sale; maintenance:view
+- name: TaxSummaryPage
+  path: frontend/app/(authenticated)/tax-summary/page.tsx
+  description: Monthly tax - month picker, draft state, totals, by day, downloads; taxes:view
 - name: ApoaPage
   path: frontend/app/(authenticated)/apoa/page.tsx
   description: Foreign guests (APOA) - to report, to check out, done, unlisted guests, register
@@ -510,6 +534,15 @@ utilities:
 - name: staff-api
   path: frontend/lib/staff-api.ts
   description: Calls the /api/staff and /api/join routes
+- name: maintenance-api
+  path: frontend/lib/maintenance-api.ts
+  description: Calls the /api/maintenance routes (photo upload as a form)
+- name: maintenance-format
+  path: frontend/lib/maintenance-format.ts
+  description: Repair order, next steps, off-sale night checks, cost parsing, refusals, months
+- name: tax-summary-api
+  path: frontend/lib/tax-summary-api.ts
+  description: Calls the /api/tax-summary routes and downloads
 - name: apoa-api
   path: frontend/lib/apoa-api.ts
   description: Calls the /api/apoa routes
